@@ -1,39 +1,43 @@
-1: name: Submit Manifest to Flathub Submissions Queue
-2:
-3: on:
-4: workflow_dispatch:
-5: inputs:
-6: target_repo:
-7: description: 'Target Flathub submission repository'
-8: required: true
-9: default: 'flathub/flathub'
-10:
-11: jobs:
-12: submit-flathub:
-13: name: Create Flathub Submission Pull Request
-14: runs-on: ubuntu-latest
-15: permissions:
-16: contents: write
-17: pull-requests: write
-18: steps:
-19: - name: Checkout Code
-20: uses: actions/checkout@v4
-21:
-22: - name: Install GitHub CLI & Flatpak Tools
-23: run: |
-24: sudo apt-get update
-25: sudo apt-get install -y gh flatpak
-26:
-27: - name: Validate Manifest Syntax
-28: run: |
-29: echo "Validating Flatpak manifest for io.github.MDIsmatullah.CuteCutPro..."
-30: cat io.github.MDIsmatullah.CuteCutPro.yaml
-31:
-32: - name: Create Flathub Submission Pull Request
-33: run: |
-34: chmod +x scripts/submit-flathub-pr.sh
-35: WORKSPACE_ROOT=$GITHUB_WORKSPACE ./scripts/submit-flathub-pr.sh
-36: env:
-37: GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
-38: GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
-39:
+name: Submit Manifest to Flathub Submissions Queue
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: 'Target Flathub submission repository'
+        required: true
+        default: 'flathub/flathub'
+
+jobs:
+  submit-flathub:
+    name: Create Flathub Submission Pull Request
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install GitHub CLI & Flatpak Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh flatpak
+
+      - name: Validate Flatpak Manifest Syntax
+        run: |
+          echo "Validating Flatpak manifest..."
+          cat org.guldasta.cutecutpro.yaml
+          cat org.guldasta.cutecutpro.metainfo.xml
+          cat org.guldasta.cutecutpro.desktop
+
+      - name: Run Flathub Submission & PR Creation
+        run: |
+          chmod +x scripts/submit-flathub-pr.sh
+          WORKSPACE_ROOT="$GITHUB_WORKSPACE" ./scripts/submit-flathub-pr.sh
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+
