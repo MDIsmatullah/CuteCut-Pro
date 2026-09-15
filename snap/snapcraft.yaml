@@ -14,7 +14,19 @@ apps:
   cutecut-pro:
     command: cutecut-pro --no-sandbox --disable-gpu-sandbox --ozone-platform-hint=auto
     extensions: [gnome]
-    plugs: [desktop, desktop-legacy, wayland, x11, opengl, audio-playback, home]
+    plugs:
+      - desktop
+      - desktop-legacy
+      - wayland
+      - x11
+      - opengl
+      - audio-playback
+      - audio-record
+      - pulseaudio
+      - alsa
+      - home
+      - network
+      - network-bind
 
 parts:
   desktop-gtk3:
@@ -29,5 +41,9 @@ parts:
       - libgtk-3-0
       - libgbm1
       - libasound2
+      - libasound2-plugins
+      - libpulse0
+      - libpulse-mainloop-glib0
+      - libpipewire-0.3-0
       - desktop-file-utils
       - shared-mime-info

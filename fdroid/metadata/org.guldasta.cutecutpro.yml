@@ -1,0 +1,41 @@
+Categories:
+  - Multimedia
+  - Video
+License: MIT
+AuthorName: Asmatullah Developer
+AuthorEmail: asmatullahdevolper@gmail.com
+SourceCode: https://github.com/MDIsmatullah/CuteCut-Pro
+IssueTracker: https://github.com/MDIsmatullah/CuteCut-Pro/issues
+Changelog: https://github.com/MDIsmatullah/CuteCut-Pro/releases
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 2.3.10
+CurrentVersionCode: 100
+
+Name: CuteCut Pro
+Summary: Professional multitrack video editor with Quranic audio-to-text synchronization
+Description: |-
+  CuteCut Pro is a powerful, offline-first multi-track video editing suite tailored for high-speed timeline editing, real-time FFmpeg processing, dynamic audio frequency waveforms, and dedicated Quranic recitation-to-text synchronization.
+
+  Features:
+  * Multi-layer video, audio, image, and text track editing
+  * Real-time audio frequency waveforms with customizable visual styles
+  * Complete 114 Quranic Surahs with Hafs Uthmanic v14 typography
+  * Dual-language subtitle tracks with automatic verse synchronization
+  * Offline-first indexed media engine
+
+RepoType: git
+Repo: https://github.com/MDIsmatullah/CuteCut-Pro.git
+
+Builds:
+  - versionName: 2.3.10
+    versionCode: 100
+    commit: v2.3.10
+    subdir: android/app
+    gradle:
+      - yes
+    prebuild:
+      - npm ci
+      - npm run build
+      - npx cap sync android

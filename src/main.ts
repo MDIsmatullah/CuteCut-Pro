@@ -22,8 +22,10 @@ if (process.platform === 'linux') {
   app.commandLine.appendSwitch('disable-dev-shm-usage');
   app.commandLine.appendSwitch('ignore-gpu-blocklist');
   app.commandLine.appendSwitch('enable-gpu-rasterization');
+  // Linux Audio & Sandbox configurations (supports Snap confinement, PulseAudio, PipeWire, ALSA)
   app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox');
-  app.commandLine.appendSwitch('alsa-output-device', 'default');
+  app.commandLine.appendSwitch('enable-features', 'PulseaudioLoopback,VaapiVideoDecoder,UseOzonePlatform');
+  app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
   const xdgRuntime = process.env.XDG_RUNTIME_DIR;
   const waylandDisplay = process.env.WAYLAND_DISPLAY;
