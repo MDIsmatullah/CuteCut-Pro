@@ -1,0 +1,36 @@
+name: Submit to Homebrew Cask (macOS)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  submit-homebrew:
+    name: Create Homebrew Cask Package PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+
+      - name: Validate Homebrew Cask Manifest
+        run: |
+          echo "Validating Homebrew Cask file..."
+          cat homebrew/Casks/c/cutecut-pro.rb
+
+      - name: Run Homebrew Automated Submission
+        run: |
+          chmod +x scripts/submit-homebrew-pr.sh
+          WORKSPACE_ROOT="$GITHUB_WORKSPACE" ./scripts/submit-homebrew-pr.sh
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.FLATHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.FLATHUB_TOKEN || secrets.GITHUB_TOKEN }}
