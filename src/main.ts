@@ -14,7 +14,7 @@ app.commandLine.appendSwitch('allow-running-insecure-content');
 app.commandLine.appendSwitch('ignore-certificate-errors');
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-// Safe GPU acceleration & Linux sandboxing (avoids Linux X11/Wayland/Snap launch crashes)
+// Safe GPU acceleration & Linux sandboxing (avoids Linux X11/Wayland/Snap launch crashes & fixes audio)
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('no-sandbox');
   app.commandLine.appendSwitch('disable-setuid-sandbox');
@@ -22,17 +22,19 @@ if (process.platform === 'linux') {
   app.commandLine.appendSwitch('disable-dev-shm-usage');
   app.commandLine.appendSwitch('ignore-gpu-blocklist');
   app.commandLine.appendSwitch('enable-gpu-rasterization');
-  // Linux Audio & Sandbox configurations (supports Snap confinement, PulseAudio, PipeWire, ALSA)
-  app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox');
+  
+  // Comprehensive Linux Audio Configuration (Snap confinement, PulseAudio, PipeWire, ALSA)
+  app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox,AudioServiceOutOfProcess');
   app.commandLine.appendSwitch('enable-features', 'PulseaudioLoopback,VaapiVideoDecoder,UseOzonePlatform');
   app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+  app.commandLine.appendSwitch('enable-audio-service-sandbox', 'false');
+  app.commandLine.appendSwitch('try-supported-channel-layouts');
 
   const xdgRuntime = process.env.XDG_RUNTIME_DIR;
   const waylandDisplay = process.env.WAYLAND_DISPLAY;
   const isWaylandAvailable = !!(xdgRuntime && waylandDisplay && fs.existsSync(path.join(xdgRuntime, waylandDisplay)));
 
   if (isWaylandAvailable) {
-    app.commandLine.appendSwitch('enable-features', 'VaapiVideoDecoder,UseOzonePlatform');
     app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
   } else {
     app.commandLine.appendSwitch('ozone-platform', 'x11');

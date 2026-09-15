@@ -27,6 +27,11 @@ const templatePatch = `const launcherScript = '#!/bin/bash\\n' +
           'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
           '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/../pulse/native"\\n' +
           'fi\\n' +
+          'if [ -e "/run/user/$REAL_UID/pipewire-0" ]; then\\n' +
+          '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"\\n' +
+          'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/pipewire-0" ]; then\\n' +
+          '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR"\\n' +
+          'fi\\n' +
           'if [ -d "/snap/gnome-42-2204/current/usr/share/alsa" ]; then\\n' +
           '  export ALSA_CONFIG_PATH="/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf"\\n' +
           'elif [ -f "/usr/share/alsa/alsa.conf" ]; then\\n' +
@@ -39,7 +44,7 @@ const templatePatch = `const launcherScript = '#!/bin/bash\\n' +
           '  export GDK_BACKEND="x11"\\n' +
           '  PLATFORM_FLAGS="--ozone-platform=x11"\\n' +
           'fi\\n' +
-          'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage $PLATFORM_FLAGS "$@"\\n';
+          'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-features=AudioServiceSandbox,AudioServiceOutOfProcess $PLATFORM_FLAGS "$@"\\n';
         await (0, promises_1.writeFile)(path.join(templateDir, "command.sh"), launcherScript, { mode: 0o755 });
         const fsSync = require('fs');
         const pathSync = require('path');
@@ -116,6 +121,11 @@ if (content.includes(targetFunc)) {
       'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
       '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/../pulse/native"\\n' +
       'fi\\n' +
+      'if [ -e "/run/user/$REAL_UID/pipewire-0" ]; then\\n' +
+      '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"\\n' +
+      'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/pipewire-0" ]; then\\n' +
+      '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR"\\n' +
+      'fi\\n' +
       'if [ -d "/snap/gnome-42-2204/current/usr/share/alsa" ]; then\\n' +
       '  export ALSA_CONFIG_PATH="/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf"\\n' +
       'elif [ -f "/usr/share/alsa/alsa.conf" ]; then\\n' +
@@ -128,7 +138,7 @@ if (content.includes(targetFunc)) {
       '  export GDK_BACKEND="x11"\\n' +
       '  PLATFORM_FLAGS="--ozone-platform=x11"\\n' +
       'fi\\n' +
-      'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage $PLATFORM_FLAGS "$@"\\n';
+      'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-features=AudioServiceSandbox,AudioServiceOutOfProcess $PLATFORM_FLAGS "$@"\\n';
 }
 //# sourceMappingURL=coreLegacy.js.map`;
   content = prefix + newFunc;
