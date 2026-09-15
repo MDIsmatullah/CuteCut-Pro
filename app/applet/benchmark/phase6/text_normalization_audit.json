@@ -1,0 +1,83 @@
+{
+  "normalization_meta": {
+    "normalization_algorithm": "Reversible Quran Graphemic Normalizer (RQGN)",
+    "purpose": "Simplifies complex Uthmani script diacritics and Tajweed marks to match generic Wav2Vec2 vocabulary characters, while maintaining strict offset mapping back to canonical text.",
+    "is_reversible": true
+  },
+  "character_substitution_table": {
+    "alif_variants": {
+      "آ (Alif Madda)": "ا (Alif)",
+      "أ (Alif Hamza Above)": "ا (Alif)",
+      "إ (Alif Hamza Below)": "ا (Alif)",
+      "ٱ (Alif Wasla)": "ا (Alif)"
+    },
+    "feminine_endings": {
+      "ة (Ta Marbouta)": "ه (Ha)"
+    },
+    "alif_maqsura": {
+      "ى (Alif Maqsura)": "ا (Alif)"
+    },
+    "hamza_variations": {
+      "ؤ (Waw Hamza Above)": "ء (Hamza)",
+      "ئ (Ya Hamza Above)": "ء (Hamza)"
+    }
+  },
+  "ignored_features_table": {
+    "diacritics": ["\u064B (Fathatayn)", "\u064C (Dammatayn)", "\u064D (Kasratayn)", "\u064E (Fatha)", "\u064F (Damma)", "\u0650 (Kasra)", "\u0652 (Sukun)"],
+    "shadda": ["\u0651 (Shadda)"],
+    "dagger_alif": ["\u0670 (Alif Khanjariyah / Dagger Alif)"],
+    "waqf_marks": ["\u06D6 (Waqf Sali)", "\u06D7 (Waqf Qali)", "\u06D8 (Waqf Jaiz)", "\u06D9 (Waqf La)", "\u06DA (Waqf Ma'm)", "\u06DB (Waqf Mu'anaqah)"],
+    "madd_symbols": ["\u0653 (Maddah Above)"],
+    "tatweel_kashida": ["\u0640 (Tatweel)"]
+  },
+  "example_reversibility_proof": {
+    "canonical_uthmani": "تَبَٰرَكَ ٱلَّذِى بِيَدِهِ ٱلْمُلْكُ",
+    "normalized_text": "تبارك الذى بيده الملك",
+    "mappings": [
+      {
+        "normalized_char": "ت",
+        "canonical_word_idx": 0,
+        "canonical_word": "تَبَٰرَكَ",
+        "char_in_word_idx": 0
+      },
+      {
+        "normalized_char": "ب",
+        "canonical_word_idx": 0,
+        "canonical_word": "تَبَٰرَكَ",
+        "char_in_word_idx": 1
+      },
+      {
+        "normalized_char": "ا",
+        "canonical_word_idx": 0,
+        "canonical_word": "تَبَٰرَكَ",
+        "char_in_word_idx": 3,
+        "explanation": "Derived from skipped dagger Alif mapping"
+      },
+      {
+        "normalized_char": "ر",
+        "canonical_word_idx": 0,
+        "canonical_word": "تَبَٰرَكَ",
+        "char_in_word_idx": 4
+      },
+      {
+        "normalized_char": "ك",
+        "canonical_word_idx": 0,
+        "canonical_word": "تَبَٰرَكَ",
+        "char_in_word_idx": 5
+      },
+      {
+        "normalized_char": " ",
+        "canonical_word_idx": -1,
+        "canonical_word": " ",
+        "char_in_word_idx": -1
+      },
+      {
+        "normalized_char": "ا",
+        "canonical_word_idx": 1,
+        "canonical_word": "ٱلَّذِى",
+        "char_in_word_idx": 0,
+        "explanation": "Alif Wasla substituted to standard Alif"
+      }
+    ]
+  }
+}

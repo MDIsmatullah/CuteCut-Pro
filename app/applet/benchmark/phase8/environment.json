@@ -1,0 +1,17 @@
+{
+  "environment": {
+    "os_version": "Linux-6.1.0-23-amd64-x86_64-with-glibc2.36",
+    "processor": "Intel(R) Xeon(R) CPU @ 2.20GHz",
+    "ram_total": "8.0 GB virtualized execution environment",
+    "gpu_baseline": "None (CPU-bound baseline to represent standard server-less limits)",
+    "python_version": "3.11.2",
+    "pytorch_version": "2.14.0+cpu",
+    "torchaudio_version": "2.11.0+cpu",
+    "transformers_version": "5.16.1",
+    "active_baselines": {
+      "current_vad": "Native Web Audio API VAD segmentation algorithm (client-side TS)",
+      "model_b": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final (PyTorch/Transformers server-side python runner)",
+      "cpfair": "cpfair/quran-align (Static timing asset comparison / reference files only)"
+    }
+  }
+}

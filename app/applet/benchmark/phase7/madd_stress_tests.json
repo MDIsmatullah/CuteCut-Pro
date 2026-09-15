@@ -1,0 +1,16 @@
+{
+  "project": "cpfair/quran-align Madd & Mujawwad Stress Tests",
+  "theoretical_vowel_modeling": {
+    "architecture": "GMM-HMM (PocketSphinx)",
+    "madd_handling_mechanism": "HMM self-transition states allow the vowel phoneme node to repeat indefinitely during sustained vocalic sounds. This prevents the CTC blank-lock collapse where probabilities decay into pad tokens.",
+    "status": "NOT PROVEN ON FRESH AUDIO (Code unrunnable), but highly plausible based on pre-generated timing JSON files for Abdul Basit (Mujawwad)."
+  },
+  "mujawwad_behavior_analysis": {
+    "reciter": "Abdul Basit (Mujawwad)",
+    "surah_67_status": "Pre-generated timing JSON files exist, but inspection of segments shows syllable boundary blurring during highly ornamented sections. PocketSphinx's acoustic model struggles with complex melisma, leading to state deletion errors where fast syllables are swallowed by adjacent elongated vowels."
+  },
+  "hadr_behavior_analysis": {
+    "reciter": "Saood ash-Shuraym (Hadr)",
+    "status": "Precompiled files indicate successful alignment. Since the input is pre-segmented into verse WAVs, the fast connected pacing doesn't accumulate boundary error across verses."
+  }
+}

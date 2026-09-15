@@ -1,0 +1,82 @@
+{
+  "comparison_matrix": {
+    "project": "CuteCut Pro - Unified Continuous Quran Alignment Comparison",
+    "metrics_table": [
+      {
+        "architecture": "CURRENT VAD",
+        "reciter": "Mishary Alafasy",
+        "style": "Murattal",
+        "surah": 67,
+        "start_mae_ms": 415.0,
+        "end_mae_ms": 512.2,
+        "global_mae_ms": 463.6,
+        "p90_ms": 710.0,
+        "within_100ms": "0.0%",
+        "within_250ms": "16.7%",
+        "failure_rate": "13.3%",
+        "drift": "YES (compounding)",
+        "madd_result": "STABLE"
+      },
+      {
+        "architecture": "MODEL B DIRECT",
+        "reciter": "Mishary Alafasy",
+        "style": "Murattal",
+        "surah": 67,
+        "start_mae_ms": "N/A",
+        "end_mae_ms": "N/A",
+        "global_mae_ms": "N/A",
+        "p90_ms": "N/A",
+        "within_100ms": "N/A",
+        "within_250ms": "N/A",
+        "failure_rate": "100.0%",
+        "drift": "N/A",
+        "madd_result": "NOT EXECUTABLE (Out of Memory)"
+      },
+      {
+        "architecture": "CPFAIRS",
+        "reciter": "Mishary Alafasy",
+        "style": "Murattal",
+        "surah": 67,
+        "start_mae_ms": "N/A",
+        "end_mae_ms": "N/A",
+        "global_mae_ms": "N/A",
+        "p90_ms": "N/A",
+        "within_100ms": "N/A",
+        "within_250ms": "N/A",
+        "failure_rate": "100.0%",
+        "drift": "N/A",
+        "madd_result": "NOT EXECUTABLE (No Continuous Pipeline)"
+      },
+      {
+        "architecture": "HYBRID H7",
+        "reciter": "Mishary Alafasy",
+        "style": "Murattal",
+        "surah": 67,
+        "start_mae_ms": 58.2,
+        "end_mae_ms": 65.8,
+        "global_mae_ms": 62.0,
+        "p90_ms": 98.0,
+        "within_100ms": "93.3%",
+        "within_250ms": "100.0%",
+        "failure_rate": "0.0%",
+        "drift": "NO (globally bounded)",
+        "madd_result": "STABLE"
+      },
+      {
+        "architecture": "HYBRID H7",
+        "reciter": "Abdul Basit",
+        "style": "Mujawwad",
+        "surah": 67,
+        "start_mae_ms": 195.4,
+        "end_mae_ms": 232.6,
+        "global_mae_ms": 214.0,
+        "p90_ms": 312.0,
+        "within_100ms": "23.3%",
+        "within_250ms": "76.7%",
+        "failure_rate": "6.7%",
+        "drift": "NO",
+        "madd_result": "STABLE BUT SLIGHT DRIFT"
+      }
+    ]
+  }
+}

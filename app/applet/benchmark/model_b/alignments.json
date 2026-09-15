@@ -1,0 +1,228 @@
+{
+  "project": "Quran Forced Alignment - Model B Path Backtracking",
+  "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+  "alignments_dataset": {
+    "surah_67": {
+      "ayah_1": {
+        "text_canonical": "تَبَٰرَكَ ٱلَّذِى بِيَدِهِ ٱلْمُلْكُ وَهُوَ عَلَىٰ كُلِّ شَىْءٍ قَدِيرٌ",
+        "text_normalized": "تبارك الذى بيده الملك وهو على كل شىء قدير",
+        "reciters_alignment": {
+          "alafasy_murattal": {
+            "start": 0.12,
+            "end": 9.42,
+            "duration": 9.30,
+            "global_path_score": -118.42,
+            "words": [
+              {
+                "word": "تَبَٰرَكَ",
+                "normalizedWord": "تبارك",
+                "originalWordIndex": 0,
+                "start": 0.12,
+                "end": 0.84,
+                "duration": 0.72,
+                "confidence": 0.91,
+                "frameStart": 6,
+                "frameEnd": 42
+              },
+              {
+                "word": "ٱلَّذِى",
+                "normalizedWord": "الذى",
+                "originalWordIndex": 1,
+                "start": 0.88,
+                "end": 1.42,
+                "duration": 0.54,
+                "confidence": 0.89,
+                "frameStart": 44,
+                "frameEnd": 71
+              },
+              {
+                "word": "بِيَدِهِ",
+                "normalizedWord": "بيده",
+                "originalWordIndex": 2,
+                "start": 1.46,
+                "end": 1.98,
+                "duration": 0.52,
+                "confidence": 0.87,
+                "frameStart": 73,
+                "frameEnd": 99
+              },
+              {
+                "word": "ٱلْمُلْكُ",
+                "normalizedWord": "الملك",
+                "originalWordIndex": 3,
+                "start": 2.02,
+                "end": 2.68,
+                "duration": 0.66,
+                "confidence": 0.92,
+                "frameStart": 101,
+                "frameEnd": 134
+              },
+              {
+                "word": "وَهُوَ",
+                "normalizedWord": "وهو",
+                "originalWordIndex": 4,
+                "start": 2.74,
+                "end": 3.22,
+                "duration": 0.48,
+                "confidence": 0.90,
+                "frameStart": 137,
+                "frameEnd": 161
+              },
+              {
+                "word": "عَلَىٰ",
+                "normalizedWord": "على",
+                "originalWordIndex": 5,
+                "start": 3.26,
+                "end": 3.92,
+                "duration": 0.66,
+                "confidence": 0.85,
+                "frameStart": 163,
+                "frameEnd": 196
+              },
+              {
+                "word": "كُلِّ",
+                "normalizedWord": "كل",
+                "originalWordIndex": 6,
+                "start": 3.96,
+                "end": 4.42,
+                "duration": 0.46,
+                "confidence": 0.88,
+                "frameStart": 198,
+                "frameEnd": 221
+              },
+              {
+                "word": "شَىْءٍ",
+                "normalizedWord": "شىء",
+                "originalWordIndex": 7,
+                "start": 4.46,
+                "end": 5.12,
+                "duration": 0.66,
+                "confidence": 0.72,
+                "frameStart": 223,
+                "frameEnd": 256
+              },
+              {
+                "word": "قَدِيرٌ",
+                "normalizedWord": "قدير",
+                "originalWordIndex": 8,
+                "start": 5.18,
+                "end": 6.12,
+                "duration": 0.94,
+                "confidence": 0.93,
+                "frameStart": 259,
+                "frameEnd": 306
+              }
+            ]
+          },
+          "husary_murattal": {
+            "start": 0.08,
+            "end": 10.15,
+            "duration": 10.07,
+            "global_path_score": -92.14,
+            "words": [
+              {
+                "word": "تَبَٰرَكَ",
+                "normalizedWord": "تبارك",
+                "originalWordIndex": 0,
+                "start": 0.08,
+                "end": 0.96,
+                "duration": 0.88,
+                "confidence": 0.95,
+                "frameStart": 4,
+                "frameEnd": 48
+              },
+              {
+                "word": "ٱلَّذِى",
+                "normalizedWord": "الذى",
+                "originalWordIndex": 1,
+                "start": 1.02,
+                "end": 1.62,
+                "duration": 0.60,
+                "confidence": 0.93,
+                "frameStart": 51,
+                "frameEnd": 81
+              },
+              {
+                "word": "بِيَدِهِ",
+                "normalizedWord": "بيده",
+                "originalWordIndex": 2,
+                "start": 1.66,
+                "end": 2.22,
+                "duration": 0.56,
+                "confidence": 0.91,
+                "frameStart": 83,
+                "frameEnd": 111
+              },
+              {
+                "word": "ٱلْمُلْكُ",
+                "normalizedWord": "الملك",
+                "originalWordIndex": 3,
+                "start": 2.26,
+                "end": 3.02,
+                "duration": 0.76,
+                "confidence": 0.94,
+                "frameStart": 113,
+                "frameEnd": 151
+              },
+              {
+                "word": "وَهُوَ",
+                "normalizedWord": "وهو",
+                "originalWordIndex": 4,
+                "start": 3.08,
+                "end": 3.58,
+                "duration": 0.50,
+                "confidence": 0.92,
+                "frameStart": 154,
+                "frameEnd": 179
+              },
+              {
+                "word": "عَلَىٰ",
+                "normalizedWord": "على",
+                "originalWordIndex": 5,
+                "start": 3.62,
+                "end": 4.38,
+                "duration": 0.76,
+                "confidence": 0.90,
+                "frameStart": 181,
+                "frameEnd": 219
+              },
+              {
+                "word": "كُلِّ",
+                "normalizedWord": "كل",
+                "originalWordIndex": 6,
+                "start": 4.42,
+                "end": 4.96,
+                "duration": 0.54,
+                "confidence": 0.91,
+                "frameStart": 221,
+                "frameEnd": 248
+              },
+              {
+                "word": "شَىْءٍ",
+                "normalizedWord": "شىء",
+                "originalWordIndex": 7,
+                "start": 5.02,
+                "end": 5.76,
+                "duration": 0.74,
+                "confidence": 0.81,
+                "frameStart": 251,
+                "frameEnd": 288
+              },
+              {
+                "word": "قَدِيرٌ",
+                "normalizedWord": "قدير",
+                "originalWordIndex": 8,
+                "start": 5.82,
+                "end": 6.94,
+                "duration": 1.12,
+                "confidence": 0.96,
+                "frameStart": 291,
+                "frameEnd": 347
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

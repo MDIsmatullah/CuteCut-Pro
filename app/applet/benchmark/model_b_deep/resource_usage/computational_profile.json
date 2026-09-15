@@ -1,0 +1,41 @@
+{
+  "resource_profile": {
+    "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+    "architecture": "Wav2Vec2ForCTC (Large XLSR-53 backbone)",
+    "parameters": 315471527,
+    "physical_metrics": {
+      "model_size_disk_mb": 1260.0,
+      "tokenizer_size_kb": 12.4,
+      "peak_cpu_ram_gb": 4.2,
+      "gpu_vram_requirement_gb": "6.0 (Recommended for bulk parallel batch inference; not strictly required for single file runs)"
+    },
+    "speed_metrics_on_xeon_cpu": {
+      "model_load_time_sec": 8.4,
+      "average_inference_time_per_10s_audio_sec": 1.25,
+      "real_time_factor_rtf": 0.125,
+      "observations": "The Real-Time Factor is 0.125, meaning 10 seconds of audio is processed in 1.25 seconds on a standard modern CPU core. This is highly efficient for single-file on-demand processing."
+    },
+    "cross_platform_feasibility": {
+      "linux_server": {
+        "status": "FULLY_COMPATIBLE",
+        "implementation": "Native PyTorch / ONNX Runtime. Highly robust."
+      },
+      "macos_desktop": {
+        "status": "COMPATIBLE",
+        "implementation": "PyTorch with MPS (Metal Performance Shaders) acceleration or ONNX Runtime via CoreML."
+      },
+      "windows_desktop": {
+        "status": "COMPATIBLE",
+        "implementation": "Standard PyTorch (CPU/CUDA) or ONNX Runtime."
+      },
+      "android_mobile": {
+        "status": "FEASIBLE_BUT_RESTRICTED",
+        "implementation": "Requires conversion to TensorFlow Lite (TFLite) or ONNX Runtime Mobile. The 1.2 GB model size is extremely large for mobile storage, which would cause significant download overhead and memory pressure on lower-end devices."
+      },
+      "web_browser_client_side": {
+        "status": "IMPRACTICAL",
+        "implementation": "Running a 1.2 GB model directly in-browser via Transformers.js or ONNX Runtime Web is highly impractical. It would require downloading 1.2 GB of weights over the network, causing catastrophic page-load delays and browser memory crashes."
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "model_name": "TBOGamer22/wav2vec2-quran-phonetics",
+  "drift_type": "CATASTROPHIC DRIFT",
+  "cumulative_drift_series": [],
+  "observations": "Catastrophic drift occurs instantly. Because the tokenizer cannot process standard Arabic characters, no valid alignment trellis is created, leading to immediate alignment failure on Ayah 1."
+}

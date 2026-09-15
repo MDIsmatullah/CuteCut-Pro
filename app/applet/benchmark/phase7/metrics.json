@@ -1,0 +1,34 @@
+{
+  "project": "cpfair/quran-align metrics audit",
+  "provenance": {
+    "status": "NOT AN INDEPENDENT AYAH ALIGNMENT",
+    "explanation": "Because the system operates strictly on pre-cut EveryAyah.com audio clips (named sssaaa.wav) as its input, the predicted ayah boundaries are hardcoded to the beginning and end of each file. It does not perform any acoustic segmentation of continuous audio. Thus, the measured ayah boundary error is mathematically zero, which is a structural artifact of the input files rather than an alignment capability."
+  },
+  "word_level_timestamps": {
+    "supported": "YES (Precompiled in released datasets)",
+    "mechanism_classification": "GENUINE_FORCED_ALIGNMENT",
+    "details": "Word-level timestamps are produced via PocketSphinx trellis backtracking, mapping phonetic syllable boundaries in milliseconds. They are not proportional or heuristic."
+  },
+  "quantitative_performance": {
+    "husary_murattal": {
+      "success_only_mae_ms": "N/A — NOT AN INDEPENDENT AYAH ALIGNMENT",
+      "full_dataset_failure_rate": "NOT PROVEN (Unrunnable code)",
+      "dataset_timings_status": "AVAILABLE (Precompiled timing JSON contains sub-word segments)"
+    },
+    "alafasy_murattal": {
+      "success_only_mae_ms": "N/A — NOT AN INDEPENDENT AYAH ALIGNMENT",
+      "full_dataset_failure_rate": "NOT PROVEN",
+      "dataset_timings_status": "AVAILABLE"
+    },
+    "shuraim_hadr": {
+      "success_only_mae_ms": "N/A — NOT AN INDEPENDENT AYAH ALIGNMENT",
+      "full_dataset_failure_rate": "NOT PROVEN",
+      "dataset_timings_status": "AVAILABLE"
+    },
+    "basit_mujawwad": {
+      "success_only_mae_ms": "N/A — NOT AN INDEPENDENT AYAH ALIGNMENT",
+      "full_dataset_failure_rate": "NOT PROVEN",
+      "dataset_timings_status": "AVAILABLE (Though files exist, qualitative analysis shows substantial syllable errors during prolonged vowels)"
+    }
+  }
+}

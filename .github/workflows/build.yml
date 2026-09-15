@@ -1,0 +1,419 @@
+name: CI/CD Multi-Platform Build & Release Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+      - '[0-9]*'
+      - 'release-*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  # -------------------------------------------------------------
+  # 1. DESKTOP BUILDS (Windows, Linux, macOS)
+  # -------------------------------------------------------------
+  build-desktop:
+    name: Build Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    env:
+      SNAP_CREDS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS || secrets.SNAPCRAFT_TOKEN || secrets.SNAP_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Dependencies
+        run: |
+          npm install --include=optional --no-audit
+          npm rebuild esbuild rollup lightningcss || true
+          node -e "try { require('lightningcss'); console.log('lightningcss ready'); } catch(e) { console.log('Fetching platform lightningcss...'); require('child_process').execSync('npm install --no-save --no-audit lightningcss @rollup/rollup'); }"
+
+      - name: Build Web Core Assets
+        run: npm run build
+
+      - name: Prepare Desktop Application Icons
+        run: |
+          node scripts/generate-icons.cjs || true
+
+      - name: Cache Electron Binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            AppData/Local/electron/Cache
+          key: v2-${{ runner.os }}-electron-${{ hashFiles('package.json') }}
+          restore-keys: |
+            v2-${{ runner.os }}-electron-
+
+      # Linux-specific setup
+      - name: Install System Dependencies for Linux
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            fakeroot \
+            dpkg \
+            libfuse2 \
+            squashfs-tools \
+            snapd \
+            build-essential \
+            python3 \
+            libnspr4-dev \
+            libnss3-dev \
+            libnss3-tools \
+            libatk1.0-dev \
+            libatk-bridge2.0-dev \
+            libgtk-3-dev \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libgdk-pixbuf-2.0-dev \
+            libglib2.0-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libfribidi-dev \
+            libfribidi0 \
+            libthai-dev \
+            libdatrie-dev \
+            libgraphite2-dev \
+            libepoxy-dev \
+            libwayland-dev \
+            libwayland-server0 \
+            libwayland-client0 \
+            libwayland-cursor0 \
+            libwayland-egl1 \
+            libgl1-mesa-dev \
+            libegl1-mesa-dev \
+            libgles2-mesa-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxau-dev \
+            libxdmcp-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxcb-shm0-dev \
+            libxcb-glx0-dev \
+            libxcb-dri2-0-dev \
+            libxcb-dri3-dev \
+            libxcb-present-dev \
+            libxcb-sync-dev \
+            libxcb-randr0-dev \
+            libxext-dev \
+            libxfixes-dev \
+            libxi-dev \
+            libxrender-dev \
+            libxrandr-dev \
+            libxcursor-dev \
+            libxcomposite-dev \
+            libxdamage-dev \
+            libxtst-dev \
+            libxss-dev \
+            libxshmfence-dev \
+            libxxf86vm-dev \
+            libexpat1-dev \
+            uuid-dev \
+            libbsd-dev \
+            libmd-dev \
+            libjpeg-dev \
+            libpng-dev \
+            libtiff-dev \
+            libwebp-dev \
+            libopenjp2-7-dev \
+            liblcms2-dev \
+            zlib1g-dev \
+            liblzma-dev \
+            libzstd-dev \
+            liblz4-dev \
+            libsystemd-dev \
+            libcap-dev \
+            libgcrypt20-dev \
+            libgpg-error-dev \
+            libvorbis-dev \
+            libogg-dev \
+            libopus-dev \
+            libvpx-dev \
+            libva-dev \
+            libxkbcommon-dev \
+            libdbus-1-dev \
+            libdrm-dev \
+            libgbm-dev \
+            libasound2-dev \
+            libavahi-client-dev \
+            libgnutls28-dev \
+            libcups2-dev \
+            libpulse-dev \
+            libasound2-plugins \
+            libcanberra-gtk3-module \
+            libcanberra-gtk3-dev || true
+          sudo snap install snapcraft --classic || true
+          sudo snap install core22 || true
+          sudo snap install gtk-common-themes || true
+          echo "/snap/bin" >> $GITHUB_PATH
+
+      - name: Apply Snap Launcher Patch for Linux
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          node scripts/patch-snap-launcher.cjs || true
+
+      - name: Bundle Linux Binaries (DEB, AppImage, Snap)
+        if: startsWith(matrix.os, 'ubuntu')
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          SNAP_DESTRUCTIVE_MODE: "true"
+        run: |
+          rm -rf dist-desktop
+          npx electron-builder build --linux appimage deb snap --x64 --publish never
+
+      - name: Publish Snap to Snap Store
+        if: startsWith(matrix.os, 'ubuntu') && env.SNAP_CREDS != ''
+        continue-on-error: true
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ env.SNAP_CREDS }}
+        run: |
+          export PATH="/snap/bin:$PATH"
+          SNAP_FILE=$(ls dist-desktop/*.snap 2>/dev/null | head -n 1 || true)
+          if [ -n "$SNAP_FILE" ] && [ -f "$SNAP_FILE" ]; then
+            echo "Uploading $SNAP_FILE to Canonical Snap Store..."
+            snapcraft upload "$SNAP_FILE" --release edge,stable || true
+          fi
+
+      # Windows-specific build
+      - name: Bundle Windows Executable Binaries (EXE)
+        if: matrix.os == 'windows-latest'
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          WIN_CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: |
+          rm -rf dist-desktop
+          npx electron-builder build --win --x64 --publish never
+
+      # macOS-specific build
+      - name: Bundle macOS Executable Binaries (DMG & Zip)
+        if: matrix.os == 'macos-latest'
+        continue-on-error: true
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          MAC_CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: |
+          rm -rf dist-desktop
+          npx electron-builder build --mac -c.mac.identity=null -c.dmg.sign=false --publish never
+
+      - name: Upload Desktop Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-artifacts-${{ matrix.os }}
+          if-no-files-found: warn
+          path: |
+            dist-desktop/*.exe
+            dist-desktop/*.deb
+            dist-desktop/*.AppImage
+            dist-desktop/*.snap
+            dist-desktop/*.dmg
+            dist-desktop/*.zip
+
+  # -------------------------------------------------------------
+  # 2. ANDROID APK BUILD (Capacitor + Gradle)
+  # -------------------------------------------------------------
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (v22)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install NPM Dependencies
+        run: npm install --include=optional --no-audit
+
+      - name: Build Web Application Bundle
+        run: npm run build
+
+      - name: Initialize and Sync Capacitor Android Project
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          if [ ! -d "android" ]; then
+            echo "Initializing fresh Capacitor Android platform..."
+            npx cap add android
+          fi
+          
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST" ] && ! grep -q "com.google.android.gms.ads.APPLICATION_ID" "$MANIFEST"; then
+            echo "Injecting AdMob App ID into AndroidManifest.xml..."
+            sed -i '/<\/application>/i \        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-8898043565822840~4018462556"/>' "$MANIFEST"
+          fi
+
+          echo "Syncing web assets to Android platform..."
+          npx cap sync android
+
+      - name: Build Android APK with Gradle
+        working-directory: android
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          JAVA_HOME: ${{ env.JAVA_HOME }}
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+          yes | sdkmanager --licenses 2>/dev/null || true
+          chmod +x gradlew || true
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Prepare APK outputs
+        run: |
+          mkdir -p apk-output
+          TAG_NAME="${{ github.ref_name || 'latest' }}"
+          find android/app/build/outputs/apk/ -name "*.apk" -exec cp {} apk-output/ \;
+          for f in apk-output/*.apk; do
+            if [ -f "$f" ]; then
+              cp "$f" "apk-output/CuteCut-Pro-${TAG_NAME}.apk" 2>/dev/null || true
+              break
+            fi
+          done
+
+      - name: Upload Android APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-artifacts
+          path: apk-output/*.apk
+          retention-days: 14
+          if-no-files-found: warn
+
+  # -------------------------------------------------------------
+  # 3. FLATHUB FLATPAK BUILD
+  # -------------------------------------------------------------
+  build-flathub:
+    name: Build Flathub Flatpak
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-46
+      options: --privileged
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Dependencies and Build Web Core
+        run: |
+          npm install --include=optional --no-audit
+          npm run build
+          node scripts/generate-icons.cjs || true
+
+      - name: Build Flatpak Package
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: org.guldasta.cutecutpro.flatpak
+          manifest-path: org.guldasta.cutecutpro.yaml
+          cache-key: flatpak-builder-${{ github.sha }}
+          run-tests: false
+          upload-artifact: true
+
+      - name: Upload Flatpak Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flathub-flatpak-artifacts
+          path: org.guldasta.cutecutpro.flatpak
+          if-no-files-found: warn
+
+  # -------------------------------------------------------------
+  # 4. UNIFIED RELEASE PUBLISHER (Triggered for all tags)
+  # -------------------------------------------------------------
+  publish-release:
+    name: Publish All Packages to GitHub Release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [build-desktop, build-android, build-flathub]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Create Clean Release Directory
+        run: |
+          mkdir -p release-packages
+
+      - name: Download All Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded-artifacts
+
+      - name: Organize Release Binaries & Packages
+        run: |
+          echo "=== Collecting all built packages ==="
+          find downloaded-artifacts/ -type f \( \
+            -name "*.exe" -o \
+            -name "*.deb" -o \
+            -name "*.AppImage" -o \
+            -name "*.snap" -o \
+            -name "*.flatpak" -o \
+            -name "*.dmg" -o \
+            -name "*.zip" -o \
+            -name "*.apk" \
+          \) -exec cp -v {} release-packages/ \;
+
+          echo "=== Summary of Collected Release Packages ==="
+          ls -lh release-packages/
+
+          echo "=== Generating SHA-256 Checksums ==="
+          cd release-packages
+          sha256sum * > SHA256SUMS.txt || true
+          cat SHA256SUMS.txt
+          cd ..
+
+      - name: Publish Unified GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-packages/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

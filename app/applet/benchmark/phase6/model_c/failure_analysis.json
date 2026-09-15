@@ -1,0 +1,10 @@
+{
+  "model_name": "TBOGamer22/wav2vec2-quran-phonetics",
+  "failures": [
+    {
+      "failure_mode": "Vocabulary Mismatch (Arabic vs. Latin Phonetics)",
+      "symptom": "Passing standard Arabic/Uthmani text to the tokenizer causes an immediate crash or maps all inputs to '[UNK]' (unknown) tokens because the vocabulary contains only Latin graphemes ('a', 'b', 't', 'th', 'j', 'h', etc.).",
+      "remedy": "To use Model C, a Grapheme-to-Phoneme (G2P) translation layer must be constructed to convert standard Arabic Quran text into the specific phonetic Latin representation used by the Buraaq training dataset."
+    }
+  ]
+}

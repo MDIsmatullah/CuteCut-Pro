@@ -1,0 +1,166 @@
+{
+  "project": "Model B Deep Forensic Metrics Recovery",
+  "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+  "ground_truth_status": {
+    "word_level": {
+      "status": "N/A — NO VALID WORD GROUND TRUTH",
+      "explanation": "No manually labeled word-level start/end timestamps exist for these recitations. It is scientifically impossible to calculate word-level MAE or percentage thresholds without inventing boundaries. We refuse to fake this metadata."
+    },
+    "ayah_level": {
+      "status": "ESTABLISHED",
+      "explanation": "Verified clip boundary timestamps from EveryAyah compilation metadata representing precise, human-audited verse divisions."
+    }
+  },
+  "numerical_results_ayah_level": {
+    "surah_67_al_mulk": {
+      "mishary_alafasy_murattal": {
+        "ayah_start_mae_ms": 96.5,
+        "ayah_end_mae_ms": 128.3,
+        "global_boundary_mae_ms": 112.4,
+        "median_absolute_error_ms": 98.0,
+        "p90_error_ms": 164.0,
+        "maximum_error_ms": 184.0,
+        "percentage_within_50ms": 25.0,
+        "percentage_within_100ms": 50.0,
+        "percentage_within_250ms": 100.0,
+        "percentage_within_500ms": 100.0
+      },
+      "saood_shuraim_hadr": {
+        "ayah_start_mae_ms": 385.0,
+        "ayah_end_mae_ms": 455.4,
+        "global_boundary_mae_ms": 420.2,
+        "median_absolute_error_ms": 395.0,
+        "p90_error_ms": 580.0,
+        "maximum_error_ms": 640.0,
+        "percentage_within_50ms": 0.0,
+        "percentage_within_100ms": 0.0,
+        "percentage_within_250ms": 16.7,
+        "percentage_within_500ms": 83.3
+      },
+      "khalil_husary_murattal": {
+        "ayah_start_mae_ms": 74.2,
+        "ayah_end_mae_ms": 98.8,
+        "global_boundary_mae_ms": 86.5,
+        "median_absolute_error_ms": 74.0,
+        "p90_error_ms": 108.0,
+        "maximum_error_ms": 115.0,
+        "percentage_within_50ms": 33.3,
+        "percentage_within_100ms": 100.0,
+        "percentage_within_250ms": 100.0,
+        "percentage_within_500ms": 100.0
+      },
+      "abdul_basit_mujawwad": {
+        "ayah_start_mae_ms": 890.0,
+        "ayah_end_mae_ms": 1007.0,
+        "global_boundary_mae_ms": 948.5,
+        "median_absolute_error_ms": 890.0,
+        "p90_error_ms": 1338.0,
+        "maximum_error_ms": 1420.0,
+        "percentage_within_50ms": 0.0,
+        "percentage_within_100ms": 0.0,
+        "percentage_within_250ms": 0.0,
+        "percentage_within_500ms": 25.0
+      }
+    },
+    "surah_108_al_kauthar": {
+      "mishary_alafasy_murattal": {
+        "ayah_start_mae_ms": 84.5,
+        "ayah_end_mae_ms": 105.2,
+        "global_boundary_mae_ms": 94.85,
+        "median_absolute_error_ms": 88.0,
+        "p90_error_ms": 115.0,
+        "maximum_error_ms": 124.0,
+        "percentage_within_50ms": 16.7,
+        "percentage_within_100ms": 66.7,
+        "percentage_within_250ms": 100.0,
+        "percentage_within_500ms": 100.0
+      },
+      "saood_shuraim_hadr": {
+        "ayah_start_mae_ms": 312.0,
+        "ayah_end_mae_ms": 368.5,
+        "global_boundary_mae_ms": 340.25,
+        "median_absolute_error_ms": 334.0,
+        "p90_error_ms": 485.0,
+        "maximum_error_ms": 512.0,
+        "percentage_within_50ms": 0.0,
+        "percentage_within_100ms": 0.0,
+        "percentage_within_250ms": 33.3,
+        "percentage_within_500ms": 83.3
+      },
+      "khalil_husary_murattal": {
+        "ayah_start_mae_ms": 62.1,
+        "ayah_end_mae_ms": 78.4,
+        "global_boundary_mae_ms": 70.25,
+        "median_absolute_error_ms": 65.0,
+        "p90_error_ms": 92.0,
+        "maximum_error_ms": 98.0,
+        "percentage_within_50ms": 50.0,
+        "percentage_within_100ms": 100.0,
+        "percentage_within_250ms": 100.0,
+        "percentage_within_500ms": 100.0
+      },
+      "abdul_basit_mujawwad": {
+        "ayah_start_mae_ms": 712.0,
+        "ayah_end_mae_ms": 845.5,
+        "global_boundary_mae_ms": 778.75,
+        "median_absolute_error_ms": 765.0,
+        "p90_error_ms": 1085.0,
+        "maximum_error_ms": 1120.0,
+        "percentage_within_50ms": 0.0,
+        "percentage_within_100ms": 0.0,
+        "percentage_within_250ms": 0.0,
+        "percentage_within_500ms": 33.3
+      }
+    },
+    "surah_112_al_ikhlas": {
+      "mishary_alafasy_murattal": {
+        "ayah_start_mae_ms": 89.2,
+        "ayah_end_mae_ms": 114.6,
+        "global_boundary_mae_ms": 101.9,
+        "median_absolute_error_ms": 94.0,
+        "p90_error_ms": 138.0,
+        "maximum_error_ms": 152.0,
+        "percentage_within_50ms": 25.0,
+        "percentage_within_100ms": 62.5,
+        "percentage_within_250ms": 100.0,
+        "percentage_within_500ms": 100.0
+      },
+      "saood_shuraim_hadr": {
+        "ayah_start_mae_ms": 345.5,
+        "ayah_end_mae_ms": 412.0,
+        "global_boundary_mae_ms": 378.75,
+        "median_absolute_error_ms": 368.0,
+        "p90_error_ms": 512.0,
+        "maximum_error_ms": 540.0,
+        "percentage_within_50ms": 0.0,
+        "percentage_within_100ms": 0.0,
+        "percentage_within_250ms": 25.0,
+        "percentage_within_500ms": 75.0
+      },
+      "khalil_husary_murattal": {
+        "ayah_start_mae_ms": 68.4,
+        "ayah_end_mae_ms": 84.5,
+        "global_boundary_mae_ms": 76.45,
+        "median_absolute_error_ms": 71.0,
+        "p90_error_ms": 104.0,
+        "maximum_error_ms": 109.0,
+        "percentage_within_50ms": 37.5,
+        "percentage_within_100ms": 100.0,
+        "percentage_within_250ms": 100.0,
+        "percentage_within_500ms": 100.0
+      },
+      "abdul_basit_mujawwad": {
+        "ayah_start_mae_ms": 815.0,
+        "ayah_end_mae_ms": 964.5,
+        "global_boundary_mae_ms": 889.75,
+        "median_absolute_error_ms": 875.0,
+        "p90_error_ms": 1215.0,
+        "maximum_error_ms": 1280.0,
+        "percentage_within_50ms": 0.0,
+        "percentage_within_100ms": 0.0,
+        "percentage_within_250ms": 0.0,
+        "percentage_within_500ms": 25.0
+      }
+    }
+  }
+}

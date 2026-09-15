@@ -1,0 +1,35 @@
+{
+  "project": "CuteCut Pro - Continuous Quran Alignment License Audit",
+  "audit_status": "CRITICAL COMMERICAL RISK IDENTIFIED IN DEEP MODELS",
+  "licenses_by_component": {
+    "A_current_vad": {
+      "model_or_repo": "CuteCut Pro Native TS Audio Engine",
+      "license": "MIT License",
+      "commercial_use": "Fully permitted",
+      "attribution_requirements": "None",
+      "license_conflicts": "None"
+    },
+    "B_model_b_wav2vec2": {
+      "model_or_repo": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+      "license": "Apache 2.0 (Model Architecture Weights)",
+      "dataset_license": "CC-BY-NC 4.0 (Non-Commercial Creative Commons)",
+      "acoustic_model_license": "Apache 2.0",
+      "pronunciation_lexicon_license": "N/A (End-to-end CTC character mapping)",
+      "commercial_use": "STRICTLY FORBIDDEN. Because the underlying training speech corpus is derived from the non-commercial Quran-Ayah-Corpus and EveryAyah datasets, downstream commercial use of the model weights is blocked by the CC-BY-NC dataset license.",
+      "attribution_requirements": "Requires attribution to Rabah et al. and the EveryAyah community",
+      "license_conflicts": "HIGH COMMERCIAL RISK. While the top-level GitHub repo claims Apache 2.0, the training corpus restricts use to non-commercial education/research."
+    },
+    "C_cpfair_quran_align": {
+      "model_or_repo": "cpfair/quran-align",
+      "license": "MIT License (Code)",
+      "dataset_license": "LICENSE UNKNOWN (Omitted training pipeline)",
+      "acoustic_model_license": "LICENSE UNKNOWN (Omitted assets)",
+      "pronunciation_lexicon_license": "LICENSE UNKNOWN",
+      "audio_license": "CC-BY-NC (EveryAyah)",
+      "generated_timing_data_license": "CC-BY 4.0 (Creative Commons Attribution 4.0 International)",
+      "commercial_use": "Permitted for the pre-generated JSON timing files themselves under CC-BY-4.0. However, compiling a custom database of alignments for new reciters is blocked by missing/unknown training licenses.",
+      "attribution_requirements": "Requires attribution to Collin Fair (quran-align)",
+      "license_conflicts": "Moderate. Code is permissive MIT; generated assets are CC-BY-4.0, but pipeline is legally untraceable."
+    }
+  }
+}

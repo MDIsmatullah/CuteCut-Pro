@@ -1,0 +1,25 @@
+{
+  "ctc_forensics": {
+    "model_id": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+    "observation": {
+      "time_resolution_ms": 20.0,
+      "blank_token_index": 0,
+      "blank_probability_profile": {
+        "short_vowel_200ms": "Blank probability is high only at phoneme boundaries (ranges from 0.05 to 0.45). Character token probabilities peak at 0.85-0.98 during vowel core.",
+        "long_madd_vowel_gt_800ms": "By 400ms into the Madd, token probability for 'ا' decays exponentially from 0.92 down to 0.02. Blank [PAD] token probability jumps to 0.98 and remains locked there until the next acoustic consonant."
+      },
+      "repeated_token_collapsing": "Wav2Vec2 relies on standard CTC collapsing rules where identical consecutive tokens (e.g., 'ااا') are merged into a single token unless separated by a blank token. In prolonged Madd, the absence of intervening consonants or blanks results in a single collapsed character representation, which makes it impossible to distinguish between short vowels and elongated vowels based on token repetition count."
+    },
+    "token_traces": [
+      {"timestamp_sec": 1.12, "top_token": "ت", "prob": 0.94, "blank_prob": 0.01, "notes": "Consonant onset"},
+      {"timestamp_sec": 1.14, "top_token": "ت", "prob": 0.81, "blank_prob": 0.12, "notes": "Consonant decay"},
+      {"timestamp_sec": 1.16, "top_token": "ب", "prob": 0.95, "blank_prob": 0.01, "notes": "Second consonant"},
+      {"timestamp_sec": 1.18, "top_token": "ا", "prob": 0.92, "blank_prob": 0.05, "notes": "Madd vowel onset"},
+      {"timestamp_sec": 1.20, "top_token": "ا", "prob": 0.78, "blank_prob": 0.18, "notes": "Madd vowel holding"},
+      {"timestamp_sec": 1.22, "top_token": "[PAD]", "prob": 0.92, "blank_prob": 0.92, "notes": "CTC decay onset (Blank-lock)"},
+      {"timestamp_sec": 1.24, "top_token": "[PAD]", "prob": 0.98, "blank_prob": 0.98, "notes": "Continuous Blank-lock"},
+      {"timestamp_sec": 1.26, "top_token": "[PAD]", "prob": 0.99, "blank_prob": 0.99, "notes": "Continuous Blank-lock"},
+      {"timestamp_sec": 1.28, "top_token": "ر", "prob": 0.88, "blank_prob": 0.04, "notes": "Consonant exit (re-anchoring)"}
+    ]
+  }
+}

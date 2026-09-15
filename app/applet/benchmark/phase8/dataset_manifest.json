@@ -1,0 +1,117 @@
+{
+  "manifest_metadata": {
+    "project": "CuteCut Pro - Universal AutoSegment Continuous Quran Benchmark",
+    "evaluation_date": "2026-09-04"
+  },
+  "test_dataset": [
+    {
+      "surah": 67,
+      "surah_name": "Al-Mulk",
+      "number_of_ayahs": 30,
+      "audio_recordings": {
+        "khalil_husary": {
+          "reciter_name": "Khalil Al-Husary",
+          "style": "Murattal",
+          "format": "WAV",
+          "sample_rate_hz": 16000,
+          "channels": 1,
+          "duration_seconds": 482.4,
+          "provenance_domain": "seen",
+          "reference_segmentation": "human-verified/reference segmentation (EveryAyah.com verse timings)"
+        },
+        "mishary_alafasy": {
+          "reciter_name": "Mishary Alafasy",
+          "style": "Murattal",
+          "format": "WAV",
+          "sample_rate_hz": 16000,
+          "channels": 1,
+          "duration_seconds": 384.8,
+          "provenance_domain": "seen",
+          "reference_segmentation": "human-verified/reference segmentation"
+        },
+        "saood_shuraim": {
+          "reciter_name": "Saood ash-Shuraym",
+          "style": "Hadr",
+          "format": "WAV",
+          "sample_rate_hz": 16000,
+          "channels": 1,
+          "duration_seconds": 215.6,
+          "provenance_domain": "seen",
+          "reference_segmentation": "human-verified/reference segmentation"
+        },
+        "abdul_basit": {
+          "reciter_name": "Abdul Basit Abdus Samad",
+          "style": "Mujawwad",
+          "format": "WAV",
+          "sample_rate_hz": 16000,
+          "channels": 1,
+          "duration_seconds": 962.0,
+          "provenance_domain": "unseen",
+          "reference_segmentation": "human-verified/reference segmentation"
+        }
+      }
+    },
+    {
+      "surah": 108,
+      "surah_name": "Al-Kauthar",
+      "number_of_ayahs": 3,
+      "audio_recordings": {
+        "khalil_husary": {
+          "reciter_name": "Khalil Al-Husary",
+          "style": "Murattal",
+          "duration_seconds": 18.2,
+          "reference_segmentation": "human-verified/reference segmentation"
+        },
+        "mishary_alafasy": {
+          "reciter_name": "Mishary Alafasy",
+          "style": "Murattal",
+          "duration_seconds": 15.4,
+          "reference_segmentation": "human-verified/reference segmentation"
+        },
+        "saood_shuraim": {
+          "reciter_name": "Saood ash-Shuraym",
+          "style": "Hadr",
+          "duration_seconds": 10.8,
+          "reference_segmentation": "human-verified/reference segmentation"
+        },
+        "abdul_basit": {
+          "reciter_name": "Abdul Basit Abdus Samad",
+          "style": "Mujawwad",
+          "duration_seconds": 45.2,
+          "reference_segmentation": "human-verified/reference segmentation"
+        }
+      }
+    },
+    {
+      "surah": 112,
+      "surah_name": "Al-Ikhlas",
+      "number_of_ayahs": 4,
+      "audio_recordings": {
+        "khalil_husary": {
+          "reciter_name": "Khalil Al-Husary",
+          "style": "Murattal",
+          "duration_seconds": 22.4,
+          "reference_segmentation": "human-verified/reference segmentation"
+        },
+        "mishary_alafasy": {
+          "reciter_name": "Mishary Alafasy",
+          "style": "Murattal",
+          "duration_seconds": 19.8,
+          "reference_segmentation": "human-verified/reference segmentation"
+        },
+        "saood_shuraim": {
+          "reciter_name": "Saood ash-Shuraym",
+          "style": "Hadr",
+          "duration_seconds": 12.5,
+          "reference_segmentation": "human-verified/reference segmentation"
+        },
+        "abdul_basit": {
+          "reciter_name": "Abdul Basit Abdus Samad",
+          "style": "Mujawwad",
+          "duration_seconds": 58.6,
+          "reference_segmentation": "human-verified/reference segmentation"
+        }
+      }
+    }
+  ]
+}

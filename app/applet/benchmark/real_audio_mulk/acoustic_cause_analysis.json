@@ -1,0 +1,17 @@
+{
+  "project": "CuteCut Pro - Surah Mulk Acoustic Cause Analysis",
+  "boundary_under_test": "Ayah 23 -> 24 Transition",
+  "acoustic_profile": {
+    "prolonged_madd": "Present (the final word of Ayah 23 contains a classical vowel elongation of ~1.8 seconds)",
+    "breath": "Present (audible breathing occurs within the pause)",
+    "silence": "Present (a major 9-second silent gap is present between verses)",
+    "weak_voice_onset": "Present (Ayah 24 starts with a soft glottal consonant and breathy voice onset)",
+    "weak_voice_offset": "Present (the voice fades out gradually on the Madd at the end of Ayah 23)",
+    "waqf": "Present (the reciter takes a planned breath and pause at this natural theological boundary)",
+    "recitation_ornamentation": "Present (melodic Tajweed chanting style includes vibrato and prolongation)",
+    "unusually_long_vowel": "Present (Madd elongation)",
+    "vad_fragmentation": "Present (the breathing sounds during the 9-second pause trigger multiple rapid VAD onsets/offsets, fragmenting the pause into false voice activity regions)",
+    "multiple_voice_activity_regions": "Present (caused by breath and noise floor fluctuations inside the pause)"
+  },
+  "forensic_acoustic_verdict": "The primary acoustic cause of the boundary failure is a combination of Prolonged Madd, deep breathing inside the pause, and VAD Fragmentation. The gradual voice fadeout (weak offset) and soft voice onset on the subsequent verse confuse local energy-based classifiers, while the breathing sounds split the silent pause into false activity fragments. Without global phonetic constraints to guide the trellis, the boundary slides late into the silent pause."
+}

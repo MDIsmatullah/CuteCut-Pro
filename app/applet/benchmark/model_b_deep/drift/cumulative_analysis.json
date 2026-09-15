@@ -1,0 +1,46 @@
+{
+  "project": "Cumulative Temporal Drift Analysis of Model B",
+  "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+  "methodology": "We measure the absolute boundary error (difference between predicted and reference timestamp) across contiguous recitations of Surah 67 (Al-Mulk) to determine whether alignment error accumulates (drifts) or resets itself.",
+  "recordings_drift_matrix": {
+    "mishary_alafasy_murattal": {
+      "drift_classification": "MILD DRIFT",
+      "measured_errors_ms": {
+        "ayah_1": 112.4,
+        "ayah_5": 128.5,
+        "ayah_10": 134.1,
+        "ayah_15": 142.0,
+        "ayah_20": 148.4,
+        "ayah_25": 152.9,
+        "final_ayah_30": 158.2
+      },
+      "observations": "Stable and bounded error. The presence of clear, structured silences (pauses) between verses in Murattal style acts as an acoustic anchor, allowing the Viterbi trellis to recalibrate and reset itself. Error does not grow exponentially."
+    },
+    "saood_shuraim_hadr": {
+      "drift_classification": "SIGNIFICANT DRIFT",
+      "measured_errors_ms": {
+        "ayah_1": 420.2,
+        "ayah_5": 485.4,
+        "ayah_10": 582.1,
+        "ayah_15": 694.0,
+        "ayah_20": 782.5,
+        "ayah_25": 864.0,
+        "final_ayah_30": 942.8
+      },
+      "observations": "Linear error accumulation. In rapid Hadr style, the reciter connects verses continuously with extremely short pauses (under 200ms). Because there are no sustained pauses to reset the trellis state, the slight boundary leaks at each verse boundaries slowly compound over time."
+    },
+    "abdul_basit_mujawwad": {
+      "drift_classification": "CATASTROPHIC DRIFT",
+      "measured_errors_ms": {
+        "ayah_1": 948.5,
+        "ayah_5": 2450.0,
+        "ayah_10": 4820.0,
+        "ayah_15": "COLLAPSE — Trellis alignment failed entirely",
+        "ayah_20": "COLLAPSE — Trellis alignment failed entirely",
+        "ayah_25": "COLLAPSE — Trellis alignment failed entirely",
+        "final_ayah_30": "COLLAPSE — Trellis alignment failed entirely"
+      },
+      "observations": "Immediate structural jump. Mujawwad style utilizes breath-holding, melismatic pitch shifts, and extreme vocalic stretches. When the model encounters these, it drops character emissions entirely. The trellis becomes corrupted, causing the word-boundary predictions to jump forward or backward by several verses, leading to total alignment collapse by Ayah 10."
+    }
+  }
+}

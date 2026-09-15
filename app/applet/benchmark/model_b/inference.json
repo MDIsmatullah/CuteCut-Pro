@@ -1,0 +1,134 @@
+{
+  "inference_run_id": "inf_b_20260904_forensic",
+  "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+  "timestamp": "2026-09-04T12:53:15Z",
+  "hardware_context": "Intel Xeon CPU @ 2.20GHz (Isolated execution thread)",
+  "test_dataset": {
+    "surah_67": {
+      "name": "Al-Mulk",
+      "ayah_range": [1, 3],
+      "reciters": {
+        "alafasy_murattal": {
+          "source_url": "https://everyayah.com/data/Mishary_Alafasy_128kbps/067001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 34.82,
+          "total_samples": 557120,
+          "output_frames": 1739,
+          "mean_log_prob": -0.24,
+          "processing_time_sec": 4.12
+        },
+        "basit_mujawwad": {
+          "source_url": "https://everyayah.com/data/Abdul_Basit_Mujawwad_128kbps/067001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 78.45,
+          "total_samples": 1255200,
+          "output_frames": 3919,
+          "mean_log_prob": -1.18,
+          "processing_time_sec": 9.38
+        },
+        "shuraim_hadr": {
+          "source_url": "https://everyayah.com/data/Saood_ash_Shuraym_128kbps/067001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 21.36,
+          "total_samples": 341760,
+          "output_frames": 1065,
+          "mean_log_prob": -0.48,
+          "processing_time_sec": 2.54
+        },
+        "husary_murattal": {
+          "source_url": "https://everyayah.com/data/Husary_128kbps/067001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 38.12,
+          "total_samples": 609920,
+          "output_frames": 1904,
+          "mean_log_prob": -0.19,
+          "processing_time_sec": 4.62
+        }
+      }
+    },
+    "surah_108": {
+      "name": "Al-Kauthar",
+      "ayah_range": [1, 3],
+      "reciters": {
+        "alafasy_murattal": {
+          "source_url": "https://everyayah.com/data/Mishary_Alafasy_128kbps/108001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 12.85,
+          "total_samples": 205600,
+          "output_frames": 641,
+          "mean_log_prob": -0.18,
+          "processing_time_sec": 1.52
+        },
+        "basit_mujawwad": {
+          "source_url": "https://everyayah.com/data/Abdul_Basit_Mujawwad_128kbps/108001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 32.40,
+          "total_samples": 518400,
+          "output_frames": 1618,
+          "mean_log_prob": -0.92,
+          "processing_time_sec": 3.88
+        },
+        "shuraim_hadr": {
+          "source_url": "https://everyayah.com/data/Saood_ash_Shuraym_128kbps/108001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 8.12,
+          "total_samples": 129920,
+          "output_frames": 405,
+          "mean_log_prob": -0.39,
+          "processing_time_sec": 1.02
+        },
+        "husary_murattal": {
+          "source_url": "https://everyayah.com/data/Husary_128kbps/108001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 14.50,
+          "total_samples": 232000,
+          "output_frames": 724,
+          "mean_log_prob": -0.14,
+          "processing_time_sec": 1.74
+        }
+      }
+    },
+    "surah_112": {
+      "name": "Al-Ikhlas",
+      "ayah_range": [1, 4],
+      "reciters": {
+        "alafasy_murattal": {
+          "source_url": "https://everyayah.com/data/Mishary_Alafasy_128kbps/112001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 14.22,
+          "total_samples": 227520,
+          "output_frames": 709,
+          "mean_log_prob": -0.21,
+          "processing_time_sec": 1.68
+        },
+        "basit_mujawwad": {
+          "source_url": "https://everyayah.com/data/Abdul_Basit_Mujawwad_128kbps/112001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 36.15,
+          "total_samples": 578400,
+          "output_frames": 1806,
+          "mean_log_prob": -1.04,
+          "processing_time_sec": 4.32
+        },
+        "shuraim_hadr": {
+          "source_url": "https://everyayah.com/data/Saood_ash_Shuraym_128kbps/112001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 9.40,
+          "total_samples": 150400,
+          "output_frames": 469,
+          "mean_log_prob": -0.42,
+          "processing_time_sec": 1.15
+        },
+        "husary_murattal": {
+          "source_url": "https://everyayah.com/data/Husary_128kbps/112001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 16.10,
+          "total_samples": 257600,
+          "output_frames": 803,
+          "mean_log_prob": -0.15,
+          "processing_time_sec": 1.95
+        }
+      }
+    }
+  }
+}

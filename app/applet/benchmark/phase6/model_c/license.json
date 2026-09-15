@@ -1,0 +1,11 @@
+{
+  "model_name": "TBOGamer22/wav2vec2-quran-phonetics",
+  "license_forensics": {
+    "model_weight_license": "Apache-2.0",
+    "training_corpus_license": "CC-BY-NC-SA 4.0 (Buraaq/quran-md-words)",
+    "audio_sources_license": "Public Domain",
+    "codebase_license": "Apache-2.0",
+    "commercial_feasibility": "STRICTLY PROHIBITED. The fine-tuning dataset is licensed under Creative Commons Non-Commercial Share-Alike, which prevents any commercial embedding or SaaS wrapper monetization.",
+    "redistributability": "ALLOWED with restrictions (Share-alike and attribution under CC-BY-NC-SA 4.0)."
+  }
+}

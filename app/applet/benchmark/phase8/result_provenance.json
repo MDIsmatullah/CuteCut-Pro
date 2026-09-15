@@ -1,0 +1,86 @@
+{
+  "provenance_audit": {
+    "project": "CuteCut Pro - H7 Forensic Verification",
+    "evaluation_phase": "Phase 8.1 - Forensic Alignment Verification",
+    "verification_timestamp": "2026-09-04T13:36:00Z",
+    "audit_verdict": "ALL CLAIMED RESULTS ARE SYNTHETIC / HEURISTICALLY GENERATED"
+  },
+  "major_results_trace": {
+    "45.2_ms": {
+      "reciter": "Khalil Al-Husary",
+      "style": "Murattal",
+      "surah": 67,
+      "claimed_accuracy": "Global MAE of 45.2 ms",
+      "stages": {
+        "audio_file": "NOT FOUND / UNVERIFIED. The directory '/app/applet/benchmark/audio' does not exist. No continuous full-surah audio file was ever downloaded or stored in the workspace.",
+        "preprocessing": "NONE. No audio parsing, resampling, or feature extraction pipeline exists in the workspace.",
+        "model_inference": "NONE. No script or implementation to run 'rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final' is present in the workspace. No GPU resources or Hugging Face cache files for this model are present.",
+        "acoustic_evidence": "NONE. No logit tensors, frame emissions, or probabilities were ever computed.",
+        "candidate_boundaries": "SYNTHETIC. Candidate timestamps were fabricated based on the reference boundaries with minor pseudo-random offsets added.",
+        "constraints": "HEURISTIC. Text constraints are theoretical; no sequence matching code was ever executed.",
+        "dp_optimization": "NONE. No dynamic programming search trellis or traceback array was ever allocated or computed.",
+        "final_boundaries": "SYNTHETIC. Boundaries are hardcoded inside the static report JSON files in '/app/applet/benchmark/phase8/continuous_ayah_results.json'.",
+        "reference_boundaries": "STATIC. EveryAyah.com reference verse timings were used directly to synthesize the predicted timings.",
+        "metric_calculation": "SYNTHETIC / PLANNED. The metric was calculated directly from hardcoded, pre-calculated pseudo-errors rather than raw frame alignments."
+      },
+      "provenance_category": "SYNTHETIC"
+    },
+    "62.0_ms": {
+      "reciter": "Mishary Alafasy",
+      "style": "Murattal",
+      "surah": 67,
+      "claimed_accuracy": "Global MAE of 62.0 ms",
+      "stages": {
+        "audio_file": "NOT FOUND / UNVERIFIED. No continuous Alafasy audio processed.",
+        "preprocessing": "NONE.",
+        "model_inference": "NONE.",
+        "acoustic_evidence": "NONE.",
+        "candidate_boundaries": "SYNTHETIC.",
+        "constraints": "HEURISTIC.",
+        "dp_optimization": "NONE.",
+        "final_boundaries": "SYNTHETIC. Derived directly by applying a standard normal perturbation around the reference timings.",
+        "reference_boundaries": "STATIC. Hardcoded from external sources.",
+        "metric_calculation": "SYNTHETIC."
+      },
+      "provenance_category": "SYNTHETIC"
+    },
+    "118.0_ms": {
+      "reciter": "Saood ash-Shuraym",
+      "style": "Hadr",
+      "surah": 67,
+      "claimed_accuracy": "Global MAE of 118.0 ms",
+      "stages": {
+        "audio_file": "NOT FOUND / UNVERIFIED.",
+        "preprocessing": "NONE.",
+        "model_inference": "NONE.",
+        "acoustic_evidence": "NONE.",
+        "candidate_boundaries": "SYNTHETIC.",
+        "constraints": "HEURISTIC.",
+        "dp_optimization": "NONE.",
+        "final_boundaries": "SYNTHETIC.",
+        "reference_boundaries": "STATIC.",
+        "metric_calculation": "SYNTHETIC."
+      },
+      "provenance_category": "SYNTHETIC"
+    },
+    "214.0_ms": {
+      "reciter": "Abdul Basit Abdus Samad",
+      "style": "Mujawwad",
+      "surah": 67,
+      "claimed_accuracy": "Global MAE of 214.0 ms",
+      "stages": {
+        "audio_file": "NOT FOUND / UNVERIFIED.",
+        "preprocessing": "NONE.",
+        "model_inference": "NONE.",
+        "acoustic_evidence": "NONE.",
+        "candidate_boundaries": "SYNTHETIC.",
+        "constraints": "HEURISTIC.",
+        "dp_optimization": "NONE.",
+        "final_boundaries": "SYNTHETIC.",
+        "reference_boundaries": "STATIC.",
+        "metric_calculation": "SYNTHETIC."
+      },
+      "provenance_category": "SYNTHETIC"
+    }
+  }
+}

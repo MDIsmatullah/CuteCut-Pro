@@ -1,0 +1,45 @@
+{
+  "comparison_summary": {
+    "project": "cpfair/quran-align vs Model B Baseline",
+    "metrics_comparison": {
+      "surah_67_husary": {
+        "model_b": "76.5 ms (Independent boundary alignment)",
+        "cpfair_quran_align": "N/A (Uses input EveryAyah clip boundaries; not independent)"
+      },
+      "surah_67_alafasy": {
+        "model_b": "103.0 ms (Independent boundary alignment)",
+        "cpfair_quran_align": "N/A (Uses input EveryAyah clip boundaries; not independent)"
+      },
+      "surah_67_shuraim": {
+        "model_b": "420.2 ms (Independent boundary alignment)",
+        "cpfair_quran_align": "N/A (Uses input EveryAyah clip boundaries; not independent)"
+      },
+      "surah_67_basit": {
+        "model_b": "948.5 ms (Trellis collapse during prolonged vowels)",
+        "cpfair_quran_align": "N/A (Uses input EveryAyah clip boundaries; not independent)"
+      }
+    },
+    "feature_comparison": {
+      "madd_handling": {
+        "model_b": "FAIL (Acoustic decay / blank-lock)",
+        "cpfair_quran_align": "STABLE (HMM self-transition loops hold state boundaries)"
+      },
+      "unseen_reciter_generalization": {
+        "model_b": "PASS (Generalizes zero-shot across reciters)",
+        "cpfair_quran_align": "FAIL (Requires training speaker-specific acoustic models via SphinxTrain per reciter)"
+      },
+      "deployment_footprint": {
+        "model_b": "1.26 GB (Heavy Transformers/PyTorch dependencies)",
+        "cpfair_quran_align": "45 MB (Lightweight C++ binary, but requires legacy C libraries)"
+      },
+      "legal_compliance": {
+        "model_b": "CONFLICT (CC-BY-NC dataset restricts commercial use)",
+        "cpfair_quran_align": "CLEAN (Permissive MIT code and CC-BY-4.0 precompiled assets)"
+      },
+      "reproducibility": {
+        "model_b": "REPRODUCIBLE (Fully published codebase and public models)",
+        "cpfair_quran_align": "NOT REPRODUCIBLE (Pipeline scripts responsible for training models are unpublished)"
+      }
+    }
+  }
+}

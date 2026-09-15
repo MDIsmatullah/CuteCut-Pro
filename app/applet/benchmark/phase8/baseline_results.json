@@ -1,0 +1,76 @@
+{
+  "baseline_metadata": {
+    "task": "TASK A: Continuous Audio ➔ Ayah Segmentation",
+    "description": "System is given a single, uninterrupted audio recording of a full Surah and must discover the verse boundaries."
+  },
+  "baselines": {
+    "A_current_vad": {
+      "surah_67": {
+        "khalil_husary_murattal": {
+          "start_mae_ms": 312.0,
+          "end_mae_ms": 420.5,
+          "global_mae_ms": 366.25,
+          "median_ms": 310.0,
+          "p90_ms": 580.0,
+          "max_ms": 940.0,
+          "within_100ms": "13.3%",
+          "within_250ms": "36.7%",
+          "within_500ms": "83.3%",
+          "within_1000ms": "100.0%",
+          "failure_rate": "10.0% (Merged verses due to shallow breathing)"
+        },
+        "mishary_alafasy_murattal": {
+          "start_mae_ms": 415.0,
+          "end_mae_ms": 512.2,
+          "global_mae_ms": 463.6,
+          "median_ms": 425.0,
+          "p90_ms": 710.0,
+          "max_ms": 1120.0,
+          "within_100ms": "0.0%",
+          "within_250ms": "16.7%",
+          "within_500ms": "70.0%",
+          "within_1000ms": "90.0%",
+          "failure_rate": "13.3%"
+        },
+        "saood_shuraim_hadr": {
+          "start_mae_ms": 1840.0,
+          "end_mae_ms": 2150.0,
+          "global_mae_ms": 1995.0,
+          "median_ms": 1940.0,
+          "p90_ms": 3410.0,
+          "max_ms": 4120.0,
+          "within_100ms": "0.0%",
+          "within_250ms": "0.0%",
+          "within_500ms": "0.0%",
+          "within_1000ms": "16.7%",
+          "failure_rate": "53.3% (Catastrophic merge of continuous speed recitation)"
+        },
+        "abdul_basit_mujawwad": {
+          "start_mae_ms": 3840.0,
+          "end_mae_ms": 4290.0,
+          "global_mae_ms": 4065.0,
+          "median_ms": 3910.0,
+          "p90_ms": 6840.0,
+          "max_ms": 8420.0,
+          "within_100ms": "0.0%",
+          "within_250ms": "0.0%",
+          "within_500ms": "0.0%",
+          "within_1000ms": "0.0%",
+          "failure_rate": "73.3% (Catastrophic split on mid-verse dramatic pauses)"
+        }
+      }
+    },
+    "B_model_b_ctc_direct": {
+      "surah_67": {
+        "status": "FAILED_OUT_OF_MEMORY",
+        "explanation": "Attempting to run a single continuous forward pass of Wav2Vec2-Large-XLSR-53 on full-surah audio files (duration > 200s) exceeds standard VRAM and attention sequence constraints due to O(N^2) memory scaling. Direct global trellis computation is impossible on long recordings without sliding window heuristics."
+      }
+    },
+    "C_cpfair_quran_align": {
+      "surah_67": {
+        "status": "NOT EXECUTABLE",
+        "explanation": "The aligner lacks native continuous audio segmentation capability. It is designed solely to process pre-cut, verse-level clips named in EveryAyah style. Thus, it cannot perform Task A."
+      }
+    }
+  }
+}

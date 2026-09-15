@@ -1,0 +1,17 @@
+{
+  "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+  "drift_type": "MILD LINEAR DRIFT",
+  "cumulative_drift_series": [
+    {"ayah": 1, "observed_error_ms": 112.4, "drift_offset_ms": 0.0, "status": "Stable"},
+    {"ayah": 5, "observed_error_ms": 145.2, "drift_offset_ms": 32.8, "status": "Stable"},
+    {"ayah": 10, "observed_error_ms": 168.0, "drift_offset_ms": 55.6, "status": "Slight accumulation"},
+    {"ayah": 15, "observed_error_ms": 192.1, "drift_offset_ms": 79.7, "status": "Slight accumulation"},
+    {"ayah": 20, "observed_error_ms": 215.4, "drift_offset_ms": 103.0, "status": "Boundary bleeding"},
+    {"ayah": 25, "observed_error_ms": 234.8, "drift_offset_ms": 122.4, "status": "Boundary bleeding"},
+    {"ayah": 30, "observed_error_ms": 258.1, "drift_offset_ms": 145.7, "status": "Boundary bleeding"}
+  ],
+  "drift_mechanisms": {
+    "murattal_pacing": "Highly stable. Standard silent spaces between verses allow the CTC forced aligner trellis to reset and anchor back pointers, preventing unchecked runaway error accumulation.",
+    "hadr_bleeding": "Noticeable boundary bleeding. Saood Shuraim's fast, continuous Hadr recitation connects the end of one verse directly to the start of another. The lack of silences causes character emissions to overlap, producing a cumulative 145ms drift by Ayah 30."
+  }
+}

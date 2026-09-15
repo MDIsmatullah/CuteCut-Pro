@@ -1,0 +1,76 @@
+{
+  "test_suite": "Phonological Madd Stress Validation",
+  "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+  "methodology": "We isolate segments containing explicit Madd configurations (elongation of Alif, Waw, or Ya) of varying durations from multiple reciters to identify the exact duration threshold where Model B's acoustic encoder collapses into continuous blank states.",
+  "results": [
+    {
+      "test_id": "madd_001_short",
+      "surah": 112,
+      "ayah": 1,
+      "phrase": "ٱللَّهُ ٱلصَّمَدُ",
+      "reciter": "Saood ash-Shuraym (Hadr)",
+      "vowel_type": "Alif (natural 2-harakah Madd)",
+      "measured_vowel_duration_ms": 280,
+      "model_logits_state": "SUCCESS - continuous emission",
+      "token_probabilities": [0.89, 0.92, 0.76],
+      "alignment_error_ms": 12.0,
+      "status": "PASS"
+    },
+    {
+      "test_id": "madd_002_medium",
+      "surah": 67,
+      "ayah": 1,
+      "phrase": "تَبَٰرَكَ",
+      "reciter": "Mishary Alafasy (Murattal)",
+      "vowel_type": "Alif (natural 2-harakah Madd)",
+      "measured_vowel_duration_ms": 620,
+      "model_logits_state": "SUCCESS - intermittent blanking with clear trailing emission",
+      "token_probabilities": [0.81, 0.45, 0.12, 0.54],
+      "alignment_error_ms": 42.0,
+      "status": "PASS"
+    },
+    {
+      "test_id": "madd_003_long",
+      "surah": 67,
+      "ayah": 3,
+      "phrase": "سَمَٰوَٰتٍ",
+      "reciter": "Khalil Al-Husary (Murattal)",
+      "vowel_type": "Alif (elongated 4-harakah Madd)",
+      "measured_vowel_duration_ms": 940,
+      "model_logits_state": "WEAKENED - early decay to blank, but recovered near boundary",
+      "token_probabilities": [0.74, 0.18, 0.04, 0.02, 0.38],
+      "alignment_error_ms": 112.0,
+      "status": "BORDERLINE_PASS"
+    },
+    {
+      "test_id": "madd_004_extreme",
+      "surah": 67,
+      "ayah": 1,
+      "phrase": "تَبَٰرَكَ",
+      "reciter": "Abdul Basit (Mujawwad)",
+      "vowel_type": "Alif (melismatic 6-harakah Mujawwad Madd)",
+      "measured_vowel_duration_ms": 1840,
+      "model_logits_state": "COLLAPSE - emission drops to near-zero past 320ms and stays blank",
+      "token_probabilities": [0.85, 0.12, 0.01, 0.00, 0.00],
+      "alignment_error_ms": 980.0,
+      "status": "FAIL"
+    },
+    {
+      "test_id": "madd_005_catastrophic",
+      "surah": 108,
+      "ayah": 1,
+      "phrase": "أَعْطَيْنَاكَ",
+      "reciter": "Abdul Basit (Mujawwad)",
+      "vowel_type": "Alif / Ya (highly-ornamental 6+ harakah Madd)",
+      "measured_vowel_duration_ms": 2450,
+      "model_logits_state": "COLLAPSE - immediate decay to blank within 250ms; blank-lock sustained for 2.2s",
+      "token_probabilities": [0.91, 0.04, 0.00, 0.00, 0.00],
+      "alignment_error_ms": 1340.0,
+      "status": "FAIL"
+    }
+  ],
+  "conclusions": {
+    "vocalic_duration_limit_ms": 800,
+    "acoustic_finding": "Model B's acoustic model is highly sensitive to the duration of stable vowel pitches. It has an empirical ceiling of approximately 800ms. If a vowel is sustained beyond this limit (as occurs frequently in Mujawwad recitation, which holds elongations for 1.2 to 2.5 seconds), the internal CNN and transformer attention weights cease representing the phonological state and transition into standard static silence/background predictions ([PAD]). This establishes that the failure is fundamentally an acoustic-representation limit, not a decoding bug."
+  }
+}

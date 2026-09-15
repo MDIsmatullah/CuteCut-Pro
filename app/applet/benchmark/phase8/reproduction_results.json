@@ -1,0 +1,90 @@
+{
+  "reproduction_metadata": {
+    "project": "CuteCut Pro - H7 Forensic Verification",
+    "verification_phase": "Phase 8.1 - Reproduction Matrix",
+    "audit_status": "REPRODUCTION FAILED (No executable pipeline, code, or continuous audio files exist)",
+    "target_cases": [
+      { "surah": 67, "ayahs": 30, "reciters": ["Khalil Al-Husary", "Mishary Alafasy", "Saood ash-Shuraym", "Abdul Basit"] },
+      { "surah": 108, "ayahs": 3, "reciters": ["Khalil Al-Husary", "Mishary Alafasy", "Saood ash-Shuraym", "Abdul Basit"] },
+      { "surah": 112, "ayahs": 4, "reciters": ["Khalil Al-Husary", "Mishary Alafasy", "Saood ash-Shuraym", "Abdul Basit"] }
+    ]
+  },
+  "reproduction_runs": [
+    {
+      "surah": 67,
+      "ayah": 1,
+      "reciter": "Khalil Al-Husary",
+      "style": "Murattal",
+      "architecture": "H7_multi_signal_hybrid",
+      "referenceStart": 0.08,
+      "referenceEnd": 10.15,
+      "predictedStart": "UNVERIFIED_SYNTHETIC (No audio or model run)",
+      "predictedEnd": "UNVERIFIED_SYNTHETIC (No audio or model run)",
+      "startError": "N/A",
+      "endError": "N/A",
+      "failure": true,
+      "audit_notes": "Continuous audio could not be verified because /app/applet/benchmark/audio is empty or non-existent."
+    },
+    {
+      "surah": 67,
+      "ayah": 2,
+      "reciter": "Khalil Al-Husary",
+      "style": "Murattal",
+      "architecture": "H7_multi_signal_hybrid",
+      "referenceStart": 10.15,
+      "referenceEnd": 24.32,
+      "predictedStart": "UNVERIFIED_SYNTHETIC",
+      "predictedEnd": "UNVERIFIED_SYNTHETIC",
+      "startError": "N/A",
+      "endError": "N/A",
+      "failure": true,
+      "audit_notes": "Reproduction failed due to non-existent dynamic programming solver code."
+    },
+    {
+      "surah": 108,
+      "ayah": 1,
+      "reciter": "Mishary Alafasy",
+      "style": "Murattal",
+      "architecture": "H7_multi_signal_hybrid",
+      "referenceStart": 0.0,
+      "referenceEnd": 5.2,
+      "predictedStart": "UNVERIFIED_SYNTHETIC",
+      "predictedEnd": "UNVERIFIED_SYNTHETIC",
+      "startError": "N/A",
+      "endError": "N/A",
+      "failure": true,
+      "audit_notes": "Madd stress verification aborted: Model B weights never fetched or cached."
+    },
+    {
+      "surah": 112,
+      "ayah": 1,
+      "reciter": "Saood ash-Shuraym",
+      "style": "Hadr",
+      "architecture": "H7_multi_signal_hybrid",
+      "referenceStart": 0.0,
+      "referenceEnd": 3.1,
+      "predictedStart": "UNVERIFIED_SYNTHETIC",
+      "predictedEnd": "UNVERIFIED_SYNTHETIC",
+      "startError": "N/A",
+      "endError": "N/A",
+      "failure": true,
+      "audit_notes": "Shuraim fast pacing audio files were never retrieved for continuous verification."
+    },
+    {
+      "surah": 67,
+      "ayah": 1,
+      "reciter": "Abdul Basit Abdus Samad",
+      "style": "Mujawwad",
+      "architecture": "H7_multi_signal_hybrid",
+      "referenceStart": 0.0,
+      "referenceEnd": 32.4,
+      "predictedStart": "UNVERIFIED_SYNTHETIC",
+      "predictedEnd": "UNVERIFIED_SYNTHETIC",
+      "startError": "N/A",
+      "endError": "N/A",
+      "failure": true,
+      "audit_notes": "No alignment results possible: mujawwad vocalic modeling is unexecutable."
+    }
+  ],
+  "global_summary": "All 30 ayahs of Surah 67, 3 ayahs of Surah 108, and 4 ayahs of Surah 112 across all 4 reciters were audited. 100% of the runs failed independent replication because there is no Python script, model weight downloader, dynamic programming trellis backtracking solver, or physical audio database in the workspace. All reported metrics in previous reports were generated using synthetic approximations."
+}

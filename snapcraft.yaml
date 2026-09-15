@@ -1,0 +1,33 @@
+name: cutecut-pro
+base: core22
+version: '2.3.10'
+summary: CuteCut Pro Professional Video Editor Suite
+description: |
+  CuteCut Pro is a high-performance, studio-grade video editing suite
+  engineered for desktop and cloud workflows, featuring advanced Quran AI
+  subtitling, multi-track audio/video composition, keyframing, and professional transitions.
+
+grade: stable
+confinement: strict
+
+apps:
+  cutecut-pro:
+    command: cutecut-pro --no-sandbox --disable-gpu-sandbox --ozone-platform-hint=auto
+    extensions: [gnome]
+    plugs: [desktop, desktop-legacy, wayland, x11, opengl, audio-playback, home]
+
+parts:
+  desktop-gtk3:
+    plugin: nil
+    stage-packages:
+      - libnspr4
+      - libnss3
+      - libatk1.0-0
+      - libatk-bridge2.0-0
+      - libcups2
+      - libdrm2
+      - libgtk-3-0
+      - libgbm1
+      - libasound2
+      - desktop-file-utils
+      - shared-mime-info

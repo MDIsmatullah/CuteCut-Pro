@@ -1,0 +1,104 @@
+name: Build CuteCut Pro Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build & Package Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repository code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js runtime
+      - name: Setup Node.js (v22)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 3. Setup Java JDK 17 (Required for Capacitor 6 & Android Gradle Plugin 8+)
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 4. Setup Gradle
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # 5. Install NPM dependencies
+      - name: Install NPM Dependencies
+        run: |
+          npm install --include=optional --no-audit
+
+      # 6. Build Web / Vite distribution bundle
+      - name: Build Web Application
+        run: npm run build
+
+      # 7. Initialize and Synchronize Capacitor Android project
+      - name: Sync Capacitor Android
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          # If android folder is missing or incomplete, create a fresh Capacitor Android project
+          if [ ! -d "android" ] || [ ! -f "android/build.gradle" ]; then
+            echo "Initializing fresh Capacitor Android platform..."
+            npx cap add android
+          fi
+          
+          # Inject Google AdMob App ID meta-data into AndroidManifest.xml if missing
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST" ] && ! grep -q "com.google.android.gms.ads.APPLICATION_ID" "$MANIFEST"; then
+            echo "Injecting AdMob App ID into AndroidManifest.xml..."
+            sed -i '/<\/application>/i \        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-8898043565822840~4018462556"/>' "$MANIFEST"
+          fi
+
+          echo "Syncing web assets to Android platform..."
+          npx cap sync android
+
+      # 8. Build Android Debug APK with Gradle
+      - name: Build APK with Gradle
+        working-directory: android
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          JAVA_HOME: ${{ env.JAVA_HOME }}
+        run: |
+          # Auto-accept all Android SDK licenses
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+          yes | sdkmanager --licenses 2>/dev/null || true
+          
+          if [ -f "gradlew" ]; then
+            chmod +x gradlew
+            ./gradlew assembleDebug --no-daemon --stacktrace
+          else
+            gradle assembleDebug --no-daemon --stacktrace
+          fi
+
+      # 9. Prepare and Organize APK Output
+      - name: Prepare APK outputs
+        run: |
+          mkdir -p apk-output
+          find android/app/build/outputs/apk/ -name "*.apk" -exec cp -v {} apk-output/ \;
+          ls -la apk-output/
+
+      # 10. Upload generated APK as GitHub Action Artifact
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CuteCut-Pro-Android-APK
+          path: apk-output/*.apk
+          retention-days: 14
+          if-no-files-found: warn

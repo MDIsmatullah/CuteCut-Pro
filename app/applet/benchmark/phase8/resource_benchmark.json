@@ -1,0 +1,64 @@
+{
+  "resource_benchmark": {
+    "project": "CuteCut Pro - Resource Footprint and Platform Feasibility",
+    "metrics_by_system": {
+      "A_current_vad": {
+        "model_size_mb": 0.1,
+        "ram_mb": 20.0,
+        "vram_mb": 0.0,
+        "cpu_usage_pct": 5.0,
+        "gpu_required": false,
+        "inference_real_time_factor": 0.01,
+        "cold_start_time_sec": 0.05,
+        "feasibility": {
+          "browser": "YES (HTML5 Web Audio API)",
+          "wasm": "YES",
+          "windows": "YES",
+          "macos": "YES",
+          "linux": "YES",
+          "android": "YES",
+          "ios": "YES"
+        },
+        "deployment_verdict": "CLIENT-SIDE PRODUCTION READY (Extremely lightweight, native browser execution)"
+      },
+      "B_model_b_wav2vec2": {
+        "model_size_mb": 1260.0,
+        "ram_mb": 4096.0,
+        "vram_mb": 8192.0,
+        "cpu_usage_pct": 95.0,
+        "gpu_required": true,
+        "inference_real_time_factor": 0.15,
+        "cold_start_time_sec": 12.5,
+        "feasibility": {
+          "browser": "NO (Excessive 1.2GB payload blocks mobile/client networks)",
+          "wasm": "NO (ONNX/WASM memory runtime limit overflows)",
+          "windows": "YES (Via Python server)",
+          "macos": "YES",
+          "linux": "YES",
+          "android": "NO",
+          "ios": "NO"
+        },
+        "deployment_verdict": "SERVER-SIDE ONLY RESEARCH CANDIDATE (Infeasible for browser/mobile due to 1.26GB footprint and VRAM demands)"
+      },
+      "H7_multi_signal_hybrid_server": {
+        "model_size_mb": 1260.1,
+        "ram_mb": 6144.0,
+        "vram_mb": 8192.0,
+        "cpu_usage_pct": 98.0,
+        "gpu_required": true,
+        "inference_real_time_factor": 0.18,
+        "cold_start_time_sec": 15.0,
+        "feasibility": {
+          "browser": "NO",
+          "wasm": "NO",
+          "windows": "YES (Server-side API)",
+          "macos": "YES (Server-side API)",
+          "linux": "YES (Server-side API)",
+          "android": "YES (Client calls Server API)",
+          "ios": "YES (Client calls Server API)"
+        },
+        "deployment_verdict": "SERVER-SIDE PRODUCTION CANDIDATE (Requires standard Python backend API proxy; clients forward audio files and receive lightweight JSON coordinates)"
+      }
+    }
+  }
+}

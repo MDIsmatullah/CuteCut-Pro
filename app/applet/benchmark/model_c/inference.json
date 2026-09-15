@@ -1,0 +1,58 @@
+{
+  "inference_run_id": "inf_c_20260904_forensic",
+  "model_name": "TBOGamer22/wav2vec2-quran-phonetics",
+  "timestamp": "2026-09-04T12:54:26Z",
+  "hardware_context": "Intel Xeon CPU @ 2.20GHz (Isolated execution thread)",
+  "vulnerabilities": {
+    "direct_tokenizer_unsupported": true,
+    "unsupported_input_script": "Arabic (Uthmani & Standard). If Arabic script is passed to the tokenizer, all characters are treated as [UNK] because the vocabulary consists strictly of Latin-based phonetic/transliteration graphemes."
+  },
+  "test_dataset": {
+    "surah_67": {
+      "name": "Al-Mulk",
+      "ayah_range": [1, 3],
+      "reciters": {
+        "alafasy_murattal": {
+          "source_url": "https://everyayah.com/data/Mishary_Alafasy_128kbps/067001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 34.82,
+          "total_samples": 557120,
+          "output_frames": 1739,
+          "mean_log_prob": null,
+          "processing_time_sec": null,
+          "status": "FAILED - Tokenizer exception during Arabic text processing"
+        },
+        "basit_mujawwad": {
+          "source_url": "https://everyayah.com/data/Abdul_Basit_Mujawwad_128kbps/067001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 78.45,
+          "total_samples": 1255200,
+          "output_frames": 3919,
+          "mean_log_prob": null,
+          "processing_time_sec": null,
+          "status": "FAILED - Tokenizer exception during Arabic text processing"
+        },
+        "shuraim_hadr": {
+          "source_url": "https://everyayah.com/data/Saood_ash_Shuraym_128kbps/067001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 21.36,
+          "total_samples": 341760,
+          "output_frames": 1065,
+          "mean_log_prob": null,
+          "processing_time_sec": null,
+          "status": "FAILED - Tokenizer exception during Arabic text processing"
+        },
+        "husary_murattal": {
+          "source_url": "https://everyayah.com/data/Husary_128kbps/067001.mp3",
+          "sample_rate_hz": 16000,
+          "duration_sec": 38.12,
+          "total_samples": 609920,
+          "output_frames": 1904,
+          "mean_log_prob": null,
+          "processing_time_sec": null,
+          "status": "FAILED - Tokenizer exception during Arabic text processing"
+        }
+      }
+    }
+  }
+}

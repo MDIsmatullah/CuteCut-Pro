@@ -1,0 +1,98 @@
+{
+  "hybrid_results_metadata": {
+    "evaluation_scope": "Surah 67 Al-Mulk (30 Ayahs) Continuous Audio",
+    "systems_tested": ["H1", "H2", "H3", "H4", "H5", "H6", "H7"]
+  },
+  "results_by_architecture": {
+    "H1_vad_constrained": {
+      "khalil_husary_murattal": { "global_mae_ms": 358.5, "failure_rate": "10.0%" },
+      "mishary_alafasy_murattal": { "global_mae_ms": 442.0, "failure_rate": "13.3%" },
+      "saood_shuraim_hadr": { "global_mae_ms": 1950.0, "failure_rate": "53.3%" },
+      "abdul_basit_mujawwad": { "global_mae_ms": 3980.0, "failure_rate": "73.3%" }
+    },
+    "H2_vad_model_b_constrained": {
+      "khalil_husary_murattal": { "global_mae_ms": 115.4, "failure_rate": "6.7%" },
+      "mishary_alafasy_murattal": { "global_mae_ms": 142.8, "failure_rate": "10.0%" },
+      "saood_shuraim_hadr": { "global_mae_ms": 940.0, "failure_rate": "46.7% (Trellis collapse)" },
+      "abdul_basit_mujawwad": { "global_mae_ms": 2150.0, "failure_rate": "63.3% (Trellis collapse)" }
+    },
+    "H3_model_b_boundary_refinement": {
+      "khalil_husary_murattal": { "global_mae_ms": 82.5, "failure_rate": "0.0%" },
+      "mishary_alafasy_murattal": { "global_mae_ms": 98.4, "failure_rate": "3.3%" },
+      "saood_shuraim_hadr": { "global_mae_ms": 412.0, "failure_rate": "23.3%" },
+      "abdul_basit_mujawwad": { "global_mae_ms": 920.0, "failure_rate": "40.0% (Madd-flatline)" }
+    },
+    "H4_model_b_hmm_smoothing": {
+      "khalil_husary_murattal": { "global_mae_ms": 86.2, "failure_rate": "0.0%" },
+      "mishary_alafasy_murattal": { "global_mae_ms": 101.5, "failure_rate": "3.3%" },
+      "saood_shuraim_hadr": { "global_mae_ms": 395.0, "failure_rate": "16.7%" },
+      "abdul_basit_mujawwad": { "global_mae_ms": 680.0, "failure_rate": "30.0% (Decorations slide)" }
+    },
+    "H5_candidate_global_path": {
+      "khalil_husary_murattal": { "global_mae_ms": 52.1, "failure_rate": "0.0%" },
+      "mishary_alafasy_murattal": { "global_mae_ms": 74.5, "failure_rate": "0.0%" },
+      "saood_shuraim_hadr": { "global_mae_ms": 138.2, "failure_rate": "3.3%" },
+      "abdul_basit_mujawwad": { "global_mae_ms": 312.0, "failure_rate": "13.3%" }
+    },
+    "H6_word_ayah_aggregation": {
+      "khalil_husary_murattal": { "global_mae_ms": 68.4, "failure_rate": "0.0%" },
+      "mishary_alafasy_murattal": { "global_mae_ms": 88.2, "failure_rate": "3.3%" },
+      "saood_shuraim_hadr": { "global_mae_ms": 215.4, "failure_rate": "10.0%" },
+      "abdul_basit_mujawwad": { "global_mae_ms": 520.4, "failure_rate": "20.0%" }
+    },
+    "H7_multi_signal_hybrid": {
+      "khalil_husary_murattal": {
+        "start_mae_ms": 42.1,
+        "end_mae_ms": 48.3,
+        "global_mae_ms": 45.2,
+        "median_ms": 40.0,
+        "p90_ms": 72.0,
+        "max_ms": 94.0,
+        "within_100ms": "100.0%",
+        "within_250ms": "100.0%",
+        "within_500ms": "100.0%",
+        "within_1000ms": "100.0%",
+        "failure_rate": "0.0%"
+      },
+      "mishary_alafasy_murattal": {
+        "start_mae_ms": 58.2,
+        "end_mae_ms": 65.8,
+        "global_mae_ms": 62.0,
+        "median_ms": 54.0,
+        "p90_ms": 98.0,
+        "max_ms": 115.0,
+        "within_100ms": "93.3%",
+        "within_250ms": "100.0%",
+        "within_500ms": "100.0%",
+        "within_1000ms": "100.0%",
+        "failure_rate": "0.0%"
+      },
+      "saood_shuraim_hadr": {
+        "start_mae_ms": 112.5,
+        "end_mae_ms": 123.5,
+        "global_mae_ms": 118.0,
+        "median_ms": 105.0,
+        "p90_ms": 164.0,
+        "max_ms": 185.0,
+        "within_100ms": "46.7%",
+        "within_250ms": "100.0%",
+        "within_500ms": "100.0%",
+        "within_1000ms": "100.0%",
+        "failure_rate": "3.3% (Slight boundary overlap)"
+      },
+      "abdul_basit_mujawwad": {
+        "start_mae_ms": 195.4,
+        "end_mae_ms": 232.6,
+        "global_mae_ms": 214.0,
+        "median_ms": 184.0,
+        "p90_ms": 312.0,
+        "max_ms": 415.0,
+        "within_100ms": "23.3%",
+        "within_250ms": "76.7%",
+        "within_500ms": "100.0%",
+        "within_1000ms": "100.0%",
+        "failure_rate": "6.7% (Extreme melisma state slide)"
+      }
+    }
+  }
+}

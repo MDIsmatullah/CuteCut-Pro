@@ -1,0 +1,100 @@
+# ==============================================================================
+# CUTECUT PRO - PRODUCTION GITIGNORE (React + Vite + Electron + Web Worker)
+# ==============================================================================
+
+# 1. Dependencies and Packages
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 2. Build Outputs, Distributables & Electron Packages
+dist/
+dist-electron/
+dist-desktop/
+build/
+out/
+release/
+bin/
+obj/
+app/dist/
+apk-output/
+android/.gradle/
+android/build/
+android/app/build/
+android/app/src/main/assets/public/
+
+# Heavy Installers & OS Binaries
+*.exe
+*.AppImage
+*.dmg
+*.snap
+*.deb
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.pkg
+*.msi
+*.msix
+*.appx
+*.apk
+*.aab
+*.so
+*.dylib
+*.dll
+
+# 3. Environment Secrets & Credentials
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.pfx
+*.cer
+*.der
+credentials.json
+client_secret*.json
+
+# 4. OS & System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 5. IDEs, Editors & Tool Configurations
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# 6. Temporary Files & Cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.tsbuildinfo
+tmp/
+temp/
+logs/
+*.log

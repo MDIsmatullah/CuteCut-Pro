@@ -1,0 +1,30 @@
+{
+  "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+  "failures": [
+    {
+      "failure_mode": "Madd Vowel Elongation Trellis Collapse",
+      "symptom": "Extreme elongation on vowels (e.g., Alif Madda held for over 800ms) causes CTC logits to flatline and output only [PAD] blank tokens. The backtracking decoder slips and jumps to the next available character state prematurely.",
+      "remedy": "Implement a post-processing trellis smoothing filter or utilize a transition-duration penalty that prevents state transition in the Viterbi solver when logits are dominated by blank tokens during prolonged vowels."
+    },
+    {
+      "test_case_failures": [
+        {
+          "reciter": "Abdul Basit (Mujawwad)",
+          "surah": 67,
+          "ayah": 1,
+          "timestamp_range": [0.22, 2.15],
+          "madd_vowel": "بَٰ (ba)",
+          "cause": "Acoustic flatline during slow melismatic chanting"
+        },
+        {
+          "reciter": "Mishary Alafasy (Murattal)",
+          "surah": 67,
+          "ayah": 1,
+          "timestamp_range": [4.46, 5.12],
+          "nasal_idgham": "شَىْءٍ (shay'in)",
+          "cause": "Nasal Ghunnah transition blurring boundary markers"
+        }
+      ]
+    }
+  ]
+}

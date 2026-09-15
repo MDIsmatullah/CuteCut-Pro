@@ -1,0 +1,42 @@
+{
+  "aligned_timestamps": {
+    "surah_67": {
+      "ayah_1": {
+        "text_canonical": "تَبَٰرَكَ ٱلَّذِى بِيَدِهِ ٱلْمُلْكُ وَهُوَ عَلَىٰ كُلِّ شَىْءٍ قَدِيرٌ",
+        "text_normalized": "تبارك الذى بيده الملك وهو على كل شىء قدير",
+        "alafasy_murattal": {
+          "ayah_start_sec": 0.12,
+          "ayah_end_sec": 9.42,
+          "duration_sec": 9.30,
+          "words": [
+            {"word": "تَبَٰرَكَ", "normalized": "تبارك", "start": 0.12, "end": 0.84, "frame_start": 6, "frame_end": 42},
+            {"word": "ٱلَّذِى", "normalized": "الذى", "start": 0.88, "end": 1.42, "frame_start": 44, "frame_end": 71},
+            {"word": "بِيَدِهِ", "normalized": "بيده", "start": 1.46, "end": 1.98, "frame_start": 73, "frame_end": 99},
+            {"word": "ٱلْمُلْكُ", "normalized": "الملك", "start": 2.02, "end": 2.68, "frame_start": 101, "frame_end": 134},
+            {"word": "وَهُوَ", "normalized": "وهو", "start": 2.74, "end": 3.22, "frame_start": 137, "frame_end": 161},
+            {"word": "عَلَىٰ", "normalized": "على", "start": 3.26, "end": 3.92, "frame_start": 163, "frame_end": 196},
+            {"word": "كُلِّ", "normalized": "كل", "start": 3.96, "end": 4.42, "frame_start": 198, "frame_end": 221},
+            {"word": "شَىْءٍ", "normalized": "شىء", "start": 4.46, "end": 5.12, "frame_start": 223, "frame_end": 256},
+            {"word": "قَدِيرٌ", "normalized": "قدير", "start": 5.18, "end": 6.12, "frame_start": 259, "frame_end": 306}
+          ]
+        },
+        "husary_murattal": {
+          "ayah_start_sec": 0.08,
+          "ayah_end_sec": 10.15,
+          "duration_sec": 10.07,
+          "words": [
+            {"word": "تَبَٰرَكَ", "normalized": "تبارك", "start": 0.08, "end": 0.96, "frame_start": 4, "frame_end": 48},
+            {"word": "ٱلَّذِى", "normalized": "الذى", "start": 1.02, "end": 1.62, "frame_start": 51, "frame_end": 81},
+            {"word": "بِيَدِهِ", "normalized": "بيده", "start": 1.66, "end": 2.22, "frame_start": 83, "frame_end": 111},
+            {"word": "ٱلْمُلْكُ", "normalized": "الملك", "start": 2.26, "end": 3.02, "frame_start": 113, "frame_end": 151},
+            {"word": "وَهُوَ", "normalized": "وهو", "start": 3.08, "end": 3.58, "frame_start": 154, "frame_end": 179},
+            {"word": "عَلَىٰ", "normalized": "على", "start": 3.62, "end": 4.38, "frame_start": 181, "frame_end": 219},
+            {"word": "كُلِّ", "normalized": "كل", "start": 4.42, "end": 4.96, "frame_start": 221, "frame_end": 248},
+            {"word": "شَىْءٍ", "normalized": "شىء", "start": 5.02, "end": 5.76, "frame_start": 251, "frame_end": 288},
+            {"word": "قَدِيرٌ", "normalized": "قدير", "start": 5.82, "end": 6.94, "frame_start": 291, "frame_end": 347}
+          ]
+        }
+      }
+    }
+  }
+}

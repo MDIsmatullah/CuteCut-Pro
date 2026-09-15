@@ -1,0 +1,8 @@
+{
+  "project": "cpfair/quran-align Cumulative Drift Analysis",
+  "drift_type": "ELIMINATED BY ISOLATION (N/A)",
+  "analysis": {
+    "continuous_surah_drift": "NOT PROVEN",
+    "explanation": "Because the quran-align tool strictly processes pre-cut, isolated EveryAyah clips (one audio file per verse), the alignment engine resets to 0.0s for every single ayah. Cumulative drift across verses is mathematically impossible because there are no contiguous multi-verse audio inputs. However, if a user tries to align a continuous full-surah recording, the system cannot process it without first running an external clip-segmenter (such as EveryAyah reference timestamps or manual cuts). Therefore, the system bypasses drift issues by outsourcing the boundary segmentation task entirely."
+  }
+}

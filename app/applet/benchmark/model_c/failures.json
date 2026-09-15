@@ -1,0 +1,17 @@
+{
+  "project": "Quran Forced Alignment - Model C Failure Analysis",
+  "model_name": "TBOGamer22/wav2vec2-quran-phonetics",
+  "failures": [
+    {
+      "failure_id": "c_err_001_tokenizer_crash",
+      "surah": 67,
+      "ayah": 1,
+      "reciter": "Mishary_Alafasy_128kbps",
+      "expected_text": "تَبَٰرَكَ ٱلَّذِى بِيَدِهِ",
+      "observed_tokens": "all letters mapped to '[UNK]'",
+      "failure_type": "CATASTROPHIC FAILURE - Tokenizer Exception",
+      "likely_cause": "The tokenizer vocabulary has 64 classes, consisting entirely of Latin characters used for Romanized transliteration (e.g., 'a', 'b', 't', 'th'). Inputting standard Arabic or Uthmani characters produces zero overlap with the model's vocabulary, leading to full string rejection or a stream of unknown tokens.",
+      "evidence": "Processor tokenization output for 'تبارك' is [1, 1, 1, 1, 1], indicating 100% [UNK] mapping."
+    }
+  ]
+}

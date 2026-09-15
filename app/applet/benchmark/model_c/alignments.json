@@ -1,0 +1,10 @@
+{
+  "project": "Quran Forced Alignment - Model C Tokenization Failure",
+  "model_name": "TBOGamer22/wav2vec2-quran-phonetics",
+  "alignment_status": "FAILED",
+  "reason": "Direct alignment with standard Quran script is impossible. Model C utilizes a custom Latin transliterated phonetic vocabulary ('word_tr' field in training dataset Buraaq/quran-md-words). Standard Arabic or Uthmani scripture cannot be tokenized by the model and yields [UNK] for all letters, leading to total trellis blockage.",
+  "g2p_requirement": "To execute alignment, a highly complex Grapheme-to-Phoneme (G2P) conversion model is required to convert Uthmani text into exactly matching Latin phonemes. No such G2P model is currently shipped with this model.",
+  "word_timestamps": "NOT AVAILABLE",
+  "ayah_timestamps": "NOT AVAILABLE",
+  "results": []
+}

@@ -1,0 +1,27 @@
+{
+  "failure_analysis": {
+    "model_name": "cpfair/quran-align",
+    "critical_failures": [
+      {
+        "failure_mode": "OMITTED_PIPELINE_SCRIPTS",
+        "symptom": "The python script to generate speech training inputs and compile lexicon dictionaries is unpublished. Users cannot run the alignment pipeline on custom or new audio recordings.",
+        "remedy": "None from public resources. Re-implementing the script would require reproducing CMU Sphinx training setup and classical Arabic G2P rules from scratch."
+      },
+      {
+        "failure_mode": "DEPENDENCY_ON_PRESEGMENTED_CLIPS",
+        "symptom": "The tool cannot align a continuous surah audio file. It fails if the input file contains silent pauses between verses because it expects pre-cut EveryAyah-formatted clips as its absolute inputs.",
+        "remedy": "An external VAD or acoustic segmentation layer must pre-process and chop the continuous audio into verse clips before passing them to quran-align."
+      },
+      {
+        "failure_mode": "OUT_OF_VOCABULARY_CRASHES",
+        "symptom": "If any word in the reference text is missing from the precompiled phonetic dictionary, PocketSphinx fails to construct the decoding graph and crashes.",
+        "remedy": "Ensure absolute coverage in the .dict file for all text variations, or implement a rule-based grapheme-to-phoneme backup generator."
+      },
+      {
+        "failure_mode": "SPEAKER_DEPENDENCY",
+        "symptom": "The acoustic model relies on per-reciter speaker adaptation (SphinxTrain). Running it on an unseen or untrained reciter results in extremely poor alignment bounds and high state deletion rates.",
+        "remedy": "Train a universal classical Arabic deep neural network acoustic model (e.g., using Kaldi or Wav2Vec2) rather than using GMM speaker-adaptation templates."
+      }
+    ]
+  }
+}

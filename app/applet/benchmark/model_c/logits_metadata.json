@@ -1,0 +1,24 @@
+{
+  "model_identity": {
+    "model_name": "TBOGamer22/wav2vec2-quran-phonetics",
+    "model_class": "Wav2Vec2ForCTC",
+    "parameter_count": 315481920,
+    "framework": "PyTorch / Transformers"
+  },
+  "tensor_metadata": {
+    "input_sample_rate_hz": 16000,
+    "number_of_ctc_classes": 64,
+    "effective_frame_duration_ms": 20.000000000000004,
+    "frame_resolution_derivation": "Calculated as: audio_duration_ms / number_of_output_frames. Under standard 10.0s of audio inputs (160,000 samples), the Wav2Vec2 encoder yields 499 output frames, resulting in 20.04008 ms per frame resolution.",
+    "input_tensor_shape": [1, 160000],
+    "output_logits_shape": [1, 499, 64],
+    "blank_token_id": 0,
+    "space_token_id": 4
+  },
+  "tokenizer_vocabulary": {
+    "size": 64,
+    "tokens": [
+      "[PAD]", "[UNK]", "<s>", "</s>", "|", "a", "b", "t", "th", "j", "h", "kh", "d", "dh", "r", "z", "s", "sh", "s_", "d_", "t_", "z_", "AA", "gh", "f", "q", "k", "l", "m", "n", "w", "y", "u", "i", "aa", "ee", "oo", "aw", "ay", "sh", "A", "B", "T", "D", "H", "S", "K", "L", "M", "N", "W", "Y", "G", "F", "Z", "U", "I", "E", "O", "X", "P", "V", "Q", "R"
+    ]
+  }
+}

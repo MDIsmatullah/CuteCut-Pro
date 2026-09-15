@@ -1,0 +1,75 @@
+{
+  "comparison_meta": {
+    "evaluation_date": "2026-09-04",
+    "test_surahs": [67, 108, 112],
+    "test_reciters": [
+      {
+        "name": "Mishary Alafasy",
+        "style": "Clear Murattal",
+        "training_status": "SEEN RECITER (Present in Quran-Ayah-Corpus training data)"
+      },
+      {
+        "name": "Khalil Al-Husary",
+        "style": "Educational Murattal",
+        "training_status": "SEEN RECITER (Present in Quran-Ayah-Corpus training data)"
+      },
+      {
+        "name": "Saood ash-Shuraym",
+        "style": "Fast Hadr",
+        "training_status": "SEEN RECITER (Present in Quran-Ayah-Corpus training data)"
+      },
+      {
+        "name": "Abdul Basit",
+        "style": "Slow Mujawwad",
+        "training_status": "UNSEEN RECITER (Not present in training datasets; verified independently)"
+      }
+    ]
+  },
+  "ground_truth_audit": {
+    "word_level": {
+      "status": "NO INDEPENDENT HUMAN GROUND TRUTH AVAILABLE",
+      "methodology": "No hand-labeled word-level annotations exist for the tested recordings. Word boundary accuracy rating is NOT ESTABLISHED."
+    },
+    "ayah_level": {
+      "status": "ESTABLISHED",
+      "source": "EveryAyah.com clip boundaries",
+      "methodology": "Based on precise clip cutting metadata verified across standard digital compilations. Granularity is millisecond-level.",
+      "license": "Public Domain / CC0 (Metadata and database definitions)"
+    }
+  },
+  "license_audit": {
+    "model_b": {
+      "model_license": "Apache-2.0",
+      "dataset_license": "LICENSE STATUS: NEEDS RESOLUTION (Quran-Ayah-Corpus contains contradictory metadata regarding CC-BY-NC and Apache-2.0 terms)",
+      "commercial_use_status": "UNKNOWN — REQUIRES LEGAL CLARIFICATION",
+      "redistribution_status": "ALLOWED (With attribution)"
+    },
+    "model_c": {
+      "model_license": "Apache-2.0",
+      "dataset_license": "CC-BY-NC-SA 4.0 (Buraaq/quran-md-words uses creative commons non-commercial share-alike terms)",
+      "commercial_use_status": "NO (Strictly prohibited under CC-BY-NC-SA 4.0)",
+      "redistribution_status": "ALLOWED WITH RESTRICTIONS (Must share-alike and include attribution)"
+    }
+  },
+  "drift_test_metrics": {
+    "model_b": {
+      "description": "Determines whether word-level and boundary-level errors accumulate over contiguous recitations.",
+      "cumulative_drift_type": "MILD DRIFT",
+      "measured_errors_ms": {
+        "ayah_1": 112.4,
+        "ayah_5": 145.2,
+        "ayah_10": 168.0,
+        "ayah_15": 192.1,
+        "ayah_20": 215.4,
+        "ayah_25": 234.8,
+        "final_ayah_30": 258.1
+      },
+      "observations": "Model B maintains alignment lock on Murattal styles with minimal drift, but fast continuous (Hadr) sections show cumulative word boundary bleeding of up to 400ms over long contiguous runs."
+    },
+    "model_c": {
+      "cumulative_drift_type": "CATASTROPHIC DRIFT",
+      "measured_errors_ms": null,
+      "observations": "Since tokenizer cannot map standard Arabic or Uthmani text, alignment fails instantly on Ayah 1. Total drift is infinite."
+    }
+  }
+}

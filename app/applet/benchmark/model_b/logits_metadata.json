@@ -1,0 +1,24 @@
+{
+  "model_identity": {
+    "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+    "model_class": "Wav2Vec2ForCTC",
+    "parameter_count": 315471527,
+    "framework": "PyTorch / Transformers"
+  },
+  "tensor_metadata": {
+    "input_sample_rate_hz": 16000,
+    "number_of_ctc_classes": 39,
+    "effective_frame_duration_ms": 20.000000000000004,
+    "frame_resolution_derivation": "Calculated as: audio_duration_ms / number_of_output_frames. For 10.0s of audio (160,000 samples), the Wav2Vec2 downsampling CNN produces exactly 499 frames of logits, resulting in exactly 20.04008 ms per frame.",
+    "input_tensor_shape": [1, 160000],
+    "output_logits_shape": [1, 499, 39],
+    "blank_token_id": 0,
+    "space_token_id": 4
+  },
+  "tokenizer_vocabulary": {
+    "size": 39,
+    "tokens": [
+      "[PAD]", "[UNK]", "<s>", "</s>", "|", "ا", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "ه", "و", "ى", "ي", "ء", "آ", "أ", "إ", "ة"
+    ]
+  }
+}

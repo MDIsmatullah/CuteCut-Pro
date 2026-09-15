@@ -1,0 +1,41 @@
+{
+  "benchmark_run_info": {
+    "evaluation_date": "2026-09-04",
+    "target_surah": 67,
+    "target_ayahs": [1, 2, 3],
+    "sample_rate_hz": 16000,
+    "quantization": "float32 (CPU)"
+  },
+  "candidate_model_under_test": {
+    "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+    "type": "Fine-Tuned Quranic Acoustic CTC"
+  },
+  "test_styles": {
+    "style_1_murattal": {
+      "reciter": "Mishary Alafasy (Mishary_Alafasy_128kbps)",
+      "recitation_type": "Murattal (clear standard studio pacing)",
+      "audio_source_template": "https://everyayah.com/data/Mishary_Alafasy_128kbps/0{surah}{ayah:03d}.mp3"
+    },
+    "style_2_mujawwad": {
+      "reciter": "Abdul Basit (Abdul_Basit_Mujawwad_128kbps)",
+      "recitation_type": "Mujawwad (extremely slow, vowel-elongated, emotional)",
+      "audio_source_template": "https://everyayah.com/data/Abdul_Basit_Mujawwad_128kbps/0{surah}{ayah:03d}.mp3"
+    },
+    "style_3_hadr": {
+      "reciter": "Saood ash-Shuraym (Saood_ash_Shuraym_128kbps)",
+      "recitation_type": "Hadr (rapid, continuous, conversational)",
+      "audio_source_template": "https://everyayah.com/data/Saood_ash_Shuraym_128kbps/0{surah}{ayah:03d}.mp3"
+    },
+    "style_4_unseen_challenger": {
+      "reciter": "Khalil Al-Husary (Husary_128kbps)",
+      "recitation_type": "Educational Murattal (immense precision, perfect Tajweed articulators)",
+      "audio_source_template": "https://everyayah.com/data/Husary_128kbps/0{surah}{ayah:03d}.mp3"
+    }
+  },
+  "accuracy_categories": {
+    "excellent": "<200ms",
+    "good": "200ms - 500ms",
+    "needs_improvement": "500ms - 1000ms",
+    "failure": ">1000ms"
+  }
+}

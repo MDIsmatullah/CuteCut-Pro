@@ -1,0 +1,16 @@
+{
+  "project": "cpfair/quran-align Normalization Audit",
+  "expected_text_representation": {
+    "source": "Tanzil.net (quran-uthmani.txt)",
+    "script": "Uthmani Script (Hafs edition)",
+    "diacritics": "Preserved. The C++ main.cc splits words strictly by white space on the reference Uthmani text."
+  },
+  "pronunciation_dictionary_dependency": {
+    "mechanism": "Every space-separated word from the Tanzil text must have an exact matching phonetic transcript in the CMU Sphinx lexicon (.dict file).",
+    "risk": "HIGH. If a word is missing from the precompiled dictionary, PocketSphinx fails to construct the grammar trellis and crashes. Unlike general-purpose ASR, it cannot handle out-of-vocabulary (OOV) words or custom textual variations dynamically."
+  },
+  "reversibility_and_indexing": {
+    "is_reversible": true,
+    "indexing_method": "Uses 0-based word indices representing the position of the word in the space-separated Tanzil text of that ayah. This preserves a clean 1:1 mapping back to the canonical Uthmani scripture."
+  }
+}

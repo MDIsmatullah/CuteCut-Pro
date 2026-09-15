@@ -1,0 +1,55 @@
+name: Deploy to Firebase Hosting & Firestore
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy-firebase:
+    name: Build & Deploy to Firebase
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js
+      - name: Setup Node.js (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. Install Dependencies
+      - name: Install NPM Dependencies
+        run: npm install --legacy-peer-deps --no-audit
+
+      # 4. Build Vite Web Application
+      - name: Build Web Application
+        run: npm run build
+
+      # 5. Deploy to Firebase Hosting
+      - name: Deploy to Firebase Hosting
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "ERROR: FIREBASE_TOKEN secret is not set in GitHub repository settings!"
+            echo "Please add your token in Repository Settings -> Secrets and variables -> Actions -> New repository secret (Name: FIREBASE_TOKEN)"
+            exit 1
+          fi
+
+          PROJ_ARG=""
+          if [ -n "$FIREBASE_PROJECT" ]; then
+            PROJ_ARG="--project $FIREBASE_PROJECT"
+            echo "Using specified Firebase Project ID: $FIREBASE_PROJECT"
+          else
+            echo "Using project from .firebaserc or logged-in account..."
+          fi
+
+          echo "Deploying hosting files to Firebase..."
+          npx firebase-tools deploy --only hosting $PROJ_ARG --token "$FIREBASE_TOKEN" --non-interactive

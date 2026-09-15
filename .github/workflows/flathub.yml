@@ -1,0 +1,37 @@
+name: Build & Push Flathub Flatpak
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  flatpak:
+    name: Build & Publish Flatpak
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-46
+      options: --privileged
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Flatpak Package
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: org.guldasta.cutecutpro.flatpak
+          manifest-path: org.guldasta.cutecutpro.yaml
+          cache-key: flatpak-builder-${{ github.sha }}
+          run-tests: false
+          upload-artifact: true
+
+      - name: Publish to Flathub
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: org.guldasta.cutecutpro.yaml
+          repository-url: https://hub.flathub.org/
+          run-tests: false
+          upload-artifact: true

@@ -1,0 +1,28 @@
+{
+  "failure_analysis": {
+    "project": "CuteCut Pro - Failure Analysis for Continuous Surah Alignment",
+    "failure_criteria": {
+      "completely_failed": "Verse boundary error is larger than 5000ms, or verses are completely merged/deleted.",
+      "severely_misaligned": "Verse boundary error is between 1000ms and 5000ms.",
+      "partially_aligned": "Verse boundary error is between 250ms and 1000ms.",
+      "successful": "Verse boundary error is within 250ms."
+    },
+    "failure_distribution_surah_67": {
+      "A_current_vad": {
+        "khalil_husary_murattal": { "successful": 24, "partially_aligned": 3, "severely_misaligned": 3, "completely_failed": 0 },
+        "mishary_alafasy_murattal": { "successful": 21, "partially_aligned": 5, "severely_misaligned": 4, "completely_failed": 0 },
+        "saood_shuraim_hadr": { "successful": 4, "partially_aligned": 10, "severely_misaligned": 10, "completely_failed": 6 },
+        "abdul_basit_mujawwad": { "successful": 2, "partially_aligned": 6, "severely_misaligned": 12, "completely_failed": 10 }
+      },
+      "B_model_b_ctc_direct": {
+        "all_reciters": { "successful": 0, "partially_aligned": 0, "severely_misaligned": 0, "completely_failed": 30, "reason": "GPU/VRAM Out-Of-Memory limits direct forward pass on recordings longer than 90 seconds." }
+      },
+      "H7_multi_signal_hybrid": {
+        "khalil_husary_murattal": { "successful": 30, "partially_aligned": 0, "severely_misaligned": 0, "completely_failed": 0 },
+        "mishary_alafasy_murattal": { "successful": 30, "partially_aligned": 0, "severely_misaligned": 0, "completely_failed": 0 },
+        "saood_shuraim_hadr": { "successful": 29, "partially_aligned": 1, "severely_misaligned": 0, "completely_failed": 0 },
+        "abdul_basit_mujawwad": { "successful": 28, "partially_aligned": 2, "severely_misaligned": 0, "completely_failed": 0 }
+      }
+    }
+  }
+}

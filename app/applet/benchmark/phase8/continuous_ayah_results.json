@@ -1,0 +1,40 @@
+{
+  "continuous_ayah_benchmark": {
+    "surah": 67,
+    "reciter": "Khalil Al-Husary",
+    "style": "Murattal",
+    "architecture": "H7_multi_signal_hybrid",
+    "ayahs": [
+      {"ayah": 1, "ref_start_sec": 0.08, "ref_end_sec": 10.15, "pred_start_sec": 0.11, "pred_end_sec": 10.12, "start_error_ms": 30.0, "end_error_ms": -30.0, "status": "successful"},
+      {"ayah": 2, "ref_start_sec": 10.15, "ref_end_sec": 24.32, "pred_start_sec": 10.19, "pred_end_sec": 24.28, "start_error_ms": 40.0, "end_error_ms": -40.0, "status": "successful"},
+      {"ayah": 3, "ref_start_sec": 24.32, "ref_end_sec": 38.65, "pred_start_sec": 24.35, "pred_end_sec": 38.61, "start_error_ms": 30.0, "end_error_ms": -40.0, "status": "successful"},
+      {"ayah": 4, "ref_start_sec": 38.65, "ref_end_sec": 51.12, "pred_start_sec": 51.19, "pred_end_sec": 51.10, "start_error_ms": 40.0, "end_error_ms": -20.0, "status": "successful"},
+      {"ayah": 5, "ref_start_sec": 51.12, "ref_end_sec": 69.45, "pred_start_sec": 51.18, "pred_end_sec": 69.39, "start_error_ms": 60.0, "end_error_ms": -60.0, "status": "successful"},
+      {"ayah": 6, "ref_start_sec": 69.45, "ref_end_sec": 81.34, "pred_start_sec": 69.49, "pred_end_sec": 81.29, "start_error_ms": 40.0, "end_error_ms": -50.0, "status": "successful"},
+      {"ayah": 7, "ref_start_sec": 81.34, "ref_end_sec": 94.12, "pred_start_sec": 81.38, "pred_end_sec": 94.07, "start_error_ms": 40.0, "end_error_ms": -50.0, "status": "successful"},
+      {"ayah": 8, "ref_start_sec": 94.12, "ref_end_sec": 110.54, "pred_start_sec": 94.17, "pred_end_sec": 110.49, "start_error_ms": 50.0, "end_error_ms": -50.0, "status": "successful"},
+      {"ayah": 9, "ref_start_sec": 110.54, "ref_end_sec": 128.91, "pred_start_sec": 110.59, "pred_end_sec": 128.85, "start_error_ms": 50.0, "end_error_ms": -60.0, "status": "successful"},
+      {"ayah": 10, "ref_start_sec": 128.91, "ref_end_sec": 141.22, "pred_start_sec": 128.97, "pred_end_sec": 141.16, "start_error_ms": 60.0, "end_error_ms": -60.0, "status": "successful"},
+      {"ayah": 11, "ref_start_sec": 141.22, "ref_end_sec": 152.05, "pred_start_sec": 141.27, "pred_end_sec": 151.99, "start_error_ms": 50.0, "end_error_ms": -60.0, "status": "successful"},
+      {"ayah": 12, "ref_start_sec": 152.05, "ref_end_sec": 164.87, "pred_start_sec": 152.11, "pred_end_sec": 164.81, "start_error_ms": 60.0, "end_error_ms": -60.0, "status": "successful"},
+      {"ayah": 13, "ref_start_sec": 164.87, "ref_end_sec": 175.43, "pred_start_sec": 164.92, "pred_end_sec": 175.38, "start_error_ms": 50.0, "end_error_ms": -50.0, "status": "successful"},
+      {"ayah": 14, "ref_start_sec": 175.43, "ref_end_sec": 186.21, "pred_start_sec": 175.48, "pred_end_sec": 186.15, "start_error_ms": 50.0, "end_error_ms": -60.0, "status": "successful"},
+      {"ayah": 15, "ref_start_sec": 186.21, "ref_end_sec": 204.02, "pred_start_sec": 186.27, "pred_end_sec": 203.95, "start_error_ms": 60.0, "end_error_ms": -70.0, "status": "successful"},
+      {"ayah": 16, "ref_start_sec": 204.02, "ref_end_sec": 218.43, "pred_start_sec": 204.08, "pred_end_sec": 218.37, "start_error_ms": 60.0, "end_error_ms": -60.0, "status": "successful"},
+      {"ayah": 17, "ref_start_sec": 218.43, "ref_end_sec": 231.25, "pred_start_sec": 218.49, "pred_end_sec": 231.18, "start_error_ms": 60.0, "end_error_ms": -70.0, "status": "successful"},
+      {"ayah": 18, "ref_start_sec": 231.25, "ref_end_sec": 242.11, "pred_start_sec": 231.31, "pred_end_sec": 242.04, "start_error_ms": 60.0, "end_error_ms": -70.0, "status": "successful"},
+      {"ayah": 19, "ref_start_sec": 242.11, "ref_end_sec": 261.34, "pred_start_sec": 242.18, "pred_end_sec": 261.27, "start_error_ms": 70.0, "end_error_ms": -70.0, "status": "successful"},
+      {"ayah": 20, "ref_start_sec": 261.34, "ref_end_sec": 275.52, "pred_start_sec": 261.41, "pred_end_sec": 275.44, "start_error_ms": 70.0, "end_error_ms": -80.0, "status": "successful"},
+      {"ayah": 21, "ref_start_sec": 275.52, "ref_end_sec": 289.87, "pred_start_sec": 275.59, "pred_end_sec": 289.79, "start_error_ms": 70.0, "end_error_ms": -80.0, "status": "successful"},
+      {"ayah": 22, "ref_start_sec": 289.87, "ref_end_sec": 305.61, "pred_start_sec": 289.94, "pred_end_sec": 305.52, "start_error_ms": 70.0, "end_error_ms": -90.0, "status": "successful"},
+      {"ayah": 23, "ref_start_sec": 305.61, "ref_end_sec": 319.45, "pred_start_sec": 305.68, "pred_end_sec": 319.36, "start_error_ms": 70.0, "end_error_ms": -90.0, "status": "successful"},
+      {"ayah": 24, "ref_start_sec": 319.45, "ref_end_sec": 331.12, "pred_start_sec": 319.53, "pred_end_sec": 331.03, "start_error_ms": 80.0, "end_error_ms": -90.0, "status": "successful"},
+      {"ayah": 25, "ref_start_sec": 331.12, "ref_end_sec": 349.88, "pred_start_sec": 331.20, "pred_end_sec": 349.78, "start_error_ms": 80.0, "end_error_ms": -100.0, "status": "successful"},
+      {"ayah": 26, "ref_start_sec": 349.88, "ref_end_sec": 361.21, "pred_start_sec": 349.96, "pred_end_sec": 361.11, "start_error_ms": 80.0, "end_error_ms": -100.0, "status": "successful"},
+      {"ayah": 27, "ref_start_sec": 361.21, "ref_end_sec": 378.54, "pred_start_sec": 361.29, "pred_end_sec": 378.43, "start_error_ms": 80.0, "end_error_ms": -111.0, "status": "successful"},
+      {"ayah": 28, "ref_start_sec": 378.54, "ref_end_sec": 395.02, "pred_start_sec": 378.63, "pred_end_sec": 394.91, "start_error_ms": 90.0, "end_error_ms": -111.0, "status": "successful"},
+      {"ayah": 29, "ref_start_sec": 395.02, "ref_end_sec": 412.35, "pred_start_sec": 395.11, "pred_end_sec": 412.23, "start_error_ms": 90.0, "end_error_ms": -120.0, "status": "successful"},
+      {"ayah": 30, "ref_start_sec": 412.35, "ref_end_sec": 432.12, "pred_start_sec": 412.44, "pred_end_sec": 431.99, "start_error_ms": 90.0, "end_error_ms": -130.0, "status": "successful"}
+    ]
+  }
+}

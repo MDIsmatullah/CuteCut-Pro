@@ -1,0 +1,38 @@
+{
+  "project": "Quran Forced Alignment - Model B Failure Analysis",
+  "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+  "failures": [
+    {
+      "failure_id": "b_err_001_mujawwad_madd",
+      "surah": 67,
+      "ayah": 1,
+      "reciter": "Abdul_Basit_Mujawwad_128kbps",
+      "expected_word": "تَبَٰرَكَ",
+      "expected_normalized_text": "تبارك",
+      "observed_tokens": "ت -> ب -> ا -> [blank] -> ر -> ك",
+      "predicted_word_timestamps": {
+        "start": 0.22,
+        "end": 2.15
+      },
+      "failure_type": "Madd Vowel Elongation Collapse",
+      "likely_cause": "The melismatic elongation on the syllable 'بَٰ' (normalized as 'با') was held for 1.84 seconds. Since the model lacks a continuous vocalic representation for extreme durations, CTC emissions decayed into blank tokens. The Viterbi solver shifted to 'ر' and 'ك' too early, resulting in a premature word boundary assignment.",
+      "evidence_frames": "Frames 11 to 107 are aligned to 'ا', but the model confidence scores drops to under 0.15 past frame 45, leading to alignment drift."
+    },
+    {
+      "failure_id": "b_err_002_nasal_idgham",
+      "surah": 67,
+      "ayah": 1,
+      "reciter": "Mishary_Alafasy_128kbps",
+      "expected_word": "شَىْءٍ",
+      "expected_normalized_text": "شىء",
+      "observed_tokens": "ش -> ى -> ء",
+      "predicted_word_timestamps": {
+        "start": 4.46,
+        "end": 5.12
+      },
+      "failure_type": "Idgham Assimilation Bleeding",
+      "likely_cause": "The Tanween on 'شَىْءٍ' is assimilated into the 'ق' of 'قَدِيرٌ' (resulting in a nasal Ghunnah). No distinct 'ن' (Nun) is produced acoustically. Because Model B uses standard Arabic letters without phonetic representation of nasalization, the trellis maps 'ن' across low-probability frames, pushing the end of 'شَىْءٍ' into the beginning of 'قَدِيرٌ'.",
+      "evidence_frames": "Frames 223 to 256 are mapped to 'ش', 'ى', 'ء' but the boundary between 'شَىْءٍ' and 'قَدِيرٌ' is blurred by a 240ms transition zone."
+    }
+  ]
+}

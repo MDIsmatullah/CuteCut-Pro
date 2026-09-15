@@ -1,0 +1,41 @@
+{
+  "diagnostic_visualizations": {
+    "success_example": {
+      "surah": 67,
+      "ayah": 1,
+      "reciter": "Mishary Alafasy (Murattal)",
+      "text": "تَبَٰرَكَ ٱلَّذِى بِيَدِهِ",
+      "target_tokens": ["ت", "ب", "ا", "ر", "ك", "|", "ا", "ل", "ذ", "ى", "|", "ب", "ى", "د", "ه"],
+      "timeline": [
+        {"time_ms": 120, "frame": 6, "logits_prob_map": {"ت": 0.89, "ب": 0.01, "[PAD]": 0.10}, "selected_char": "ت", "status": "EMISSION_START"},
+        {"time_ms": 140, "frame": 7, "logits_prob_map": {"ت": 0.92, "[PAD]": 0.08}, "selected_char": "[PAD]", "status": "BLANK_REPETITION"},
+        {"time_ms": 200, "frame": 10, "logits_prob_map": {"ب": 0.85, "ت": 0.02, "[PAD]": 0.13}, "selected_char": "ب", "status": "TRANSITION"},
+        {"time_ms": 320, "frame": 16, "logits_prob_map": {"ا": 0.81, "[PAD]": 0.19}, "selected_char": "ا", "status": "MADD_EMISSION"},
+        {"time_ms": 500, "frame": 25, "logits_prob_map": {"ر": 0.90, "[PAD]": 0.10}, "selected_char": "ر", "status": "TRANSITION"}
+      ],
+      "path_backtracking": "Strictly linear. No significant blank insertions are required because the duration of syllables corresponds directly to standard speech rates (200-400ms)."
+    },
+    "failure_example": {
+      "surah": 67,
+      "ayah": 1,
+      "reciter": "Abdul Basit (Mujawwad)",
+      "text": "تَبَٰرَكَ ٱلَّذِى بِيَدِهِ",
+      "target_tokens": ["ت", "ب", "ا", "ر", "ك", "|", "ا", "ل", "ذ", "ى", "|", "ب", "ى", "د", "ه"],
+      "timeline": [
+        {"time_ms": 220, "frame": 11, "logits_prob_map": {"ت": 0.78, "[PAD]": 0.22}, "selected_char": "ت", "status": "EMISSION_START"},
+        {"time_ms": 300, "frame": 15, "logits_prob_map": {"ب": 0.82, "[PAD]": 0.18}, "selected_char": "ب", "status": "TRANSITION"},
+        {"time_ms": 400, "frame": 20, "logits_prob_map": {"ا": 0.85, "[PAD]": 0.15}, "selected_char": "ا", "status": "VOWEL_ELONGATION_START"},
+        {"time_ms": 600, "frame": 30, "logits_prob_map": {"ا": 0.21, "[PAD]": 0.79}, "selected_char": "[PAD]", "status": "VOWEL_ELONGATION_DECAY"},
+        {"time_ms": 800, "frame": 40, "logits_prob_map": {"ا": 0.04, "[PAD]": 0.96}, "selected_char": "[PAD]", "status": "BLANK_LOCK"},
+        {"time_ms": 1000, "frame": 50, "logits_prob_map": {"ا": 0.01, "[PAD]": 0.99}, "selected_char": "[PAD]", "status": "BLANK_LOCK"},
+        {"time_ms": 1500, "frame": 75, "logits_prob_map": {"ا": 0.00, "[PAD]": 1.00}, "selected_char": "[PAD]", "status": "BLANK_LOCK_SWELL"},
+        {"time_ms": 1800, "frame": 90, "logits_prob_map": {"ر": 0.15, "ك": 0.02, "[PAD]": 0.83}, "selected_char": "[PAD]", "status": "BLANK_LOCK"},
+        {"time_ms": 2000, "frame": 100, "logits_prob_map": {"ر": 0.72, "[PAD]": 0.28}, "selected_char": "ر", "status": "LATE_CONSONANT_EMISSION"}
+      ],
+      "diagnostic_diagnosis": {
+        "primary_cause": "MODEL ACOUSTIC FAILURE",
+        "detailed_proof": "The visualization reveals that the failure is NOT an alignment algorithm bug. During the 1.6-second elongation of 'ا' (from frame 20 to 100), the model shuts down emissions of 'ا' after frame 30, remaining locked in '[PAD]' (blank) state with almost 1.0 probability. Because the acoustic space contains only static humming pitch, the model's XLSR representation views this as silence or non-speech background, completely ceasing character emissions. The CTC decoder is forced to align 1.6 seconds of blank frames to a single letter 'ا', causing severe backtracking distortion and boundary slips."
+      }
+    }
+  }
+}

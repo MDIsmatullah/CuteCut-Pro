@@ -1,0 +1,8 @@
+{
+  "name": "CuteCut Pro",
+  "description": "A standalone, multi-track studio video editor with timeline blade splits, speed velocity controls, real-time color grading, hardware audio meters, and a production-ready Quran video synthesis engine.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,57 @@
+{
+  "system_baselines": {
+    "A_current_vad": {
+      "name": "Current VAD / Acoustic Engine",
+      "mechanism": "Detects silences using Web Audio API RMS energy levels and distributes verse durations proportionally between silence markers. Completely client-side.",
+      "critical_vulnerability": "Prone to splitting verses on non-verse pauses (e.g., breathing in Mujawwad) or failing to split when reciters connect verses without pausing (Hadr)."
+    },
+    "B_model_b_ctc": {
+      "name": "Model B - Quran-Specific Wav2Vec2",
+      "mechanism": "Calculates raw character logits via connectionist temporal classification (CTC). Backtracks Viterbi path globally.",
+      "critical_vulnerability": "Cannot process continuous audio longer than 60-90 seconds due to O(N^2) GPU memory scaling on attention. Suffer from blank-lock and trellis slips on prolonged vowels."
+    },
+    "C_cpfair_quran_align": {
+      "name": "CPFairs / quran-align",
+      "mechanism": "GMM-HMM PocketSphinx tool using speaker-adapted acoustic models on pre-cut clips.",
+      "classification": "STATIC TIMING ASSET / REFERENCE SYSTEM",
+      "critical_vulnerability": "Cannot segment continuous audio files into verses; expects pre-sliced files named in EveryAyah style. Main pipeline script is missing/unpublished."
+    }
+  },
+  "hybrid_architecture_hypotheses": {
+    "H1_vad_constrained": {
+      "name": "VAD + Quran Constrained Search",
+      "hypothesis": "Initial segmentation is performed strictly by VAD. The text matching algorithm tries to fit Uthmani words into the resulting segments without acoustic feedback.",
+      "expected_behavior": "Low precision because VAD boundaries do not match linguistic divisions."
+    },
+    "H2_vad_model_b_constrained": {
+      "name": "VAD + Model B CTC + Quran Text Constraints",
+      "hypothesis": "Audio is pre-split into segments via VAD. Each clip is forwarded to Model B CTC, and Uthmani vocabulary constraints are applied locally to prune characters.",
+      "expected_behavior": "Good on clean Murattal; fails catastrophically on fast Hadr or melismatic Mujawwad because inaccurate VAD cuts truncate words mid-utterance, causing trellis collapse."
+    },
+    "H3_model_b_boundary_refinement": {
+      "name": "Model B CTC + Acoustic Boundary Refinement",
+      "hypothesis": "Extract boundaries from raw CTC character emissions on overlapping sliding audio windows. Refine the resulting timestamp edges to the nearest energy minimum (VAD silent frame).",
+      "expected_behavior": "Improves boundary accuracy on Murattal by aligning phonetic transitions with silence frames."
+    },
+    "H4_model_b_hmm_smoothing": {
+      "name": "Model B CTC + HMM-Style Temporal Smoothing",
+      "hypothesis": "Apply transition-duration penalties to repeating character states in the CTC decoding trellis to prevent state decay during prolonged vowels.",
+      "expected_behavior": "Reduces trellis collapse on moderately prolonged Madd, but fails on extreme Mujawwad ornamentations."
+    },
+    "H5_candidate_global_path": {
+      "name": "Acoustic Candidate Boundaries + Quran Text Constraint + Global Path Optimization",
+      "hypothesis": "VAD extracts all possible silence/breath candidates. A dynamic programming search (Viterbi/DP-search) aligns the sequence of Uthmani words globally across the candidate segments to minimize duration and phonetic error cost.",
+      "expected_behavior": "Extremely robust. If VAD introduces false breath markers, the global optimization path simply bypasses them as part of the cost minimization."
+    },
+    "H6_word_ayah_aggregation": {
+      "name": "Word/Token Alignment ➔ Ayah-Level Aggregation ➔ Boundary Refinement",
+      "hypothesis": "Solve alignment at the word level first on overlapping sliding windows, concatenate the word sequences into verses sequentially, and snap verse boundaries to silence frames.",
+      "expected_behavior": "Highly precise word timing, but subject to boundary bleeding on fast connected Hadr recitation."
+    },
+    "H7_multi_signal_hybrid": {
+      "name": "Multi-Signal Hybrid (VAD + CTC Evidence + Quran Text + Duration Priors + Global Optimization)",
+      "hypothesis": "A unified global cost function combining VAD silence evidence, CTC character logits, Uthmani text sequence constraints, and duration priors (typical reading speed per word/verse). Solves the absolute optimal alignment sequence globally using a Dynamic Programming search.",
+      "expected_behavior": "The highest theoretical and practical performance. Combines acoustic, linguistic, and statistical temporal cues to survive Madd, Hadr, Mujawwad, and unseen reciters."
+    }
+  }
+}

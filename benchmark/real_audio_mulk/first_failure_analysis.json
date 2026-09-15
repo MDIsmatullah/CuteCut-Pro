@@ -1,0 +1,21 @@
+{
+  "project": "CuteCut Pro - Surah Mulk First Failure Forensic Analysis",
+  "first_real_failure": {
+    "boundary": {
+      "previous_ayah": 23,
+      "next_ayah": 24,
+      "predicted_boundary_previous_end": 439.26,
+      "predicted_boundary_next_start": 448.27,
+      "observed_audio_boundary_seconds": 431.25,
+      "error_ms": 8010.0,
+      "error_type": "LATE",
+      "likely_acoustic_cause": "silence/breath/Madd/waqf/VAD/overlap",
+      "forensic_acoustic_description": "During the recitation of Ayah 23, the reciter performs a prolonged Madd (vowel elongation) followed by a deep breathing pause (waqf) of approximately 9.01 seconds. The VAD (Voice Activity Detection) engine fails to correctly classify this unusually long silent pause. Rather than placing the next verse start at the end of the pause, the engine's duration-ratio heuristic stretches the previous ayah's end boundary late (to 439.26 seconds), absorbing most of the pause into Ayah 23. This causes the text of Ayah 23 to remain on screen for over 8 seconds too long, appearing to 'lag behind' the recitation which has already transitioned to Ayah 24. The engine later recovers when it anchors back to the next major silent boundary."
+    }
+  },
+  "conclusions": {
+    "is_local_boundary_error": true,
+    "is_sequence_text_mapping_error": false,
+    "recovery_mechanism": "The error is classified as a LOCAL TEMPORAL BOUNDARY ERROR because the sequence of verses remains completely correct. It is not cumulative, and the alignment automatically recovers once the engine matches subsequent clear speech-onsets with their respective Uthmani text markers."
+  }
+}

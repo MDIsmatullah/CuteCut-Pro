@@ -1,0 +1,27 @@
+{
+  "comparison_criteria": {
+    "surah_rahman": {
+      "name": "Ar-Rahman",
+      "ayah_duration_distribution": "Extremely uniform. The refrain 'Fabi-ayyi ala-i Rabbikuma tukaththiban' is repeated 31 times, creating identical repeating temporal blocks of ~5.2 seconds.",
+      "silence_gaps": "Short, regular, and predictable breathing pauses (~1.5s to 2.5s) between verses.",
+      "vad_boundaries": "Highly distinct and clean speech-onsets and speech-offsets.",
+      "long_vowels_madd": "Short and consistent; no extreme or highly elongated vocalic chanting.",
+      "acoustic_energy": "Very high, clean, and continuous voice energy during the brief verse blocks.",
+      "boundary_confidence": "Extremely high because candidates match the nominal duration-prior perfectly.",
+      "duration_ratio_behavior": "Highly accurate. Since almost all verses have identical lengths, the nominal syllable ratio is close to 1.0, making the duration-prior heuristic highly effective.",
+      "local_boundary_errors": "Negligible. Boundaries align perfectly with the standard VAD intervals."
+    },
+    "surah_mulk": {
+      "name": "Al-Mulk",
+      "ayah_duration_distribution": "Highly variable and non-uniform. Verse lengths range from extremely short (e.g., 4s) to very long, complex theological structures (e.g., 20s+).",
+      "silence_gaps": "Highly irregular and prolonged pauses, including a major 9-second silent/breath gap between Ayah 23 and 24.",
+      "vad_boundaries": "Difficult to detect cleanly. Deep breaths, soft whispers, and weak voice onsets/offsets create fuzzy or fragmented transitions.",
+      "long_vowels_madd": "Frequent and prolonged Madd elongations (~1.5s to 2.0s) at the ends of verses (e.g. end of Ayah 23).",
+      "acoustic_energy": "Variable energy with gradual vocal fadeouts and soft onsets that bleed into silent gaps.",
+      "boundary_confidence": "Low at complex transitions where the phonetic model's syllable count does not predict the prolonged breathing pause.",
+      "duration_ratio_behavior": "Highly erratic. Extreme variations in verse structures cause the duration-ratio heuristic to stretch boundaries late, absorbing silent intervals into adjacent verses.",
+      "local_boundary_errors": "Significant. Massive local temporal boundary errors occur at transitions containing prolonged Madd and long pauses, causing text to lag behind the recitation."
+    }
+  },
+  "analytical_summary": "The current engine succeeds on Surah Rahman because Rahman's highly rhythmic, uniform, and repetitive structure perfectly satisfies the duration-ratio and syllable-prior heuristics. Conversely, Surah Mulk's highly variable verse durations, complex Madd elongations, and deep, irregular breathing pauses (like the 9-second gap) completely violate the assumptions of the duration-prior heuristic, leading to severe local boundary errors where text lags behind the recitation."
+}

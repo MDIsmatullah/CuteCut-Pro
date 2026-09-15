@@ -1,0 +1,42 @@
+{
+  "environment": {
+    "os": "Linux-6.1.0-23-amd64-x86_64-with-glibc2.36",
+    "cpu": "Intel(R) Xeon(R) CPU @ 2.20GHz",
+    "gpu": "None (CPU Execution Baseline)",
+    "ram": "8.0 GB virtualized environment",
+    "python_version": "3.11.2",
+    "pytorch_version": "2.14.0+cpu",
+    "torchaudio_version": "2.11.0+cpu",
+    "transformers_version": "5.16.1",
+    "candidates": {
+      "model_b": {
+        "model_identifier": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+        "huggingface_revision": "8d3e91ff2e3a09e0a0d0cb74e5ba0ee8a05f03d5",
+        "model_version": "v1.0 (Final Academic Release)",
+        "preprocessing": "Resample to 16000Hz, single-channel mono, amplitude normalization",
+        "sample_rate_hz": 16000,
+        "normalization": "Reversible Quran Normalization (Uthmani to graphemic mapping)",
+        "decoder": "Viterbi Trellis Forced Alignment Search",
+        "tokenizer": "Character-Level Graphemic Arabic Tokenizer",
+        "vocabulary_size": 39,
+        "blank_token": "[PAD]",
+        "blank_token_id": 0,
+        "language_model": "None (Acoustic CTC-only alignment trellis)"
+      },
+      "model_c": {
+        "model_identifier": "TBOGamer22/wav2vec2-quran-phonetics",
+        "huggingface_revision": "c30f81d102ab2d0b5ee0c42cb65ff61921f0beba",
+        "model_version": "v1.0-phonetics",
+        "preprocessing": "Resample to 16000Hz, mono",
+        "sample_rate_hz": 16000,
+        "normalization": "Latin Phonetic Grapheme mapping (Blocks on raw Arabic script)",
+        "decoder": "Greedy / Viterbi Phonetic Decoder",
+        "tokenizer": "Character-Level Phonetic Latin Tokenizer",
+        "vocabulary_size": 64,
+        "blank_token": "[PAD]",
+        "blank_token_id": 0,
+        "language_model": "None"
+      }
+    }
+  }
+}

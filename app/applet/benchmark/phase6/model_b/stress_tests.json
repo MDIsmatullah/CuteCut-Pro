@@ -1,0 +1,28 @@
+{
+  "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+  "stress_tests": [
+    {
+      "test_name": "Madd (Vowel Elongation)",
+      "reciter": "Abdul_Basit_Mujawwad_128kbps",
+      "audio_file": "067001.mp3",
+      "word": "تَبَٰرَكَ",
+      "observed_behavior": "The syllable 'بَٰ' (normalized as 'با') was held for 1.84 seconds. Character probabilities dropped to under 0.10 within 320ms, entering a continuous [PAD] blank-lock state. This caused the trellis path to slip, creating a premature word boundary assignment.",
+      "failure_classification": "ACOUSTIC_MODEL_DECAY"
+    },
+    {
+      "test_name": "Nasal Idgham (Assimilation)",
+      "reciter": "Mishary_Alafasy_128kbps",
+      "audio_file": "067001.mp3",
+      "word": "شَىْءٍ قَدِيرٌ",
+      "observed_behavior": "Tanween on 'شَىْءٍ' assimilates with nasal Ghunnah into 'ق'. Standard Arabic characters used by the model cannot represent nasalization. The trellis maps 'ن' across a 240ms transition zone of low-probability frames, blurring the word boundaries.",
+      "failure_classification": "PRONUNCIATION_MISMATCH"
+    },
+    {
+      "test_name": "Hadr Speed (Connected Recitation)",
+      "reciter": "Saood_ash_Shuraym_128kbps",
+      "audio_file": "067001.mp3",
+      "observed_behavior": "Fast connected pacing. Words merge without natural silent pauses. Because character boundaries bleed together, Viterbi traceback exhibits a constant linear drift, with boundary markers shifting up to 400ms by the end of the surah.",
+      "failure_classification": "DECODER_BOUNDARY_RESOLUTION"
+    }
+  ]
+}

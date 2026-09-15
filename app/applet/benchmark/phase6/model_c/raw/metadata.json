@@ -1,0 +1,13 @@
+{
+  "raw_logits_metadata": {
+    "model_name": "TBOGamer22/wav2vec2-quran-phonetics",
+    "tensor_dimensions": "[1, frame_count, 64]",
+    "vocab_size": 64,
+    "effective_frame_duration_ms": 20.04008,
+    "recorded_runs": {
+      "alafasy_surah_67": {
+        "status": "FAILED - Tokenizer exception during Arabic text processing"
+      }
+    }
+  }
+}

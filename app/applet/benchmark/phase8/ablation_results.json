@@ -1,0 +1,40 @@
+{
+  "ablation_benchmark": {
+    "project": "CuteCut Pro - H7 Forensic Verification",
+    "evaluation_phase": "Phase 8.1 - Ablation Auditing",
+    "status": "FORENSIC DIAGNOSIS",
+    "ablation_cases": [
+      {
+        "ablation_id": "ABLATION_NO_CTC_ACOUSTIC_EVIDENCE",
+        "test": "FULL H7 vs NO CTC ACOUSTIC EVIDENCE",
+        "measured_behavior": "Because the Phase 8 H7 results are synthesized directly by adding minor perturbations (+30ms to +90ms) to the EveryAyah reference timings, completely removing/omitting the CTC acoustic evidence (simulated by setting all frame logits to zero or random noise) results in the EXACT SAME highly accurate alignments (Husary Global MAE remains exactly 45.2 ms, failure rate remains 0.0%).",
+        "forensic_finding": "FAIL INDEPENDENCE TEST. The H7 benchmark is 100% immune to the complete removal of acoustic evidence. This proves that H7 does not perform genuine acoustic recognition and relies entirely on direct data leakage from the static reference timestamps.",
+        "rating": "CRITICAL DATA LEAKAGE"
+      },
+      {
+        "ablation_id": "ABLATION_NO_DURATION_PRIORS",
+        "test": "FULL H7 vs H7 WITHOUT DURATION PRIORS",
+        "theoretical_vs_actual_behavior": {
+          "theoretical_behavior_if_real_model": "Without duration priors, a real acoustic model would suffer trellis slip and premature transitions during prolonged Madd vowels (Madd-lock/blank-lock), increasing errors by ~350-450ms.",
+          "actual_behavior_in_synthetic_benchmark": "Removing duration priors in the synthetic workspace has absolutely no effect on the reported metrics. The metrics remain completely unchanged (45.2 ms MAE), proving that the Madd behavior reported in 'madd_stress_tests.json' is a fabricated scenario."
+        }
+      },
+      {
+        "ablation_id": "ABLATION_NO_QURAN_TEXT_CONSTRAINT",
+        "test": "FULL H7 vs H7 WITHOUT QURAN TEXT CONSTRAINT",
+        "theoretical_vs_actual_behavior": {
+          "theoretical_behavior_if_real_model": "Without text constraints, raw CTC decoding is highly noisy, suffering from character deletions and insertions on fast Hadr recitations (failure rate increases to >50%).",
+          "actual_behavior_in_synthetic_benchmark": "Removing text constraints in the synthetic workspace shows zero performance drop. All metrics remain locked at their perfect synthetic averages."
+        }
+      },
+      {
+        "ablation_id": "ABLATION_NO_GLOBAL_DP",
+        "test": "FULL H7 vs NO GLOBAL DP (Local Greedy Selection)",
+        "theoretical_vs_actual_behavior": {
+          "theoretical_behavior_if_real_model": "Local greedy selection causes cumulative boundary drift as errors compound linearly. The MAE would degrade from ~50ms to >1000ms near the end of the Surah.",
+          "actual_behavior_in_synthetic_benchmark": "Performance remains identical. The claimed benefits of 'Global DP' over local greedy approaches are purely conceptual and not supported by real execution data."
+        }
+      }
+    ]
+  }
+}

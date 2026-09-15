@@ -1,0 +1,35 @@
+name: Submit Manifest to Flathub Submissions Queue
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: 'Target Flathub submission repository'
+        required: true
+        default: 'flathub/flathub'
+
+jobs:
+  submit-flathub:
+    name: Create Flathub Submission Pull Request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI & Flatpak Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh flatpak
+
+      - name: Validate Manifest Syntax
+        run: |
+          echo "Validating Flatpak manifest..."
+          cat org.guldasta.cutecutpro.yaml
+
+      - name: Create Flathub Submission Pull Request
+        run: |
+          chmod +x scripts/submit-flathub-pr.sh
+          WORKSPACE_ROOT=$GITHUB_WORKSPACE ./scripts/submit-flathub-pr.sh
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}

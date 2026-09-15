@@ -1,0 +1,22 @@
+{
+  "normalization_audit": {
+    "project": "CuteCut Pro - Text Normalization and Indexing Audit",
+    "systems": {
+      "A_current_vad": {
+        "expected_text": "Standard space-separated Uthmani script.",
+        "diacritic_handling": "Ignored physically by audio engine. Boundaries are mapped proportionally based solely on character-length ratios.",
+        "reversibility_to_tanzil": "100% reversible since it uses the exact unmodified Tanzil text structure."
+      },
+      "B_model_b_wav2vec2": {
+        "expected_text": "Fully stripped Arabic script (No Tashkeel, no Harakat, simplified Alef/Yaa/Waw).",
+        "diacritic_handling": "Strictly stripped. The model's token vocabulary does not contain Arabic diacritics. It relies on a flat set of 38-42 basic Arabic characters.",
+        "reversibility_to_tanzil": "MODERATE RISK. Stripping diacritics makes it difficult to map the predicted character logits back to the exact positions of the diacritized Tanzil Uthmani text. It requires a complex alignment search to re-insert diacritics post-decoding."
+      },
+      "C_cpfair_quran_align": {
+        "expected_text": "Uthmani text containing Tashkeel.",
+        "diacritic_handling": "Preserved. The C++ parser maps diacritized words directly to a custom phonetic dictionary containing explicit phoneme expansions.",
+        "reversibility_to_tanzil": "100% reversible since word tokens are split strictly by whitespace based on the original Tanzil file."
+      }
+    }
+  }
+}

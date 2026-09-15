@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=CuteCut Pro
+Comment=High-Precision Quranic & Islamic Video Editor
+Exec=cutecut-pro %U
+Icon=com.cutecutpro.CuteCutPro
+Terminal=false
+Type=Application
+Categories=AudioVideo;Video;AudioVideoEditing;
+Keywords=video;editor;cutecut;quran;subtitles;islamic;gemini;
+StartupWMClass=cutecut-pro
+MimeType=x-scheme-handler/cutecutpro;

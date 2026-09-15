@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile in the application",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["id", "email"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "User timeline video project state",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "tracks": { "type": "array" },
+        "duration": { "type": "number" },
+        "selectedSurahId": { "type": "number" },
+        "alignmentScope": { "type": "string" },
+        "aspectRatio": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "tracks"]
+    },
+    "Preset": {
+      "title": "Preset",
+      "description": "User visual style preset configuration for captions and calligraphy themes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "styleConfig": { "type": "object" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "name", "styleConfig"]
+    }
+  },
+  "firestore": {
+    "collections": {
+      "users": {
+        "entity": "User",
+        "subcollections": {
+          "projects": {
+            "entity": "Project"
+          },
+          "presets": {
+            "entity": "Preset"
+          }
+        }
+      }
+    }
+  }
+}

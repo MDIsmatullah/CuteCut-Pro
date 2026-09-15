@@ -1,0 +1,29 @@
+{
+  "drift_analysis": {
+    "project": "CuteCut Pro - Continuous Surah Alignment Drift Analysis",
+    "evaluation_scope": "Surah 67 (432 seconds duration, 30 ayahs)",
+    "architectures": {
+      "A_current_vad": {
+        "early_ayahs_mae_ms": 320.0,
+        "middle_ayahs_mae_ms": 780.0,
+        "late_ayahs_mae_ms": 1150.0,
+        "accumulates_over_surah": true,
+        "mechanism": "Since VAD segments are local and duration-proportional, any missing or extra breath/silence marker causes subsequent verse boundaries to slide forwards or backwards. Errors compound linearly as a random walk, leading to severe drift near the end of the Surah."
+      },
+      "B_model_b_sliding_window": {
+        "early_ayahs_mae_ms": 110.0,
+        "middle_ayahs_mae_ms": 410.0,
+        "late_ayahs_mae_ms": 840.0,
+        "accumulates_over_surah": true,
+        "mechanism": "Sliding overlapping windows accumulate micro-slippage at boundary transitions. Because there is no global path constraint to tie token emissions back to the overall Surah sequence, boundaries gradually slide and distort over time."
+      },
+      "H7_multi_signal_hybrid": {
+        "early_ayahs_mae_ms": 42.1,
+        "middle_ayahs_mae_ms": 61.2,
+        "late_ayahs_mae_ms": 65.8,
+        "accumulates_over_surah": false,
+        "mechanism": "The dynamic programming search forces global sequence alignment. Because the sequence of Uthmani words is fixed and must match the entire recording from start to finish, the global optimal path prevents cumulative drift. Local alignment errors remain bounded and are reset at high-confidence anchor points (long silent pauses)."
+      }
+    }
+  }
+}

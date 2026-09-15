@@ -1,0 +1,9 @@
+{
+  "model_name": "TBOGamer22/wav2vec2-quran-phonetics",
+  "ayah_level_metrics": {
+    "status": "FAILED",
+    "explanation": "No metrics available due to 100% failure rate on Arabic text tokenization."
+  },
+  "success_only_mae_ms": null,
+  "full_dataset_failure_rate": "100.0%"
+}

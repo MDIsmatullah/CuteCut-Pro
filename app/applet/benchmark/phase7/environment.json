@@ -1,0 +1,22 @@
+{
+  "environment": {
+    "is_executable": false,
+    "blocker_type": "MISSING_PIPELINE_SCRIPTS",
+    "blocker_explanation": "The script to generate speech model training inputs and dictionary tables is in an 'unpublishable state' and omitted from the repository. Independent compilation of the C++ aligner fails to bind to necessary acoustic models without these assets, rendering runtime execution on new audio files impossible.",
+    "system_baseline": {
+      "python_version": "3.11.2",
+      "os": "Linux-6.1.0-23-amd64-x86_64-with-glibc2.36",
+      "cpu": "Intel(R) Xeon(R) CPU @ 2.20GHz",
+      "ram": "8.0 GB",
+      "g_compiler": "g++ (Debian 12.2.0-14) 12.2.0",
+      "make_version": "GNU Make 4.3"
+    },
+    "runtime_footprint": {
+      "download_size": "5.54 MB (Precompiled JSON release zip)",
+      "uncompressed_size": "NOT PROVEN",
+      "runtime_memory": "NOT PROVEN",
+      "peak_ram": "NOT PROVEN",
+      "deployment_verdict": "45MB CLAIM NOT REPRODUCED"
+    }
+  }
+}

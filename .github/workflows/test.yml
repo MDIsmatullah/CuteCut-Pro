@@ -1,0 +1,41 @@
+name: Test & Lint Suite
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Dependencies
+        run: npm install --include=optional --no-audit
+
+      - name: Run Lint & Typecheck Validation
+        run: npm run lint
+
+      - name: Run Test Suite
+        run: npm run test
+
+      - name: Test Build Production Output
+        run: npm run build

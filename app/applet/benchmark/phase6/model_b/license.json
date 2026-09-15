@@ -1,0 +1,11 @@
+{
+  "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+  "license_forensics": {
+    "model_weight_license": "Apache-2.0",
+    "training_corpus_license": "CC-BY-NC (Quran-Ayah-Corpus)",
+    "audio_sources_license": "Public Domain / CC0 (EveryAyah.com)",
+    "codebase_license": "Apache-2.0 (Transformers / PyTorch dependencies)",
+    "commercial_feasibility": "PROHIBITED / HIGHLY RISKY. The fine-tuning corpus contains strict CC-BY-NC (Non-Commercial) terms, meaning the derived model weights are bound by those terms and cannot be embedded in a commercial codebase.",
+    "redistributability": "ALLOWED with attribution, but only for non-commercial research or community apps."
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "audio_verification": {
+    "continuous_audio": false,
+    "duration_seconds": null,
+    "sample_rate": null,
+    "channels": null,
+    "cuts_detected": "unverifiable (no audio file exists in the workspace)",
+    "reference_timing_leakage": true,
+    "forensic_finding": "The directory '/app/applet/benchmark/audio' and any other potential audio directories are completely missing. No continuous wav, mp3, m4a, or webm files exist. Consequently, the benchmark cannot be considered acoustically valid on real audio evidence.",
+    "is_benchmark_valid": false
+  }
+}

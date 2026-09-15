@@ -1,0 +1,57 @@
+{
+  "raw_runs": {
+    "mishary_alafasy_murattal": {
+      "input_audio_duration_sec": 34.82,
+      "input_sample_rate_hz": 16000,
+      "processed_waveform_shape": [1, 557120],
+      "logits_shape": [1, 1739, 39],
+      "frame_count": 1739,
+      "frame_duration_ms": 20.023001725129383,
+      "frame_duration_calculation": "34.82 seconds * 1000 ms / 1739 frames",
+      "vocabulary_size": 39,
+      "blank_token_id": 0,
+      "tokenizer_token_ids": {
+        "0": "[PAD]", "1": "[UNK]", "2": "<s>", "3": "</s>", "4": "|", "5": "ا", "6": "ب", "7": "ت", "8": "ث", "9": "ج", "10": "ج", "11": "ح", "12": "خ", "13": "د", "14": "ذ", "15": "ر", "16": "ز", "17": "س", "18": "ش", "19": "ص", "20": "ض", "21": "ط", "22": "ظ", "23": "ع", "24": "غ", "25": "ف", "26": "ق", "27": "ك", "28": "ل", "29": "م", "30": "ن", "31": "ه", "32": "و", "33": "ى", "34": "ي", "35": "ء", "36": "آ", "37": "أ", "38": "إ"
+      },
+      "sample_frame_probabilities": [
+        {"frame": 100, "top_token_id": 0, "top_token_str": "[PAD]", "probability": 0.985, "log_probability": -0.015},
+        {"frame": 101, "top_token_id": 5, "top_token_str": "ا", "probability": 0.884, "log_probability": -0.123},
+        {"frame": 102, "top_token_id": 28, "top_token_str": "ل", "probability": 0.921, "log_probability": -0.082}
+      ]
+    },
+    "saood_shuraim_hadr": {
+      "input_audio_duration_sec": 21.36,
+      "input_sample_rate_hz": 16000,
+      "processed_waveform_shape": [1, 341760],
+      "logits_shape": [1, 1065, 39],
+      "frame_count": 1065,
+      "frame_duration_ms": 20.056338028169016,
+      "frame_duration_calculation": "21.36 seconds * 1000 ms / 1065 frames",
+      "vocabulary_size": 39,
+      "blank_token_id": 0,
+      "sample_frame_probabilities": [
+        {"frame": 50, "top_token_id": 0, "top_token_str": "[PAD]", "probability": 0.991, "log_probability": -0.009},
+        {"frame": 51, "top_token_id": 29, "top_token_str": "م", "probability": 0.712, "log_probability": -0.340},
+        {"frame": 52, "top_token_id": 30, "top_token_str": "ن", "probability": 0.684, "log_probability": -0.380}
+      ]
+    },
+    "abdul_basit_mujawwad_failure": {
+      "input_audio_duration_sec": 78.45,
+      "input_sample_rate_hz": 16000,
+      "processed_waveform_shape": [1, 1255200],
+      "logits_shape": [1, 3919, 39],
+      "frame_count": 3919,
+      "frame_duration_ms": 20.017861701964786,
+      "frame_duration_calculation": "78.45 seconds * 1000 ms / 3919 frames",
+      "vocabulary_size": 39,
+      "blank_token_id": 0,
+      "sample_frame_probabilities": [
+        {"frame": 300, "top_token_id": 0, "top_token_str": "[PAD]", "probability": 0.999, "log_probability": -0.001},
+        {"frame": 301, "top_token_id": 0, "top_token_str": "[PAD]", "probability": 0.999, "log_probability": -0.001},
+        {"frame": 302, "top_token_id": 0, "top_token_str": "[PAD]", "probability": 0.998, "log_probability": -0.002},
+        {"frame": 303, "top_token_id": 0, "top_token_str": "[PAD]", "probability": 0.999, "log_probability": -0.001}
+      ],
+      "acoustic_evidence_analysis": "During elongated vowels (e.g. Alif Madd, frames 280 to 370 representing a duration of 1.8 seconds), the CTC probability for the token 'ا' collapses to near-zero (under 0.05) after the first 300ms. The model begins outputting extremely high probability [PAD] (blank) frames (>=0.995) continuously for the remaining 1.5 seconds. The acoustic signal contains vocalic elongation, but the model fails to emit the corresponding grapheme 'ا' because it is acoustic-feature-saturated and expects standard modern Arabic speech transitions, rather than extended static pitches."
+    }
+  }
+}

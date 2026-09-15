@@ -1,0 +1,6 @@
+{
+  "aligned_timestamps": {
+    "status": "FAILED",
+    "explanation": "No alignments were generated for Model C because the tokenizer vocabulary consists entirely of Latin transliteration letters (e.g., 'th', 'sh', 's_') and cannot map standard Arabic or Uthmani text. Processing failed on the text normalization layer."
+  }
+}

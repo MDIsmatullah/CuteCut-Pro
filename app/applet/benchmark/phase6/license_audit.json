@@ -1,0 +1,129 @@
+{
+  "audit_metadata": {
+    "organization": "CuteCut Pro / Quran Video Editor Research Team",
+    "evaluation_date": "2026-09-04",
+    "scope": "License Forensics, Redistributability, and Commercial Feasibility Analysis"
+  },
+  "candidates_license_audit": [
+    {
+      "candidate_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final (Model B)",
+      "licenses": {
+        "model_license": "Apache-2.0",
+        "repository_license": "Apache-2.0",
+        "dataset_license": "CC-BY-NC (Non-commercial clause)",
+        "audio_license": "Public Domain / CC0 (EveryAyah.com data and transcriptions)",
+        "tokenizer_license": "Apache-2.0",
+        "code_dependencies": "transformers (Apache-2.0), torch (BSD-3), torchaudio (BSD-3)"
+      },
+      "restrictions": {
+        "training_data_restrictions": "CC-BY-NC license governs the fine-tuning corpus. Fine-tuned model weights inherit downstream constraints from the training corpus.",
+        "commercial_use_restrictions": "STRICTLY PROHIBITED/AMBIGUOUS — CC-BY-NC forbids commercial exploitation. Even though model file is listed under Apache-2.0, the training corpus constraints block commercial embedding.",
+        "redistribution_restrictions": "Permitted with appropriate academic attribution and non-commercial usage boundaries.",
+        "attribution_requirements": "Must credit author Rabah and reference the Quran-Ayah-Corpus dataset.",
+        "share_alike_requirements": "None (No SA clause, only NC and BY)",
+        "non_commercial_clauses": "YES (CC-BY-NC)",
+        "license_conflict_status": "LICENSE CONFLICT — LEGAL REVIEW REQUIRED (Apache-2.0 model weights vs CC-BY-NC training data)"
+      },
+      "open_source_score": {
+        "code_score": 2,
+        "model_score": 1,
+        "dataset_score": 0,
+        "audio_score": 2,
+        "commercial_use_score": 0,
+        "redistribution_score": 1,
+        "total_score": "6 / 12",
+        "explanation": "Receives maximum score for code and audio (MIT/Apache/Public Domain). However, the training corpus's CC-BY-NC restriction causes a zero for commercial use and a penalty on dataset and redistributability."
+      }
+    },
+    {
+      "candidate_name": "TBOGamer22/wav2vec2-quran-phonetics (Model C)",
+      "licenses": {
+        "model_license": "Apache-2.0",
+        "repository_license": "Apache-2.0",
+        "dataset_license": "CC-BY-NC-SA 4.0 (Buraaq/quran-md-words)",
+        "audio_license": "Public Domain",
+        "tokenizer_license": "Apache-2.0",
+        "code_dependencies": "transformers (Apache-2.0), torch (BSD-3)"
+      },
+      "restrictions": {
+        "training_data_restrictions": "The model was fine-tuned on the Buraaq/quran-md-words database, which is strictly under CC-BY-NC-SA 4.0.",
+        "commercial_use_restrictions": "PROHIBITED — Non-commercial clause in Buraaq dataset applies downstream to model weights.",
+        "redistribution_restrictions": "Permitted with attribution and under the exact same CC-BY-NC-SA 4.0 license.",
+        "attribution_requirements": "Must credit TBOGamer22 and the Buraaq dataset authors.",
+        "share_alike_requirements": "YES (Must redistribute under CC-BY-NC-SA 4.0)",
+        "non_commercial_clauses": "YES (CC-BY-NC-SA)",
+        "license_conflict_status": "LICENSE CONFLICT — Model files listed as Apache-2.0 directly conflict with CC-BY-NC-SA 4.0 dataset inheritance."
+      },
+      "open_source_score": {
+        "code_score": 2,
+        "model_score": 1,
+        "dataset_score": 0,
+        "audio_score": 2,
+        "commercial_use_score": 0,
+        "redistribution_score": 1,
+        "total_score": "6 / 12",
+        "explanation": "Hampered by the CC-BY-NC-SA 4.0 non-commercial share-alike terms of its fine-tuning dataset, which makes embedding in commercial open-source packages highly restrictive."
+      }
+    },
+    {
+      "candidate_name": "cpfairs/quran-align",
+      "licenses": {
+        "model_license": "MIT License",
+        "repository_license": "MIT License",
+        "dataset_license": "Public Domain (Audio and word maps)",
+        "audio_license": "Public Domain",
+        "tokenizer_license": "MIT License",
+        "code_dependencies": "pocketsphinx (MIT/BSD), numpy (BSD-3), scipy (BSD-3)"
+      },
+      "restrictions": {
+        "training_data_restrictions": "None. Uses standard open public-domain Quranic recordings.",
+        "commercial_use_restrictions": "None. MIT License permits unrestricted commercial use, embedding, and modification.",
+        "redistribution_restrictions": "None. Fully redistributable as compiled binaries or source code.",
+        "attribution_requirements": "Must include original MIT copyright notice in source files.",
+        "share_alike_requirements": "None.",
+        "non_commercial_clauses": "None.",
+        "license_conflict_status": "NONE — Licensing is clean, modern, and fully permissive across the codebase, models, and audio databases."
+      },
+      "open_source_score": {
+        "code_score": 2,
+        "model_score": 2,
+        "dataset_score": 2,
+        "audio_score": 2,
+        "commercial_use_score": 2,
+        "redistribution_score": 2,
+        "total_score": "12 / 12",
+        "explanation": "A flawless open-source score. Because the developer designed it under the permissive MIT license and only used public-domain or open-licensed audio, it is completely free from non-commercial and share-alike restrictions."
+      }
+    },
+    {
+      "candidate_name": "MahmoudAshraf97/ctc-forced-aligner",
+      "licenses": {
+        "model_license": "MIT License",
+        "repository_license": "MIT License",
+        "dataset_license": "MIT License",
+        "audio_license": "N/A (Loads external audio)",
+        "tokenizer_license": "MIT License",
+        "code_dependencies": "numpy (BSD-3), soundfile (BSD-3), transformers (Apache-2.0)"
+      },
+      "restrictions": {
+        "training_data_restrictions": "None (Engine script only).",
+        "commercial_use_restrictions": "None. Permitted under MIT.",
+        "redistribution_restrictions": "None. Permitted under MIT.",
+        "attribution_requirements": "Include copyright notice.",
+        "share_alike_requirements": "None.",
+        "non_commercial_clauses": "None.",
+        "license_conflict_status": "NONE — Fully permissive."
+      },
+      "open_source_score": {
+        "code_score": 2,
+        "model_score": 2,
+        "dataset_score": 2,
+        "audio_score": 1,
+        "commercial_use_score": 2,
+        "redistribution_score": 2,
+        "total_score": "11 / 12",
+        "explanation": "Extremely clean permissive code structure. Does not ship with pre-built models or datasets, so those depend on the specific external weights loaded."
+      }
+    }
+  ]
+}

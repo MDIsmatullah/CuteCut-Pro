@@ -1,0 +1,46 @@
+{
+  "repository_forensics": {
+    "repository_url": "https://github.com/cpfair/quran-align",
+    "commit_hash": "c074ea8fb54b39b5fa016e79ad0cb127f8a37f5d",
+    "release_version": "Release 2016-11-24",
+    "license_file": "MIT License",
+    "dependencies": {
+      "frameworks": ["CMU Sphinx (PocketSphinx, SphinxTrain, cmuclmtk)"],
+      "build_system": ["g++ (C++11 standard)", "GNU Make"],
+      "libraries": ["libpocketsphinx", "libsphinxbase"]
+    },
+    "acoustic_model": {
+      "type": "Semi-Continuous / Continuous GMM-HMM",
+      "adaptation": "Speaker-specific adaptation required (SphinxTrain per reciter to align acoustic templates)"
+    },
+    "language_model": {
+      "type": "Dynamic per-ayah ARPA backoff language model",
+      "description": "Restricts grammar dynamically to the words of the target ayah to improve recognition rates and alignment speed"
+    },
+    "pronunciation_dictionary": {
+      "type": "Custom classical Arabic phonetic lexicon mapping Tanzil words to CMU Sphinx phoneset (syllabic phonemes)"
+    },
+    "quran_text_source": "Tanzil.net (quran-uthmani.txt)",
+    "audio_assumptions": {
+      "format": "WAV",
+      "sample_rate_hz": 16000,
+      "format_constraint": "Must be processed specifically via FFMPEG because of hard-coded header/chunk byte offset reading in C++ code"
+    },
+    "segmentation_algorithm": "Viterbi search to find phoneme-level boundary states inside a PocketSphinx alignment trellis",
+    "alignment_algorithm": "PocketSphinx C++ wrapper (`align/main.cc`) distributing segmenting jobs into worker threads",
+    "output_format": {
+      "extension": "JSON",
+      "structure": {
+        "surah": "integer",
+        "ayah": "integer",
+        "segments": "array of arrays containing [word_start_idx, word_end_idx_exclusive, start_msec, end_msec]"
+      }
+    },
+    "word_timestamp_mechanism": "GENUINE_FORCED_ALIGNMENT (Acoustic frame boundaries are assigned to syllable and phoneme transitions in the HMM trellis, mapped back to word index)",
+    "ayah_timestamp_mechanism": "PRE_EXISTING_CLIPS (Does NOT align full continuous surah files; expects pre-cut EveryAyah verse audio files named `sssaaa.wav` and aligns the text within them. Therefore, it does NOT perform independent ayah boundary detection)",
+    "reproducibility_status": {
+      "is_runnable_out_of_the_box": false,
+      "reason": "CRITICAL COMPONENT MISSING. The Python script responsible for preparing speech model training inputs and compiling dictionary data files is in an 'unpublishable state' and excluded from the public repository. The alignment pipeline cannot be executed on new audio files."
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "project": "CuteCut Pro - Diagnostic Score Audit",
+  "audit_results": {
+    "acousticScore": {
+      "classification": "HEURISTIC",
+      "derivation": "Calculated as a voice coverage percentage (ratio of active VAD speech duration inside the segment bounds) or defaults to a fixed 75.0 when raw PCM observations are unavailable."
+    },
+    "boundaryScore": {
+      "classification": "HEURISTIC / FIXED",
+      "derivation": "Calculated by averaging start and end boundary candidates, but often falls back to fixed values like 95.0 for forced-offset boundaries, or 40.0 / 35.0 for fallback intervals."
+    },
+    "transitionScore": {
+      "classification": "FIXED/HARDCODED",
+      "derivation": "Hardcoded to exactly 90.0 in lines 1061 and 1240 of 'src/utils/quranAlignmentEngine.ts'."
+    },
+    "durationPriorScore": {
+      "classification": "FIXED/HARDCODED",
+      "derivation": "Hardcoded to exactly 50.0 in lines 1469 and 1515 of 'src/utils/quranAlignmentEngine.ts'."
+    },
+    "recognitionScore": {
+      "classification": "HEURISTIC",
+      "derivation": "Calculated as 'phoneticTextScore' which, in the absence of actual ASR text, is determined purely via a Syllable Duration Ratio Fitness Curve (measuring how closely the segment duration matches the expected nominal duration)."
+    },
+    "globalScore": {
+      "classification": "HEURISTIC",
+      "derivation": "Calculated as a weighted linear sum of acoustic, phonetic/recognition, and boundary scores."
+    },
+    "confidence": {
+      "classification": "HEURISTIC",
+      "derivation": "Derived directly from the global alignment score."
+    }
+  },
+  "forensic_conclusions": {
+    "is_real_ctc_recognition_running": false,
+    "is_score_audit_completed": true,
+    "summary": "The audit reveals that in the absence of external transcripts, the alignment score is almost entirely heuristic. True CTC acoustic recognition is not running, and critical parameters like transitionScore (90) and durationPriorScore (50) are hardcoded directly into the code, while recognitionScore is simulated using a duration-ratio curve."
+  }
+}

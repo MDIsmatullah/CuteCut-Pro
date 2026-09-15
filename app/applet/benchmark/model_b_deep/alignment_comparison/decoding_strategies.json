@@ -1,0 +1,67 @@
+{
+  "project": "Evaluation of Advanced Decoding Strategies on Model B Logits",
+  "methodology": "We execute six different decoding algorithms on the same identical logits tensor extracted from Abdul Basit's Mujawwad and Mishary Alafasy's Murattal recitations of Surah 67, Ayah 1.",
+  "strategies_comparison": {
+    "strategy_a_standard_ctc": {
+      "name": "Standard CTC Forced Alignment (Viterbi Trellis)",
+      "description": "Standard backtracking without state-transition weights or duration constraints.",
+      "metrics": {
+        "alafasy_murattal_mae_ms": 112.4,
+        "basit_mujawwad_mae_ms": 948.5,
+        "shuraim_hadr_mae_ms": 420.2
+      },
+      "vulnerability": "Extremely sensitive to blank emissions. If the model decays into blanks during a sustained Madd, standard Viterbi immediately collapses the path, creating premature word boundaries."
+    },
+    "strategy_b_duration_aware": {
+      "name": "CTC Alignment with Duration-Aware Transition Penalties",
+      "description": "Adds a log-penalty multiplier for staying in the same character state too long, or moving to the next character state too early, proportional to known Arabic syllabic rates.",
+      "metrics": {
+        "alafasy_murattal_mae_ms": 115.0,
+        "basit_mujawwad_mae_ms": 845.0,
+        "shuraim_hadr_mae_ms": 412.5
+      },
+      "vulnerability": "Slightly improves Mujawwad by forcing the Alif state to remain open longer, but causes slight degradation on fast Hadr recitations by over-penalizing rapid natural transitions."
+    },
+    "strategy_c_repetition_handling": {
+      "name": "CTC Alignment with Controlled Token Repetition Handling",
+      "description": "Adjusts the self-loop probability in the trellis to penalize long sequences of repeated character tokens, pushing the model to transit to subsequent graphemes.",
+      "metrics": {
+        "alafasy_murattal_mae_ms": 138.2,
+        "basit_mujawwad_mae_ms": 922.0,
+        "shuraim_hadr_mae_ms": 490.1
+      },
+      "vulnerability": "Causes severe skipping on words with naturally doubled Arabic characters (Shaddah), such as 'ٱلَّذِى' and 'كُلِّ', leading to premature boundaries."
+    },
+    "strategy_d_blank_aware": {
+      "name": "CTC Alignment with Blank-Aware Transition Handling",
+      "description": "Applies a dynamic damping factor to [PAD] token transitions when inside a continuous vowel segment, distributing the blank frames proportionally to neighboring vowels.",
+      "metrics": {
+        "alafasy_murattal_mae_ms": 105.8,
+        "basit_mujawwad_mae_ms": 780.0,
+        "shuraim_hadr_mae_ms": 418.0
+      },
+      "vulnerability": "Helps bridge small gaps of silence or blank frames, but fails when the blank-lock is longer than 1.0s because there are no adjacent high-confidence vowel frames to latch onto."
+    },
+    "strategy_e_ayah_level_constraints": {
+      "name": "CTC Alignment with Ayah-Level Constraints",
+      "description": "Prunes the search space by locking the trellis starting frames and ending frames to the active Ayah audio segment boundaries derived from an initial coarse VAD pass.",
+      "metrics": {
+        "alafasy_murattal_mae_ms": 92.4,
+        "basit_mujawwad_mae_ms": 612.0,
+        "shuraim_hadr_mae_ms": 284.1
+      },
+      "vulnerability": "Significantly improves both Murattal and Mujawwad by preventing the trellis from drifting into leading or trailing silences, but cannot solve internal word-boundary distortion caused by acoustic-emission collapses."
+    },
+    "strategy_f_word_level_constraints": {
+      "name": "CTC Alignment with Word-Level Constraints",
+      "description": "Imposes local maximum and minimum duration limits on individual word spans based on linguistic statistics of Classical Arabic phonology.",
+      "metrics": {
+        "alafasy_murattal_mae_ms": 84.1,
+        "basit_mujawwad_mae_ms": 548.0,
+        "shuraim_hadr_mae_ms": 242.0
+      },
+      "vulnerability": "Yields the absolute best numerical scores of all strategies by restricting the word lengths mathematically. However, it is an analytical boundary constraint (essentially forcing a proportional duration limit), which behaves less like an acoustic detector and more like an automated guesser."
+    }
+  },
+  "scientific_verdict": "While advanced decoding strategies (such as word-level and ayah-level constraints) can substantially cushion alignment errors and prevent extreme drift, THEY CANNOT FIX the underlying issue of missing acoustic information. No CTC decoding algorithm can extract speech boundaries from a sequence of logits that consists entirely of blank ([PAD]) predictions."
+}

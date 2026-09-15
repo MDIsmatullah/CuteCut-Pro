@@ -1,0 +1,30 @@
+{
+  "raw_logits_metadata": {
+    "model_name": "rabah2026/wav2vec2-large-xlsr-53-arabic-quran-v_final",
+    "tensor_dimensions": "[1, frame_count, 39]",
+    "vocab_size": 39,
+    "effective_frame_duration_ms": 20.04008,
+    "recorded_runs": {
+      "alafasy_surah_67": {
+        "audio_duration_sec": 34.82,
+        "logits_shape": [1, 1739, 39],
+        "frame_count": 1739
+      },
+      "shuraim_surah_67": {
+        "audio_duration_sec": 21.36,
+        "logits_shape": [1, 1065, 39],
+        "frame_count": 1065
+      },
+      "basit_surah_67": {
+        "audio_duration_sec": 78.45,
+        "logits_shape": [1, 3919, 39],
+        "frame_count": 3919
+      },
+      "husary_surah_67": {
+        "audio_duration_sec": 38.12,
+        "logits_shape": [1, 1904, 39],
+        "frame_count": 1904
+      }
+    }
+  }
+}

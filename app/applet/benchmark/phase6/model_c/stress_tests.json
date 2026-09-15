@@ -1,0 +1,10 @@
+{
+  "model_name": "TBOGamer22/wav2vec2-quran-phonetics",
+  "stress_tests": [
+    {
+      "test_name": "Arabic Text Tokenization",
+      "observed_behavior": "Inputting standard Arabic characters (e.g. 'تبارك') resulted in tokenizer exception 'KeyError: Character not in vocabulary'. The vocabulary contains only Latin-based phonetic symbols.",
+      "failure_classification": "TOKENIZER_CRASH"
+    }
+  ]
+}

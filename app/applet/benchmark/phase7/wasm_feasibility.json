@@ -1,0 +1,27 @@
+{
+  "wasm_feasibility_study": {
+    "proposed_architecture": "PocketSphinx ➔ pocketsphinx.js ➔ WebAssembly in React Browser",
+    "compatibility_answers": {
+      "pipeline_compatibility": "INCOMPATIBLE. The full training pipeline relies on SphinxTrain and cmuclmtk C/Python scripts that require native UNIX compilation and file system access, which cannot run in-browser.",
+      "acoustic_model_loading": "YES. Pre-trained acoustic models can be loaded into WASM as memory assets.",
+      "language_model_loading": "YES. ARPA format (.lm) files are compatible.",
+      "pronunciation_dictionary_loading": "YES. Phonetic lexicon (.dict) files are compatible.",
+      "pocketsphinx_js_api_limitations": "CRITICAL BLOCKER. Standard pocketsphinx.js wrappers are built for greedy speech-to-text decoding. They do NOT expose the raw state-backtracking trellis or forced-alignment frame-level transition APIs. Without customized C-bindings exposing PocketSphinx's internal alignment APIs, word timestamps cannot be extracted.",
+      "alignment_algorithm_in_browser": "INCOMPATIBLE. Collin Fair's alignment wrapper (align/main.cc) is written as a native multi-threaded command-line C++ application relying on POSIX threads and direct filesystem I/O. It cannot run in-browser without a complete rewrite of the job-queueing architecture.",
+      "estimated_browser_payload_mb": 35.0,
+      "payload_breakdown": {
+        "pocketsphinx_wasm_binary": "5.0 MB",
+        "acoustic_model_weights": "25.0 MB",
+        "dictionary_and_language_model": "5.0 MB"
+      },
+      "estimated_memory_required_mb": 150.0,
+      "browser_support": {
+        "modern_browsers": "YES (Via standard WebAssembly)",
+        "android_webview": "YES",
+        "ios_safari": "YES"
+      },
+      "licensing_implications": "NONE. PocketSphinx code and standard acoustic models are under permissive BSD licenses, which are fully commercial-friendly."
+    },
+    "verdict": "NOT FEASIBLE FOR DIRECT CLIENT-SIDE BROWSER ENGINES. While the memory and footprint are highly attractive, the lack of forced-alignment API exposure in pocketsphinx.js and the native POSIX architecture of align/main.cc block direct React deployment. Any implementation would require building a custom C++/WASM build toolchain."
+  }
+}

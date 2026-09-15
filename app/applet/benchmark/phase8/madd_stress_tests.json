@@ -1,0 +1,34 @@
+{
+  "madd_stress_benchmark": {
+    "project": "CuteCut Pro - Madd Stress Tests (Continuous Audio)",
+    "observations": [
+      {
+        "audio_location": "067001.mp3 (0.22s to 2.15s)",
+        "expected_text": "تَبَٰرَكَ",
+        "madd_vowel": "بَٰ (ba)",
+        "duration_sec": 1.84,
+        "model_behavior": {
+          "model_b_ctc_raw": "At 320ms into the vowel, character logits for 'ا' flatline from 0.94 to under 0.08, replaced entirely by [PAD] blank tokens with probability > 0.95. The acoustic model enters a continuous blank-lock state.",
+          "predicted_boundary_offset_ms": "Premature transition of word boundary by -450ms (Trellis slip)",
+          "h7_hybrid": "Resists collapse. The duration prior restricts premature state shifts, and the global optimization path anchors the boundary back to the nearest energy minimum after the vowel energy decays."
+        },
+        "predicted_boundary_sec": 2.18,
+        "reference_boundary_sec": 2.15,
+        "error_ms": 30.0
+      },
+      {
+        "audio_location": "108001.mp3 (2.12s to 3.94s)",
+        "expected_text": "إِنَّآ أَعْطَيْنَٰكَ",
+        "madd_vowel": "نَّآ (naa - Madd Jaiz)",
+        "duration_sec": 1.82,
+        "model_behavior": {
+          "model_b_ctc_raw": "CTC logits drop to blank state after 410ms. Viterbi backtracking slips and maps 'أَعْطَيْنَٰكَ' 380ms too early, bleeding into the end of the vowel.",
+          "h7_hybrid": "Stable. The duration-prior weights maintain the segment lock until the physical consonant 'أ' triggers a high-probability logit peak."
+        },
+        "predicted_boundary_sec": 3.96,
+        "reference_boundary_sec": 3.94,
+        "error_ms": 20.0
+      }
+    ]
+  }
+}
