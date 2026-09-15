@@ -23,18 +23,15 @@ if (process.platform === 'linux') {
   app.commandLine.appendSwitch('ignore-gpu-blocklist');
   app.commandLine.appendSwitch('enable-gpu-rasterization');
   
-  // Comprehensive Linux Audio Configuration (Snap confinement, PulseAudio, PipeWire, ALSA)
-  app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox,AudioServiceOutOfProcess');
-  app.commandLine.appendSwitch('enable-features', 'PulseaudioLoopback,VaapiVideoDecoder,UseOzonePlatform');
-  app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
-  app.commandLine.appendSwitch('enable-audio-service-sandbox', 'false');
-  app.commandLine.appendSwitch('try-supported-channel-layouts');
+  // Safe Audio Configuration for Linux (.deb, Snap, AppImage, PulseAudio & PipeWire)
+  app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox');
 
   const xdgRuntime = process.env.XDG_RUNTIME_DIR;
   const waylandDisplay = process.env.WAYLAND_DISPLAY;
   const isWaylandAvailable = !!(xdgRuntime && waylandDisplay && fs.existsSync(path.join(xdgRuntime, waylandDisplay)));
 
   if (isWaylandAvailable) {
+    app.commandLine.appendSwitch('enable-features', 'VaapiVideoDecoder,UseOzonePlatform');
     app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
   } else {
     app.commandLine.appendSwitch('ozone-platform', 'x11');
