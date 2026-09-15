@@ -1,0 +1,38 @@
+name: Submit to Microsoft WinGet (Windows Package Manager)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  submit-winget:
+    name: Create Microsoft WinGet Package PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+
+      - name: Validate WinGet Manifests
+        run: |
+          echo "Validating WinGet Manifest files..."
+          cat winget/manifests/c/CuteCutPro/CuteCutPro/2.3.10/CuteCutPro.CuteCutPro.yaml
+          cat winget/manifests/c/CuteCutPro/CuteCutPro/2.3.10/CuteCutPro.CuteCutPro.installer.yaml
+          cat winget/manifests/c/CuteCutPro/CuteCutPro/2.3.10/CuteCutPro.CuteCutPro.locale.en-US.yaml
+
+      - name: Run WinGet Automated Submission
+        run: |
+          chmod +x scripts/submit-winget-pr.sh
+          WORKSPACE_ROOT="$GITHUB_WORKSPACE" ./scripts/submit-winget-pr.sh
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.FLATHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.FLATHUB_TOKEN || secrets.GITHUB_TOKEN }}
