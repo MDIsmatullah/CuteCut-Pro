@@ -6,7 +6,7 @@ set -e
 
 APP_ID="org.guldasta.cutecutpro"
 BRANCH_NAME="add-${APP_ID}"
-REPO_OWNER="${GITHUB_REPOSITORY_OWNER:-guldastaislamorquran}"
+REPO_OWNER="${GITHUB_REPOSITORY_OWNER:-MDIsmatullah}"
 GITHUB_TOKEN="${GH_TOKEN:-$GITHUB_TOKEN}"
 
 echo "=== Flathub Submission Automation for ${APP_ID} ==="
@@ -38,12 +38,16 @@ cp "${WORKSPACE_ROOT:-$PWD}/icon.png" ./
 
 git add org.guldasta.cutecutpro.yaml org.guldasta.cutecutpro.desktop org.guldasta.cutecutpro.metainfo.xml icon.png
 
-git config user.name "Guldasta Islam Or Quran Bot"
-git config user.email "guldastaislamorquran@gmail.com"
+git config user.name "MDIsmatullah"
+git config user.email "asmatullahdevolper@gmail.com"
 
 git commit -m "Add ${APP_ID}: CUTECUT PRO Professional Video Editor Suite" || echo "No changes to commit"
 
-echo "Pushing branch ${BRANCH_NAME} to fork..."
+echo "Ensuring fork exists on GitHub..."
+export GH_TOKEN="${GITHUB_TOKEN}"
+gh repo fork flathub/flathub --clone=false 2>/dev/null || echo "Fork already exists or initialized."
+
+echo "Pushing branch ${BRANCH_NAME} to user fork..."
 git remote add fork "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_OWNER}/flathub.git" || true
 git push -u fork "${BRANCH_NAME}" --force
 
@@ -58,7 +62,7 @@ gh pr create \
 - **App ID**: \`${APP_ID}\`
 - **Summary**: CUTECUT PRO Professional Video Editor Suite
 - **License**: MIT
-- **Homepage**: https://github.com/guldastaislamorquran/cutecut-pro
+- **Homepage**: https://github.com/MDIsmatullah/CuteCut-Pro
 
 Submitting official Flatpak manifest for automated build validation." || echo "PR creation initiated or already exists."
 

@@ -12,6 +12,9 @@ jobs:
   submit-flathub:
     name: Create Flathub Submission Pull Request
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
