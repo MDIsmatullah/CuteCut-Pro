@@ -41,6 +41,7 @@ parts:
       - libgtk-3-0
       - libgbm1
       - libasound2
+      - libasound2-data
       - libasound2-plugins
       - libpulse0
       - libpulse-mainloop-glib0

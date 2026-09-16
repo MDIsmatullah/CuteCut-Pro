@@ -25,8 +25,41 @@ if (process.platform === 'linux') {
   
   // Safe Audio Configuration for Linux (.deb, Snap, AppImage, PulseAudio & PipeWire)
   app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox');
+  app.commandLine.appendSwitch('alsa-output-device', 'default');
+
+  // Fix ALSA configuration path if running in Snap or constrained environment
+  const possibleAlsaPaths = [
+    process.env.SNAP ? path.join(process.env.SNAP, 'usr/share/alsa/alsa.conf') : '',
+    '/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf',
+    '/snap/core22/current/usr/share/alsa/alsa.conf',
+    '/snap/gnome-3-28-1804/current/usr/share/alsa/alsa.conf',
+    '/snap/core18/current/usr/share/alsa/alsa.conf',
+    '/usr/share/alsa/alsa.conf'
+  ].filter(Boolean);
+
+  for (const p of possibleAlsaPaths) {
+    if (fs.existsSync(p)) {
+      process.env.ALSA_CONFIG_PATH = p;
+      break;
+    }
+  }
 
   const xdgRuntime = process.env.XDG_RUNTIME_DIR;
+  const realUid = typeof process.getuid === 'function' ? process.getuid() : 1000;
+  if (!process.env.PULSE_SERVER) {
+    const pulsePaths = [
+      `/run/user/${realUid}/pulse/native`,
+      xdgRuntime ? path.join(xdgRuntime, 'pulse/native') : '',
+      '/var/run/pulse/native'
+    ].filter(Boolean);
+    for (const p of pulsePaths) {
+      if (fs.existsSync(p)) {
+        process.env.PULSE_SERVER = `unix:${p}`;
+        break;
+      }
+    }
+  }
+
   const waylandDisplay = process.env.WAYLAND_DISPLAY;
   const isWaylandAvailable = !!(xdgRuntime && waylandDisplay && fs.existsSync(path.join(xdgRuntime, waylandDisplay)));
 
