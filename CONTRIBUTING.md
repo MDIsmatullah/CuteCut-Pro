@@ -23,31 +23,79 @@ By participating in this project, you agree to maintain a respectful, welcoming,
 ```bash
 git clone https://github.com/MDismatullah/CuteCut-Pro.git
 cd CuteCut-Pro
+```
 
+### 2. Install Dependencies
+
+```bash
 npm install
+```
+
+### 3. Start Development Server
+
+```bash
 npm run dev
+```
+
+Visit `http://localhost:3000` in your browser to test your local changes.
+
+### 4. Build for Production
+
+```bash
 # Type check and build web app
 npm run build
 
 # Type check without building
 npm run lint
+```
 
-git checkout -b feature/your-feature-name
-# or for bug fixes:
-git checkout -b fix/issue-description
+---
 
-npm run lint
-npm run build
+## 🛠️ Contribution Workflow
 
-git commit -m "feat(audio): add parametric equalizer filter"
-# or
-git commit -m "fix(timeline): prevent snapping jitter on clip drag"
+1. **Create a New Branch:**
+   ```bash
+   git checkout -b feature/your-feature-name
+   # or for bug fixes:
+   git checkout -b fix/issue-description
+   ```
 
-git push origin feature/your-feature-name
+2. **Make Your Changes:**
+   - Write clean, type-safe TypeScript code.
+   - Follow standard React 18 functional component and hook patterns.
+   - Style components using Tailwind CSS classes.
+   - Use Lucide icons (`lucide-react`) for UI icons.
 
-Open a Pull Request on GitHub with a clear summary of your changes, screenshots/videos (if UI changes), and any related issue numbers.
-💡 Reporting Bugs & Feature Requests
-Bug Reports: Before creating a new issue, check existing issues to avoid duplicates. Include your operating system, browser/app version, steps to reproduce, and console error logs.
-Feature Requests: Describe the problem you are solving, the proposed solution, and why it benefits CuteCut Pro users.
-📜 License
-By contributing to CuteCut Pro, you agree that your contributions will be licensed under the project's LICENSE.
+3. **Verify Code Quality:**
+   ```bash
+   npm run lint
+   npm run build
+   ```
+   Ensure there are no TypeScript compilation errors or broken dependencies.
+
+4. **Commit Your Changes:**
+   Use clear, descriptive commit messages:
+   ```bash
+   git commit -m "feat(audio): add parametric equalizer filter"
+   # or
+   git commit -m "fix(timeline): prevent snapping jitter on clip drag"
+   ```
+
+5. **Push and Open a Pull Request:**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+   Open a Pull Request on GitHub with a clear summary of your changes, screenshots/videos (if UI changes), and any related issue numbers.
+
+---
+
+## 💡 Reporting Bugs & Feature Requests
+
+- **Bug Reports**: Before creating a new issue, check existing issues to avoid duplicates. Include your operating system, browser/app version, steps to reproduce, and console error logs.
+- **Feature Requests**: Describe the problem you are solving, the proposed solution, and why it benefits CuteCut Pro users.
+
+---
+
+## 📜 License
+
+By contributing to CuteCut Pro, you agree that your contributions will be licensed under the project's [LICENSE](LICENSE).
