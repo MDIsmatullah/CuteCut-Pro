@@ -49,10 +49,10 @@ Download the latest `.deb` file from [GitHub Releases](https://github.com/MDIsma
 
 ```bash
 # Download the latest .deb installer
-wget https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.3.10/cutecut-pro_2.3.10_amd64.deb
+wget https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/cutecut-pro_2.4.1_amd64.deb
 
 # Install the package
-sudo dpkg -i cutecut-pro_2.3.10_amd64.deb
+sudo dpkg -i cutecut-pro_2.4.1_amd64.deb
 
 # Fix any missing dependencies if prompted
 sudo apt-get install -f
@@ -66,13 +66,13 @@ Download and run directly on any Linux distribution without root privileges:
 
 ```bash
 # Download latest AppImage
-wget https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.3.10/CUTECUT.PRO-2.3.10.AppImage
+wget https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CUTECUT.PRO-2.4.1.AppImage
 
 # Make it executable
-chmod +x CUTECUT.PRO-2.3.10.AppImage
+chmod +x CUTECUT.PRO-2.4.1.AppImage
 
 # Run CUTECUT PRO
-./CUTECUT.PRO-2.3.10.AppImage
+./CUTECUT.PRO-2.4.1.AppImage
 ```
 
 ---
@@ -80,7 +80,7 @@ chmod +x CUTECUT.PRO-2.3.10.AppImage
 ### 🪟 4. Windows Installation (.exe)
 
 1. Go to [Latest GitHub Releases](https://github.com/MDIsmatullah/CuteCut-Pro/releases/latest).
-2. Download `CUTECUT.PRO.Setup.2.3.10.exe` (Installer) or `CUTECUT-PRO-2.3.10-win-portable.zip` (Portable).
+2. Download `CUTECUT.PRO.Setup.2.4.1.exe` (Installer) or `CUTECUT-PRO-2.4.1-win-portable.zip` (Portable).
 3. Double-click the installer and launch CUTECUT PRO from your Start Menu.
 
 ---

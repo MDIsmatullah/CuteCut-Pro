@@ -26,6 +26,8 @@ const templatePatch = `const launcherScript = '#!/bin/bash\\n' +
           '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"\\n' +
           'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
           '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/../pulse/native"\\n' +
+          'elif [ -e "/var/run/pulse/native" ]; then\\n' +
+          '  export PULSE_SERVER="unix:/var/run/pulse/native"\\n' +
           'fi\\n' +
           'if [ -e "/run/user/$REAL_UID/pipewire-0" ]; then\\n' +
           '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"\\n' +
@@ -44,7 +46,7 @@ const templatePatch = `const launcherScript = '#!/bin/bash\\n' +
           '  export GDK_BACKEND="x11"\\n' +
           '  PLATFORM_FLAGS="--ozone-platform=x11"\\n' +
           'fi\\n' +
-          'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-features=AudioServiceSandbox,AudioServiceOutOfProcess $PLATFORM_FLAGS "$@"\\n';
+          'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-features=AudioServiceSandbox $PLATFORM_FLAGS "$@"\\n';
         await (0, promises_1.writeFile)(path.join(templateDir, "command.sh"), launcherScript, { mode: 0o755 });
         const fsSync = require('fs');
         const pathSync = require('path');
@@ -120,6 +122,8 @@ if (content.includes(targetFunc)) {
       '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"\\n' +
       'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
       '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/../pulse/native"\\n' +
+      'elif [ -e "/var/run/pulse/native" ]; then\\n' +
+      '  export PULSE_SERVER="unix:/var/run/pulse/native"\\n' +
       'fi\\n' +
       'if [ -e "/run/user/$REAL_UID/pipewire-0" ]; then\\n' +
       '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"\\n' +
@@ -138,7 +142,7 @@ if (content.includes(targetFunc)) {
       '  export GDK_BACKEND="x11"\\n' +
       '  PLATFORM_FLAGS="--ozone-platform=x11"\\n' +
       'fi\\n' +
-      'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-features=AudioServiceSandbox,AudioServiceOutOfProcess $PLATFORM_FLAGS "$@"\\n';
+      'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-features=AudioServiceSandbox $PLATFORM_FLAGS "$@"\\n';
 }
 //# sourceMappingURL=coreLegacy.js.map`;
   content = prefix + newFunc;

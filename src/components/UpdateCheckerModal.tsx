@@ -22,12 +22,12 @@ export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({ isOpen, 
       setLogs((prev) => [...prev, msg]);
     };
 
-    setTimeout(() => log('[System] Querying CUTECUT PRO build manifest (v2.3.10)...'), 200);
+    setTimeout(() => log('[System] Querying CUTECUT PRO build manifest (v2.4.1)...'), 200);
     setTimeout(() => log('[Runtime] Validating WebAssembly FFmpeg core bundle status...'), 600);
     setTimeout(() => log('[Desktop] Checking Linux (.deb, .snap, .AppImage) and Windows (.exe) parity...'), 1000);
     setTimeout(() => log('[Quran AI] Local Micro-Sync Scripture dataset integrity: 100% OK'), 1400);
     setTimeout(() => {
-      log('[Version] Engine build version v2.3.10 is latest production release!');
+      log('[Version] Engine build version v2.4.1 is latest production release!');
       setChecking(false);
       setChecked(true);
     }, 1800);
@@ -73,7 +73,7 @@ export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({ isOpen, 
               />
               <div>
                 <p className="text-xs font-bold text-white">CUTECUT PRO Suite</p>
-                <p className="text-[10px] text-gray-400 font-mono">Current Build: v2.3.10-PRO (Universal Engine)</p>
+                <p className="text-[10px] text-gray-400 font-mono">Current Build: v2.4.1-PRO (Universal Engine)</p>
               </div>
             </div>
             <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
@@ -98,7 +98,7 @@ export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({ isOpen, 
           {checked && (
             <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-bold flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-teal-400 shrink-0" />
-              <span>You are running the latest CUTECUT PRO release (v2.3.10). No updates required!</span>
+              <span>You are running the latest CUTECUT PRO release (v2.4.1). No updates required!</span>
             </div>
           )}
 

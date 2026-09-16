@@ -31,10 +31,10 @@ Key Capabilities:
 - **Softpedia Submit:** [https://www.softpedia.com/developer/submit-software.html](https://www.softpedia.com/developer/submit-software.html)
 - **FileHorse Developer:** [https://www.filehorse.com/contact/](https://www.filehorse.com/contact/)
 - **Program Name:** CuteCut Pro
-- **Version:** 2.3.10
+- **Version:** 2.4.1
 - **Category:** Multimedia / Video / Video Editors
 - **Direct Download URL (.exe):** 
-  `https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.3.10/CuteCut.Pro.Setup.2.3.10.exe`
+  `https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CuteCut.Pro.Setup.2.4.1.exe`
 - **SHA-256 Hash:** `1eda7c97ba6ebe25ae134e73e5bf418182b8d0a3d463d1264c8d35ba805ce037`
 
 ---
@@ -44,10 +44,10 @@ Key Capabilities:
 - **Amazon Developer Portal:** [https://developer.amazon.com](https://developer.amazon.com)
 - **Application Title:** CuteCut Pro - Multitrack Video Editor
 - **Package Name:** `org.guldasta.cutecutpro`
-- **Version Name:** `2.3.10`
-- **Version Code:** `100`
+- **Version Name:** `2.4.1`
+- **Version Code:** `241`
 - **Direct APK URL:** 
-  `https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.3.10/CuteCut-Pro-v2.3.10.apk`
+  `https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CuteCut-Pro-v2.4.1.apk`
 - **Keywords:** video editor, multitrack, quran, subtitles, waveforms, timeline, reels, shorts, audio editor
 
 ---

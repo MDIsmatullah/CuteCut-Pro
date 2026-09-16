@@ -25,9 +25,9 @@ jobs:
       - name: Validate WinGet Manifests
         run: |
           echo "Validating WinGet Manifest files..."
-          cat winget/manifests/c/CuteCutPro/CuteCutPro/2.3.10/CuteCutPro.CuteCutPro.yaml
-          cat winget/manifests/c/CuteCutPro/CuteCutPro/2.3.10/CuteCutPro.CuteCutPro.installer.yaml
-          cat winget/manifests/c/CuteCutPro/CuteCutPro/2.3.10/CuteCutPro.CuteCutPro.locale.en-US.yaml
+          cat winget/manifests/c/CuteCutPro/CuteCutPro/2.4.1/CuteCutPro.CuteCutPro.yaml
+          cat winget/manifests/c/CuteCutPro/CuteCutPro/2.4.1/CuteCutPro.CuteCutPro.installer.yaml
+          cat winget/manifests/c/CuteCutPro/CuteCutPro/2.4.1/CuteCutPro.CuteCutPro.locale.en-US.yaml
 
       - name: Run WinGet Automated Submission
         run: |

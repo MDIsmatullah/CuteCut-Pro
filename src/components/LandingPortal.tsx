@@ -70,7 +70,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
       title: "Automated Quranic Ayah Alignment",
       subtitle: "Microsecond Speech-to-Text Precision",
       desc: "Instantly segments and aligns continuous full-surah audio tracks matching the exact canonical Uthmani script coordinates.",
-      badge: "AI Align Engine v2.3.10",
+      badge: "AI Align Engine v2.4.1",
       color: "from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-400",
       icon: BookOpen,
       visual: (
@@ -488,14 +488,14 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
         <div className="flex flex-col items-center justify-center gap-3 mb-14 w-full max-w-5xl">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
             <Download className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Download Desktop Native Apps (v2.3.10)</span>
+            <span>Download Desktop Native Apps (v2.4.1)</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 w-full">
             {/* Windows Download */}
             <a
-              href="https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.3.10/CUTECUT.PRO.Setup.2.3.10.exe"
-              download="CUTECUT.PRO.Setup.2.3.10.exe"
+              href="https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CUTECUT.PRO.Setup.2.4.1.exe"
+              download="CUTECUT.PRO.Setup.2.4.1.exe"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#14141f] hover:bg-[#1c1c2b] border border-[#28283c] hover:border-cyan-400/60 text-gray-200 hover:text-white transition group cursor-pointer shadow-lg shadow-black/40"
@@ -510,8 +510,8 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
 
             {/* macOS Download */}
             <a
-              href="https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.3.10/CUTECUT.PRO-2.3.10-arm64.dmg"
-              download="CUTECUT.PRO-2.3.10-arm64.dmg"
+              href="https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CUTECUT.PRO-2.4.1-arm64.dmg"
+              download="CUTECUT.PRO-2.4.1-arm64.dmg"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#14141f] hover:bg-[#1c1c2b] border border-[#28283c] hover:border-gray-200/60 text-gray-200 hover:text-white transition group cursor-pointer shadow-lg shadow-black/40"
@@ -526,8 +526,8 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
 
             {/* Linux AppImage */}
             <a
-              href="https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.3.10/CUTECUT.PRO-2.3.10.AppImage"
-              download="CUTECUT.PRO-2.3.10.AppImage"
+              href="https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CUTECUT.PRO-2.4.1.AppImage"
+              download="CUTECUT.PRO-2.4.1.AppImage"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#14141f] hover:bg-[#1c1c2b] border border-[#28283c] hover:border-emerald-400/60 text-gray-200 hover:text-white transition group cursor-pointer shadow-lg shadow-black/40"
@@ -542,8 +542,8 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
 
             {/* Linux DEB */}
             <a
-              href="https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.3.10/cutecut-pro_2.3.10_amd64.deb"
-              download="cutecut-pro_2.3.10_amd64.deb"
+              href="https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/cutecut-pro_2.4.1_amd64.deb"
+              download="cutecut-pro_2.4.1_amd64.deb"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#14141f] hover:bg-[#1c1c2b] border border-[#28283c] hover:border-blue-400/60 text-gray-200 hover:text-white transition group cursor-pointer shadow-lg shadow-black/40"

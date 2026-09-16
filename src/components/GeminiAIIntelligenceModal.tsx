@@ -103,7 +103,7 @@ export const GeminiAIIntelligenceModal: React.FC<GeminiAIIntelligenceModalProps>
           context: {
             currentTime,
             aspectRatio,
-            editor: 'CuteCut Pro v2.3.10',
+            editor: 'CuteCut Pro v2.4.1',
           }
         })
       });

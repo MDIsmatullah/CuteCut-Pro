@@ -5,7 +5,7 @@ set -e
 # Submits org.guldasta.cutecutpro.yml metadata to https://gitlab.com/fdroid/fdroiddata
 
 APP_ID="org.guldasta.cutecutpro"
-VERSION="2.3.10"
+VERSION="2.4.1"
 BRANCH_NAME="add-${APP_ID}-${VERSION}"
 ROOT_DIR="${WORKSPACE_ROOT:-$PWD}"
 

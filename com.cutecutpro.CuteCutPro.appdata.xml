@@ -32,6 +32,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="2.4.1" date="2026-09-16">
+      <description>
+        <p>Cross-platform audio engine parity for Snap, AppImage, Debian, Windows, and macOS with optimized PulseAudio, PipeWire, and ALSA channel synchronization.</p>
+      </description>
+    </release>
     <release version="2.3.10" date="2026-09-12">
       <description>
         <p>Transition speed real-time sync, dual translation subtitle tracks generation, dynamic secondary language switching, and micro-aligned Uthmani Quran engine enhancements.</p>
