@@ -32,8 +32,11 @@ echo "2. Cloning Flathub submission repository..."
 git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_OWNER}/flathub.git" flathub-repo || git clone https://github.com/flathub/flathub.git flathub-repo
 cd flathub-repo
 
-echo "3. Creating submission branch: ${BRANCH_NAME}"
-git checkout -B "${BRANCH_NAME}"
+git remote add upstream https://github.com/flathub/flathub.git 2>/dev/null || true
+git fetch upstream new-pr
+
+echo "3. Creating submission branch from upstream/new-pr: ${BRANCH_NAME}"
+git checkout -B "${BRANCH_NAME}" upstream/new-pr
 
 echo "4. Copying manifest files from root: ${ROOT_DIR}..."
 cp "${ROOT_DIR}/org.guldasta.cutecutpro.yaml" ./
@@ -63,7 +66,7 @@ echo "6. Creating / Verifying Pull Request to flathub/flathub..."
 gh pr create \
   --repo flathub/flathub \
   --head "${REPO_OWNER}:${BRANCH_NAME}" \
-  --base master \
+  --base new-pr \
   --title "Add ${APP_ID}" \
   --body "### New Application Submission: CUTECUT PRO
 
