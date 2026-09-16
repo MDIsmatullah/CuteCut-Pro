@@ -35,7 +35,7 @@ Key Capabilities:
 - **Category:** Multimedia / Video / Video Editors
 - **Direct Download URL (.exe):** 
   `https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CuteCut.Pro.Setup.2.4.1.exe`
-- **SHA-256 Hash:** `1eda7c97ba6ebe25ae134e73e5bf418182b8d0a3d463d1264c8d35ba805ce037`
+- **SHA-256 Hash:** `bab0eacd57b706122c43ddccc54a0ffe3c4cfca12e633919f5f3239b7d43f8db`
 
 ---
 

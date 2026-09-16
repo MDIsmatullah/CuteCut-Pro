@@ -1,6 +1,6 @@
 cask "cutecut-pro" do
   version "2.4.1"
-  sha256 "fdeb93eb7997885240f266040e0c1f62174c3d82a176378c7724aeb0a62452b4"
+  sha256 "5fa4d5b485bdd79484433489e62137dabe79a256104348bce30a2e0ae22171b8"
 
   url "https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v#{version}/CuteCut.Pro-#{version}-arm64.dmg"
   name "CuteCut Pro"

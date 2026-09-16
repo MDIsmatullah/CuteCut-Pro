@@ -5,7 +5,7 @@ InstallerType: inno
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CuteCut.Pro.Setup.2.4.1.exe
-    InstallerSha256: 1EDA7C97BA6EBE25AE134E73E5BF418182B8D0A3D463D1264C8D35BA805CE037
+    InstallerSha256: BAB0EACD57B706122C43DDCCC54A0FFE3C4CFCA12E633919F5F3239B7D43F8DB
     InstallerLocale: en-US
     AppsAndFeaturesEntries:
       - DisplayName: CuteCut Pro 2.4.1

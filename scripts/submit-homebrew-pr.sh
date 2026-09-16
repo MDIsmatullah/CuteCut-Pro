@@ -59,7 +59,7 @@ echo "6. Creating Pull Request to Homebrew/homebrew-cask..."
 gh pr create \
   --repo Homebrew/homebrew-cask \
   --head "${REPO_OWNER}:${BRANCH_NAME}" \
-  --base master \
+  --base main \
   --title "cutecut-pro ${VERSION} (new cask)" \
   --body "### CuteCut Pro Submission to Homebrew Cask (macOS)
 
