@@ -3,7 +3,7 @@
 PackageIdentifier: CuteCutPro.CuteCutPro
 PackageVersion: 2.4.1
 MinimumOSVersion: 10.0.0.0
-InstallerType: inno
+InstallerType: nullsoft
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CuteCut.Pro.Setup.2.4.1.exe
@@ -13,10 +13,11 @@ Installers:
       - DisplayName: CuteCut Pro 2.4.1
         Publisher: Asmatullah Developer
         DisplayVersion: 2.4.1
-        ProductCode: "{8E83D6F2-5B2A-4D3F-9B4A-73DC291E67C1}_is1"
+        ProductCode: com.cutecutpro.app
     InstallerSwitches:
-      Silent: /VERYSILENT /NORESTART /SUPPRESSMSGBOXES
-      SilentWithProgress: /SILENT /NORESTART /SUPPRESSMSGBOXES
+      Silent: /S
+      SilentWithProgress: /S
     UpgradeBehavior: install
 ManifestType: installer
 ManifestVersion: 1.9.0
+

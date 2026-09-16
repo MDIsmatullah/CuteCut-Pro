@@ -70,6 +70,6 @@ gh pr create \
 - **Homepage**: https://github.com/MDIsmatullah/CuteCut-Pro
 - **Release**: https://github.com/MDIsmatullah/CuteCut-Pro/releases/tag/v${VERSION}
 
-Submitting official verified InnoSetup installer manifests for automated pipeline validation." 2>&1 || echo "PR creation processed (may already exist or pending merge)."
+Submitting official verified Nullsoft (NSIS) installer manifests with silent /S switches for automated pipeline validation." 2>&1 || echo "PR creation processed (may already exist or pending merge)."
 
 echo "=== WinGet submission procedure complete! ==="
