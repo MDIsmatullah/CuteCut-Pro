@@ -67,3 +67,30 @@ Whether you are crafting 9:16 Shorts/Reels with dynamic audio waveforms or creat
 
 We'd love to hear your feedback and suggestions! 🎬✨
 ```
+
+---
+
+## 5. 🚀 AppImageHub (Linux AppImage Store)
+- **Official Directory:** https://appimage.github.io & https://www.appimagehub.com
+- **Direct 1-Click Submission Link:**
+  👉 [Submit to AppImageHub](https://github.com/AppImage/appimage.github.io/new/master/data?filename=CuteCut-Pro&value=https://github.com/MDIsmatullah/CuteCut-Pro)
+- **Workflow Automation:** `.github/workflows/appimagehub-submission.yml`
+- **File:** `data/CuteCut-Pro` containing `https://github.com/MDIsmatullah/CuteCut-Pro`
+- **Detected Asset:** `CuteCut.Pro-2.4.1.AppImage` automatically cataloged by AppImageHub bots.
+
+---
+
+## 6. 📦 Ubuntu / Debian PPA (Launchpad) for .deb
+- **PPA Name:** `ppa:mdismatullah/cutecut-pro`
+- **Installation Command for Users:**
+  ```bash
+  sudo add-apt-repository ppa:mdismatullah/cutecut-pro
+  sudo apt update
+  sudo apt install cutecut-pro
+  ```
+- **Direct GitHub .deb Install:**
+  ```bash
+  sudo dpkg -i cutecut-pro_2.4.1_amd64.deb
+  sudo apt-get install -f
+  ```
+

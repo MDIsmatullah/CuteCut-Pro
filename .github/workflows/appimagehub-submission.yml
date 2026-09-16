@@ -1,0 +1,25 @@
+name: Submit to AppImageHub
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  submit-appimagehub:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout CuteCut Pro Repository
+        uses: actions/checkout@v4
+
+      - name: Run AppImageHub Submission Script
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          chmod +x scripts/submit-appimagehub.sh
+          ./scripts/submit-appimagehub.sh
