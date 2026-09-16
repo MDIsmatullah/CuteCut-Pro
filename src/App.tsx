@@ -2158,7 +2158,7 @@ export default function App() {
   const masterGainRef = useRef<GainNode | null>(null);
   const speakerGainRef = useRef<GainNode | null>(null);
   const exportDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
-  const audioSourceNodesRef = useRef<Record<string, { source: MediaElementAudioSourceNode; gainNode: GainNode }>>({});
+  const audioSourceNodesRef = useRef<Record<string, { source: MediaElementAudioSourceNode; gainNode: GainNode; effectSignature?: string }>>({});
   const activeRecorderRef = useRef<MediaRecorder | null>(null);
   const activeRecordIntervalRef = useRef<any>(null);
   const isCancelledExportRef = useRef<boolean>(false);
@@ -2204,7 +2204,7 @@ export default function App() {
           const gainNode = ctx.createGain();
           source.connect(gainNode);
           gainNode.connect(masterGain);
-          nodeEntry = { source, gainNode };
+          nodeEntry = { source, gainNode, effectSignature: 'none' };
           audioSourceNodesRef.current[key] = nodeEntry;
         } catch {
           // If already connected to source, proceed with existing source node
@@ -2212,109 +2212,122 @@ export default function App() {
         }
       }
 
-      const hasReverb = clip.audioEffects?.reverb;
-      const hasEcho = clip.audioEffects?.echo;
-      const hasBass = clip.audioEffects?.bassBoost;
+      const currentSignature = JSON.stringify({
+        fx: clip.audioEffects,
+        reduceNoise: clip.audioSettings?.reduceNoise
+      });
 
-      try {
-        nodeEntry.source.disconnect();
-      } catch {}
+      // Only rebuild the AudioNode DSP graph if the effect parameters actually changed
+      if (nodeEntry.effectSignature !== currentSignature) {
+        nodeEntry.effectSignature = currentSignature;
 
-      let currentOutput: AudioNode = nodeEntry.source;
+        try {
+          nodeEntry.source.disconnect();
+        } catch {}
 
-      // 1. Voice Denoiser & AC/Fan Hum Remover
-      if (clip.audioEffects?.denoiser || clip.audioSettings?.reduceNoise) {
-        const highPass = ctx.createBiquadFilter();
-        highPass.type = 'highpass';
-        highPass.frequency.value = 110;
+        const hasReverb = clip.audioEffects?.reverb;
+        const hasEcho = clip.audioEffects?.echo;
+        const hasBass = clip.audioEffects?.bassBoost;
 
-        const notch = ctx.createBiquadFilter();
-        notch.type = 'notch';
-        notch.frequency.value = 60;
-        notch.Q.value = 8;
+        let currentOutput: AudioNode = nodeEntry.source;
 
-        currentOutput.connect(highPass);
-        highPass.connect(notch);
-        currentOutput = notch;
+        // 1. Voice Denoiser & AC/Fan Hum Remover
+        if (clip.audioEffects?.denoiser || clip.audioSettings?.reduceNoise) {
+          const highPass = ctx.createBiquadFilter();
+          highPass.type = 'highpass';
+          highPass.frequency.value = 110;
+
+          const notch = ctx.createBiquadFilter();
+          notch.type = 'notch';
+          notch.frequency.value = 60;
+          notch.Q.value = 8;
+
+          currentOutput.connect(highPass);
+          highPass.connect(notch);
+          currentOutput = notch;
+        }
+
+        // 2. Bass Boost filter
+        if (hasBass) {
+          const bassFilter = ctx.createBiquadFilter();
+          bassFilter.type = 'lowshelf';
+          bassFilter.frequency.value = 150;
+          bassFilter.gain.value = 10;
+          currentOutput.connect(bassFilter);
+          currentOutput = bassFilter;
+        }
+
+        // 3. Mosque Reverb Suite or Standard Qiraat Echo Feedback Loop
+        const mosque = clip.audioEffects?.mosqueReverb;
+        if (mosque?.enabled) {
+          const delayTime = mosque.preset === 'haramain-kaaba' ? 0.48 : mosque.preset === 'grand-mosque' ? 0.36 : 0.20;
+          const feedbackVal = mosque.preset === 'haramain-kaaba' ? 0.45 : mosque.preset === 'grand-mosque' ? 0.38 : 0.25;
+          const wetRatio = (mosque.wet ?? 55) / 100;
+
+          const delayNode = ctx.createDelay(1.5);
+          delayNode.delayTime.value = delayTime;
+
+          // Dampening lowpass filter simulates acoustic absorption of mosque carpets and stone arches
+          const dampFilter = ctx.createBiquadFilter();
+          dampFilter.type = 'lowpass';
+          dampFilter.frequency.value = mosque.preset === 'haramain-kaaba' ? 2400 : 3400;
+
+          const delayGain = ctx.createGain();
+          delayGain.gain.value = feedbackVal;
+
+          const wetGain = ctx.createGain();
+          wetGain.gain.value = 0.50 * wetRatio;
+
+          const dryGain = ctx.createGain();
+          dryGain.gain.value = 1.0;
+
+          const effectMix = ctx.createGain();
+
+          currentOutput.connect(dryGain);
+          dryGain.connect(effectMix);
+
+          currentOutput.connect(delayNode);
+          delayNode.connect(dampFilter);
+          dampFilter.connect(delayGain);
+          delayGain.connect(delayNode);
+
+          dampFilter.connect(wetGain);
+          wetGain.connect(effectMix);
+
+          currentOutput = effectMix;
+        } else if (hasEcho || hasReverb) {
+          const delayNode = ctx.createDelay(1.0);
+          delayNode.delayTime.value = hasReverb ? 0.38 : 0.22;
+
+          const delayGain = ctx.createGain();
+          delayGain.gain.value = hasReverb ? 0.40 : 0.30;
+
+          const wetGain = ctx.createGain();
+          wetGain.gain.value = hasReverb ? 0.38 : 0.28;
+
+          const dryGain = ctx.createGain();
+          dryGain.gain.value = 1.0;
+
+          const effectMix = ctx.createGain();
+
+          currentOutput.connect(dryGain);
+          dryGain.connect(effectMix);
+
+          currentOutput.connect(delayNode);
+          delayNode.connect(delayGain);
+          delayGain.connect(delayNode);
+
+          delayNode.connect(wetGain);
+          wetGain.connect(effectMix);
+
+          currentOutput = effectMix;
+        }
+
+        currentOutput.connect(nodeEntry.gainNode);
+        nodeEntry.gainNode.connect(masterGain);
       }
 
-      // 2. Bass Boost filter
-      if (hasBass) {
-        const bassFilter = ctx.createBiquadFilter();
-        bassFilter.type = 'lowshelf';
-        bassFilter.frequency.value = 150;
-        bassFilter.gain.value = 10;
-        currentOutput.connect(bassFilter);
-        currentOutput = bassFilter;
-      }
-
-      // 3. Mosque Reverb Suite or Standard Qiraat Echo Feedback Loop
-      const mosque = clip.audioEffects?.mosqueReverb;
-      if (mosque?.enabled) {
-        const delayTime = mosque.preset === 'haramain-kaaba' ? 0.52 : mosque.preset === 'grand-mosque' ? 0.38 : 0.22;
-        const feedbackVal = mosque.preset === 'haramain-kaaba' ? 0.52 : mosque.preset === 'grand-mosque' ? 0.44 : 0.28;
-        const wetRatio = (mosque.wet ?? 55) / 100;
-
-        const delayNode = ctx.createDelay(1.5);
-        delayNode.delayTime.value = delayTime;
-
-        // Dampening lowpass filter simulates acoustic absorption of mosque carpets and stone arches
-        const dampFilter = ctx.createBiquadFilter();
-        dampFilter.type = 'lowpass';
-        dampFilter.frequency.value = mosque.preset === 'haramain-kaaba' ? 2400 : 3400;
-
-        const delayGain = ctx.createGain();
-        delayGain.gain.value = feedbackVal;
-
-        const wetGain = ctx.createGain();
-        wetGain.gain.value = 0.55 * wetRatio;
-
-        const dryGain = ctx.createGain();
-        dryGain.gain.value = 1.0;
-
-        const effectMix = ctx.createGain();
-
-        currentOutput.connect(dryGain);
-        dryGain.connect(effectMix);
-
-        currentOutput.connect(delayNode);
-        delayNode.connect(dampFilter);
-        dampFilter.connect(delayGain);
-        delayGain.connect(delayNode);
-
-        dampFilter.connect(wetGain);
-        wetGain.connect(effectMix);
-
-        currentOutput = effectMix;
-      } else if (hasEcho || hasReverb) {
-        const delayNode = ctx.createDelay(1.0);
-        delayNode.delayTime.value = hasReverb ? 0.42 : 0.25;
-
-        const delayGain = ctx.createGain();
-        delayGain.gain.value = hasReverb ? 0.48 : 0.35;
-
-        const wetGain = ctx.createGain();
-        wetGain.gain.value = hasReverb ? 0.45 : 0.32;
-
-        const dryGain = ctx.createGain();
-        dryGain.gain.value = 1.0;
-
-        const effectMix = ctx.createGain();
-
-        currentOutput.connect(dryGain);
-        dryGain.connect(effectMix);
-
-        currentOutput.connect(delayNode);
-        delayNode.connect(delayGain);
-        delayGain.connect(delayNode);
-
-        delayNode.connect(wetGain);
-        wetGain.connect(effectMix);
-
-        currentOutput = effectMix;
-      }
-
-      // 4. Volume Gain & Fade In/Out Envelope
+      // 4. Volume Gain & Fade In/Out Envelope (smoothly applied per-frame)
       const baseGain = clip.volume !== undefined ? clip.volume : 1.0;
       const fadeIn = clip.audioSettings?.fadeIn ?? 0;
       const fadeOut = clip.audioSettings?.fadeOut ?? 0;
@@ -2328,9 +2341,6 @@ export default function App() {
       }
 
       nodeEntry.gainNode.gain.setValueAtTime(baseGain * fadeFactor, ctx.currentTime);
-
-      currentOutput.connect(nodeEntry.gainNode);
-      nodeEntry.gainNode.connect(masterGain);
     } catch (err) {
       console.warn("Web Audio processing bypass:", err);
     }
