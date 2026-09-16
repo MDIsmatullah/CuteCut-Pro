@@ -34,10 +34,24 @@ const templatePatch = `const launcherScript = '#!/bin/bash\\n' +
           'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/pipewire-0" ]; then\\n' +
           '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR"\\n' +
           'fi\\n' +
-          'if [ -d "/snap/gnome-42-2204/current/usr/share/alsa" ]; then\\n' +
-          '  export ALSA_CONFIG_PATH="/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf"\\n' +
-          'elif [ -f "/usr/share/alsa/alsa.conf" ]; then\\n' +
-          '  export ALSA_CONFIG_PATH="/usr/share/alsa/alsa.conf"\\n' +
+          'if [ -n "$SNAP_USER_DATA" ]; then\\n' +
+          '  ALSA_DIR="$SNAP_USER_DATA/alsa"\\n' +
+          '  if [ ! -f "$ALSA_DIR/alsa.conf" ]; then\\n' +
+          '    mkdir -p "$ALSA_DIR" 2>/dev/null || true\\n' +
+          '    if [ -d "/snap/gnome-42-2204/current/usr/share/alsa" ]; then\\n' +
+          '      cp -r /snap/gnome-42-2204/current/usr/share/alsa/* "$ALSA_DIR/" 2>/dev/null || true\\n' +
+          '    elif [ -d "$SNAP/usr/share/alsa" ]; then\\n' +
+          '      cp -r $SNAP/usr/share/alsa/* "$ALSA_DIR/" 2>/dev/null || true\\n' +
+          '    elif [ -d "/usr/share/alsa" ]; then\\n' +
+          '      cp -r /usr/share/alsa/* "$ALSA_DIR/" 2>/dev/null || true\\n' +
+          '    fi\\n' +
+          '    sed -i "s|/usr/share/alsa|$ALSA_DIR|g" "$ALSA_DIR/alsa.conf" 2>/dev/null || true\\n' +
+          '    sed -i "s|/usr/share/alsa|$ALSA_DIR|g" "$ALSA_DIR/alsa.conf.d/"*.conf 2>/dev/null || true\\n' +
+          '    rm -f "$ALSA_DIR/alsa.conf.d/"*pipewire* 2>/dev/null || true\\n' +
+          '    printf "pcm.!default {\\\\n    type pulse\\\\n}\\\\nctl.!default {\\\\n    type pulse\\\\n}\\\\n" > "$ALSA_DIR/asound.conf" 2>/dev/null || true\\n' +
+          '  fi\\n' +
+          '  export ALSA_CONFIG_DIR="$ALSA_DIR"\\n' +
+          '  export ALSA_CONFIG_PATH="$ALSA_DIR/alsa.conf"\\n' +
           'fi\\n' +
           'if [ -n "$WAYLAND_DISPLAY" ] && [ -e "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then\\n' +
           '  PLATFORM_FLAGS="--ozone-platform-hint=auto"\\n' +
@@ -46,7 +60,7 @@ const templatePatch = `const launcherScript = '#!/bin/bash\\n' +
           '  export GDK_BACKEND="x11"\\n' +
           '  PLATFORM_FLAGS="--ozone-platform=x11"\\n' +
           'fi\\n' +
-          'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-features=AudioServiceSandbox $PLATFORM_FLAGS "$@"\\n';
+          'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --audio-buffer-size=2048 --disable-gpu-vsync --disable-features=AudioServiceSandbox $PLATFORM_FLAGS "$@"\\n';
         await (0, promises_1.writeFile)(path.join(templateDir, "command.sh"), launcherScript, { mode: 0o755 });
         const fsSync = require('fs');
         const pathSync = require('path');
@@ -130,10 +144,24 @@ if (content.includes(targetFunc)) {
       'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/pipewire-0" ]; then\\n' +
       '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR"\\n' +
       'fi\\n' +
-      'if [ -d "/snap/gnome-42-2204/current/usr/share/alsa" ]; then\\n' +
-      '  export ALSA_CONFIG_PATH="/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf"\\n' +
-      'elif [ -f "/usr/share/alsa/alsa.conf" ]; then\\n' +
-      '  export ALSA_CONFIG_PATH="/usr/share/alsa/alsa.conf"\\n' +
+      'if [ -n "$SNAP_USER_DATA" ]; then\\n' +
+      '  ALSA_DIR="$SNAP_USER_DATA/alsa"\\n' +
+      '  if [ ! -f "$ALSA_DIR/alsa.conf" ]; then\\n' +
+      '    mkdir -p "$ALSA_DIR" 2>/dev/null || true\\n' +
+      '    if [ -d "/snap/gnome-42-2204/current/usr/share/alsa" ]; then\\n' +
+      '      cp -r /snap/gnome-42-2204/current/usr/share/alsa/* "$ALSA_DIR/" 2>/dev/null || true\\n' +
+      '    elif [ -d "$SNAP/usr/share/alsa" ]; then\\n' +
+      '      cp -r $SNAP/usr/share/alsa/* "$ALSA_DIR/" 2>/dev/null || true\\n' +
+      '    elif [ -d "/usr/share/alsa" ]; then\\n' +
+      '      cp -r /usr/share/alsa/* "$ALSA_DIR/" 2>/dev/null || true\\n' +
+      '    fi\\n' +
+      '    sed -i "s|/usr/share/alsa|$ALSA_DIR|g" "$ALSA_DIR/alsa.conf" 2>/dev/null || true\\n' +
+      '    sed -i "s|/usr/share/alsa|$ALSA_DIR|g" "$ALSA_DIR/alsa.conf.d/"*.conf 2>/dev/null || true\\n' +
+      '    rm -f "$ALSA_DIR/alsa.conf.d/"*pipewire* 2>/dev/null || true\\n' +
+      '    printf "pcm.!default {\\\\n    type pulse\\\\n}\\\\nctl.!default {\\\\n    type pulse\\\\n}\\\\n" > "$ALSA_DIR/asound.conf" 2>/dev/null || true\\n' +
+      '  fi\\n' +
+      '  export ALSA_CONFIG_DIR="$ALSA_DIR"\\n' +
+      '  export ALSA_CONFIG_PATH="$ALSA_DIR/alsa.conf"\\n' +
       'fi\\n' +
       'if [ -n "$WAYLAND_DISPLAY" ] && [ -e "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then\\n' +
       '  PLATFORM_FLAGS="--ozone-platform-hint=auto"\\n' +
@@ -142,7 +170,7 @@ if (content.includes(targetFunc)) {
       '  export GDK_BACKEND="x11"\\n' +
       '  PLATFORM_FLAGS="--ozone-platform=x11"\\n' +
       'fi\\n' +
-      'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-features=AudioServiceSandbox $PLATFORM_FLAGS "$@"\\n';
+      'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --audio-buffer-size=2048 --disable-gpu-vsync --disable-features=AudioServiceSandbox $PLATFORM_FLAGS "$@"\\n';
 }
 //# sourceMappingURL=coreLegacy.js.map`;
   content = prefix + newFunc;

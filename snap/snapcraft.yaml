@@ -7,6 +7,10 @@ description: |
   engineered for desktop and cloud workflows, featuring advanced Quran AI
   subtitling, multi-track audio/video composition, keyframing, and professional transitions.
 
+  Linux Audio Note:
+  CuteCut Pro automatically routes audio through PulseAudio and ALSA. On fresh installs, verify permission via:
+  sudo snap connect cutecut-pro:audio-playback
+
 grade: stable
 confinement: strict
 
