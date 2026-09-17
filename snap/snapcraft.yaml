@@ -8,15 +8,14 @@ description: |
   subtitling, multi-track audio/video composition, keyframing, and professional transitions.
 
   Linux Audio Note:
-  CuteCut Pro automatically routes audio through PulseAudio and ALSA. On fresh installs, verify permission via:
-  sudo snap connect cutecut-pro:audio-playback
+  CuteCut Pro automatically routes audio through PulseAudio, PipeWire, and ALSA with automatic Headphone/Speaker/Bluetooth switching.
 
 grade: stable
 confinement: strict
 
 apps:
   cutecut-pro:
-    command: cutecut-pro --no-sandbox --disable-gpu-sandbox --ozone-platform-hint=auto
+    command: snap/local/desktop-init.sh
     extensions: [gnome]
     plugs:
       - desktop
@@ -49,6 +48,9 @@ parts:
       - libasound2-plugins
       - libpulse0
       - libpulse-mainloop-glib0
+      - libsndfile1
       - libpipewire-0.3-0
+      - alsa-utils
       - desktop-file-utils
       - shared-mime-info
+
