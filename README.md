@@ -6,7 +6,7 @@
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/cutecut-pro)
 [![Snap Status](https://snapcraft.io/cutecut-pro/badge.svg)](https://snapcraft.io/cutecut-pro)
 [![Release](https://img.shields.io/github/v/release/MDIsmatullah/CuteCut-Pro?color=blue&logo=github)](https://github.com/MDIsmatullah/CuteCut-Pro/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: Non-Commercial](https://img.shields.io/badge/License-Non--Commercial%20%2F%20No--Sale-red.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20Web-orange)](https://github.com/MDIsmatullah/CuteCut-Pro)
 
 **A professional, offline-first multitrack video editing suite with real-time FFmpeg processing, dynamic audio waveforms, and dedicated Quran scripture synchronization.**
@@ -139,4 +139,10 @@ sudo apt remove cutecut-pro
 - **Snap Store Listing:** [snapcraft.io/cutecut-pro](https://snapcraft.io/cutecut-pro)
 - **Email:** `guldastaislamorquran@gmail.com`
 
-Distributed under the **MIT License**.
+---
+
+## 📜 License & Usage Policy
+CuteCut Pro is **Source-Available under a Strict Non-Commercial License** (Copyright © 2026 Asmatullah Developer).
+- ✅ **Permitted:** Anyone may clone, study, inspect, fork, and use this software for **personal and educational non-commercial purposes**.
+- ❌ **Strictly Prohibited:** Selling, reselling, sublicensing, repackaging for paid distribution, or commercially monetizing this codebase or its binaries without express written authorization from the Author.
+- See full terms in the [LICENSE](LICENSE) file.
