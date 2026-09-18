@@ -226,6 +226,7 @@
       "verifyUpdateCodeSignature": false
     },
     "nsis": {
+      "artifactName": "CuteCut.Pro.Setup.${version}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,

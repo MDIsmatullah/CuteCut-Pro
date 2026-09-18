@@ -412,6 +412,20 @@ jobs:
           echo "=== Summary of Collected Release Packages ==="
           ls -lh release-packages/
 
+          echo "=== Generating Filename Aliases for WinGet / Store Parity ==="
+          cd release-packages
+          # Ensure CuteCut.Pro.Setup.X.X.X.exe exists for winget
+          for f in *Setup*.exe; do
+            if [ -f "$f" ]; then
+              DOT_NAME=$(echo "$f" | sed 's/ /./g')
+              if [ "$f" != "$DOT_NAME" ]; then
+                echo "Creating alias: $DOT_NAME from $f"
+                cp -v "$f" "$DOT_NAME" || true
+              fi
+            fi
+          done
+          cd ..
+
           echo "=== Generating SHA-256 Checksums ==="
           cd release-packages
           sha256sum * > SHA256SUMS.txt || true
