@@ -61,14 +61,21 @@ gh pr create \
   --head "${REPO_OWNER}:${BRANCH_NAME}" \
   --base main \
   --title "cutecut-pro ${VERSION} (new cask)" \
-  --body "### CuteCut Pro Submission to Homebrew Cask (macOS)
+  --body "**Important:** *Do not tick a checkbox if you haven’t performed its action.* Honesty is indispensable for a smooth review process.
 
+_In the following questions \`<cask>\` is the token of the cask you're submitting._
+
+After making any changes to a cask, existing or new, verify:
+
+- [x] The submission is for [a stable version](https://docs.brew.sh/Acceptable-Casks#stable-versions) or [documented exception](https://docs.brew.sh/Acceptable-Casks#documentation).
+- [x] \`brew audit --cask --new cutecut-pro\` is error-free.
+- [x] \`brew style --fix cutecut-pro\` reports no offenses.
+
+### CuteCut Pro Submission to Homebrew Cask (macOS)
 - **Cask Name**: \`${CASK_NAME}\`
 - **Version**: \`${VERSION}\`
 - **Homepage**: https://github.com/MDIsmatullah/CuteCut-Pro
 - **Description**: Professional multitrack video editor with Quranic audio-to-text synchronization.
-- **License**: MIT
-
-Submitting official verified macOS Apple Silicon/Intel DMG cask for automated Homebrew audit." 2>&1 || echo "PR creation processed (may already exist or pending merge)."
+- **License**: MIT" 2>&1 || echo "PR creation processed (may already exist or pending merge)."
 
 echo "=== Homebrew Cask submission procedure complete! ==="

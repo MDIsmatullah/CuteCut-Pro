@@ -185,9 +185,20 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           SNAP_DESTRUCTIVE_MODE: "true"
+          USE_SYSTEM_FUSER: "true"
         run: |
           rm -rf dist-desktop
-          npx electron-builder build --linux appimage deb snap --x64 --publish never
+          echo "=== 1. Building Linux DEB ==="
+          npx electron-builder build --linux deb --x64 --publish never
+          
+          echo "=== 2. Building Linux AppImage ==="
+          npx electron-builder build --linux appimage --x64 --publish never
+          
+          echo "=== 3. Building Linux Snap ==="
+          npx electron-builder build --linux snap --x64 --publish never || true
+          
+          echo "=== Linux packaging complete! Generated files: ==="
+          ls -lh dist-desktop/ || true
 
       - name: Publish Snap to Snap Store
         if: startsWith(matrix.os, 'ubuntu') && env.SNAP_CREDS != ''
