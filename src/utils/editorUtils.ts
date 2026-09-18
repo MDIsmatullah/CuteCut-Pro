@@ -533,6 +533,16 @@ export function normalizeMediaUrl(url: string | undefined): string {
     return cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
   }
 
+  // Automatically proxy external stock CDN resources (Pexels, Pixabay) to enable fast byte-range streaming and prevent CORS player blocks
+  if (
+    url.startsWith('https://videos.pexels.com/') ||
+    url.startsWith('https://images.pexels.com/') ||
+    url.startsWith('https://cdn.pixabay.com/') ||
+    url.startsWith('https://pixabay.com/')
+  ) {
+    return `/api/stock/proxy?url=${encodeURIComponent(url)}`;
+  }
+
   return url;
 }
 

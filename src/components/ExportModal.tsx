@@ -46,6 +46,68 @@ interface ExportModalProps {
   onSaveToNativeStorage: (videoUrlOrBlob: string, filename: string) => void;
 }
 
+export function getSystemDefaultExportPath(): { path: string; osName: string } {
+  if (typeof window === 'undefined') {
+    return { path: '~/Videos/CuteCut', osName: 'Linux / Desktop' };
+  }
+
+  const userAgent = (navigator.userAgent || '').toLowerCase();
+  const platform = (navigator.platform || '').toLowerCase();
+  const isAndroid = /android/i.test(userAgent) || (window as any)?.Capacitor?.getPlatform?.() === 'android';
+  const isMac = /macintosh|mac os x|darwin/i.test(userAgent) || /mac/i.test(platform);
+  const isWindows = /windows|win32|win64/i.test(userAgent) || /win/i.test(platform);
+  const isLinux = /linux|x11/i.test(userAgent) && !isAndroid;
+
+  if (isAndroid) {
+    return { path: '/storage/emulated/0/DCIM/CuteCut', osName: 'Android (DCIM / Gallery)' };
+  }
+  if (isMac) {
+    return { path: '~/Movies/CuteCut', osName: 'macOS (Movies)' };
+  }
+  if (isLinux) {
+    return { path: '~/Videos/CuteCut', osName: 'Linux (Deb / Snap / AppImage)' };
+  }
+  if (isWindows) {
+    return { path: 'C:/Users/Videos/CuteCut', osName: 'Windows (Videos)' };
+  }
+  return { path: 'Downloads/CuteCut', osName: 'Browser Downloads' };
+}
+
+export function getSystemPresetPaths(): { label: string; path: string }[] {
+  const userAgent = typeof window !== 'undefined' ? (navigator.userAgent || '').toLowerCase() : '';
+  const platform = typeof window !== 'undefined' ? (navigator.platform || '').toLowerCase() : '';
+  const isAndroid = /android/i.test(userAgent) || (typeof window !== 'undefined' && (window as any)?.Capacitor?.getPlatform?.() === 'android');
+  const isMac = /macintosh|mac os x|darwin/i.test(userAgent) || /mac/i.test(platform);
+  const isWindows = /windows|win32|win64/i.test(userAgent) || /win/i.test(platform);
+
+  if (isAndroid) {
+    return [
+      { label: 'DCIM (Gallery)', path: '/storage/emulated/0/DCIM/CuteCut' },
+      { label: 'Movies', path: '/storage/emulated/0/Movies/CuteCut' },
+      { label: 'Download', path: '/storage/emulated/0/Download/CuteCut' },
+    ];
+  }
+  if (isMac) {
+    return [
+      { label: 'Movies', path: '~/Movies/CuteCut' },
+      { label: 'Downloads', path: '~/Downloads/CuteCut' },
+      { label: 'Desktop', path: '~/Desktop/CuteCut' },
+    ];
+  }
+  if (isWindows) {
+    return [
+      { label: 'Videos', path: 'C:/Users/Videos/CuteCut' },
+      { label: 'Downloads', path: 'C:/Users/Downloads/CuteCut' },
+      { label: 'Desktop', path: 'C:/Users/Desktop/CuteCut' },
+    ];
+  }
+  return [
+    { label: 'Videos', path: '~/Videos/CuteCut' },
+    { label: 'Downloads', path: '~/Downloads/CuteCut' },
+    { label: 'Desktop', path: '~/Desktop/CuteCut' },
+  ];
+}
+
 export default function ExportModal({
   isOpen,
   onClose,
@@ -65,9 +127,14 @@ export default function ExportModal({
   onCancelExport,
   onSaveToNativeStorage,
 }: ExportModalProps) {
+  const initialSystemInfo = useMemo(() => getSystemDefaultExportPath(), []);
+  const systemPresets = useMemo(() => getSystemPresetPaths(), []);
+  const [pathMode, setPathMode] = useState<'auto' | 'manual'>('auto');
+  const [isAdLoading, setIsAdLoading] = useState(false);
+  
   const [config, setConfig] = useState<ExportConfig>({
     filename: `CUTECUT_PRO_Video_${new Date().toISOString().slice(0, 10)}`,
-    outputDirectory: 'C:/Users/Videos/CuteCut',
+    outputDirectory: initialSystemInfo.path,
     exportVideo: true,
     resolution: '1080p',
     bitrateProfile: 'recommended',
@@ -78,6 +145,33 @@ export default function ExportModal({
     audioFormat: 'mp3',
     coverTimestamp: 0,
   });
+
+  const handleExportWithAd = async () => {
+    if (isAdLoading || exporting) return;
+    setIsAdLoading(true);
+    try {
+      await AdMobService.showExportAd(() => {
+        setIsAdLoading(false);
+        onStartExport(config);
+      });
+    } catch (e) {
+      setIsAdLoading(false);
+      onStartExport(config);
+    }
+  };
+
+  // Auto-detect OS path when modal opens if path is empty or unchanged
+  useEffect(() => {
+    if (isOpen) {
+      const sys = getSystemDefaultExportPath();
+      setConfig(prev => {
+        if (!prev.outputDirectory || prev.outputDirectory === 'C:/Users/Videos/CuteCut') {
+          return { ...prev, outputDirectory: sys.path };
+        }
+        return prev;
+      });
+    }
+  }, [isOpen]);
 
   const [isVideoExpanded, setIsVideoExpanded] = useState(true);
   const [isAudioExpanded, setIsAudioExpanded] = useState(true);
@@ -252,21 +346,48 @@ export default function ExportModal({
 
   const handleBrowseDirectory = async () => {
     try {
+      // 1. Check Native Electron
       if (typeof window !== 'undefined') {
         const electron = (window as any).require ? (window as any).require('electron') : null;
         if (electron && electron.ipcRenderer) {
           const folder = await electron.ipcRenderer.invoke('show-open-dialog-folder');
           if (folder) {
             setConfig(prev => ({ ...prev, outputDirectory: folder }));
+            setPathMode('manual');
             return;
           }
         }
       }
+
+      // 2. Check Modern Web File System Access API
+      if (typeof window !== 'undefined' && 'showDirectoryPicker' in window) {
+        try {
+          const dirHandle = await (window as any).showDirectoryPicker();
+          if (dirHandle && dirHandle.name) {
+            setConfig(prev => ({ ...prev, outputDirectory: `${initialSystemInfo.path.split('/')[0] || ''}/${dirHandle.name}` }));
+            setPathMode('manual');
+            return;
+          }
+        } catch (abortErr: any) {
+          if (abortErr.name === 'AbortError') return;
+        }
+      }
     } catch (e) {}
 
-    const custom = window.prompt('Enter local export destination directory path:', config.outputDirectory);
-    if (custom) {
-      setConfig(prev => ({ ...prev, outputDirectory: custom }));
+    // 3. Fallback prompt for direct manual entry
+    const custom = window.prompt('Enter or paste your custom export destination folder path:', config.outputDirectory);
+    if (custom !== null && custom.trim() !== '') {
+      setConfig(prev => ({ ...prev, outputDirectory: custom.trim() }));
+      setPathMode('manual');
+    }
+  };
+
+  const handleSelectPresetPath = (path: string) => {
+    setConfig(prev => ({ ...prev, outputDirectory: path }));
+    if (path === initialSystemInfo.path) {
+      setPathMode('auto');
+    } else {
+      setPathMode('manual');
     }
   };
 
@@ -695,27 +816,91 @@ export default function ExportModal({
                   </div>
                 </div>
 
-                {/* 2. Export to Directory Field */}
-                <div className="grid grid-cols-12 items-center gap-2">
-                  <label className="col-span-4 text-gray-300 text-[11px] font-medium">Export to</label>
-                  <div className="col-span-8 flex items-center gap-1.5">
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        value={config.outputDirectory}
-                        onChange={(e) => setConfig({ ...config, outputDirectory: e.target.value })}
-                        className="w-full bg-[#15151a] border border-[#2f2f3e] focus:border-cyan-400 rounded pl-2.5 pr-7 py-1.5 text-xs text-gray-300 focus:outline-none truncate"
-                        placeholder="C:/Users/Videos"
-                      />
+                {/* 2. Export to Directory Field (Auto & Manual Dual Support) */}
+                <div className="space-y-1.5 bg-[#121218] border border-[#262635] p-2.5 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-gray-300 text-[11px] font-semibold flex items-center gap-1">
+                        <Folder className="w-3 h-3 text-cyan-400" />
+                        Export Directory
+                      </label>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium border ${
+                        pathMode === 'auto'
+                          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                          : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                      }`}>
+                        {pathMode === 'auto' ? `⚡ Auto: ${initialSystemInfo.osName}` : '✍️ Manual Custom'}
+                      </span>
+                    </div>
+
+                    {/* Mode Toggle Buttons */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectPresetPath(initialSystemInfo.path)}
+                        className={`text-[10px] px-2 py-0.5 rounded transition cursor-pointer flex items-center gap-1 ${
+                          pathMode === 'auto' && config.outputDirectory === initialSystemInfo.path
+                            ? 'bg-cyan-600 text-white font-medium shadow-sm'
+                            : 'bg-[#1f1f2a] text-gray-300 hover:text-white hover:bg-[#2a2a3a]'
+                        }`}
+                        title="Auto-detect operating system video storage path"
+                      >
+                        ⚡ Auto (OS)
+                      </button>
                       <button
                         type="button"
                         onClick={handleBrowseDirectory}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition cursor-pointer p-0.5"
-                        title="Browse local folder"
+                        className="text-[10px] px-2 py-0.5 rounded bg-[#1f1f2a] text-gray-300 hover:text-white hover:bg-[#2a2a3a] transition cursor-pointer flex items-center gap-1"
+                        title="Browse custom folder from computer/phone"
                       >
-                        <Folder className="w-3.5 h-3.5 text-gray-300 hover:text-cyan-400" />
+                        <FolderOpen className="w-2.5 h-2.5 text-cyan-400" />
+                        Browse...
                       </button>
                     </div>
+                  </div>
+
+                  {/* Path Input Box */}
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={config.outputDirectory}
+                      onChange={(e) => {
+                        setConfig({ ...config, outputDirectory: e.target.value });
+                        setPathMode('manual');
+                      }}
+                      className="w-full bg-[#161620] border border-[#2f2f42] focus:border-cyan-400 rounded pl-2.5 pr-8 py-1.5 text-[11px] text-gray-200 focus:outline-none font-mono transition"
+                      placeholder={initialSystemInfo.path}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleBrowseDirectory}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition cursor-pointer p-1"
+                      title="Select custom folder"
+                    >
+                      <Folder className="w-3.5 h-3.5 text-gray-300 hover:text-cyan-400" />
+                    </button>
+                  </div>
+
+                  {/* Quick Preset Folder Chips */}
+                  <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto no-scrollbar">
+                    <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">Quick:</span>
+                    {systemPresets.map((preset) => {
+                      const isSelected = config.outputDirectory === preset.path;
+                      return (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => handleSelectPresetPath(preset.path)}
+                          className={`text-[9px] px-2 py-0.5 rounded border transition cursor-pointer whitespace-nowrap ${
+                            isSelected
+                              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-medium'
+                              : 'bg-[#181824] text-gray-400 hover:text-gray-200 border-[#2a2a3c] hover:border-gray-600'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1159,16 +1344,27 @@ export default function ExportModal({
                 <button
                   type="button"
                   id="export-panel-start-btn"
-                  onClick={() => onStartExport(config)}
-                  className="px-6 py-2 bg-[#00e5ff] hover:bg-[#33ebff] active:bg-[#00cce6] text-black font-bold text-xs rounded-lg transition shadow-md shadow-cyan-500/20 cursor-pointer flex items-center gap-1.5"
+                  disabled={isAdLoading}
+                  onClick={handleExportWithAd}
+                  className="px-6 py-2 bg-[#00e5ff] hover:bg-[#33ebff] active:bg-[#00cce6] text-black font-bold text-xs rounded-lg transition shadow-md shadow-cyan-500/20 cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Export</span>
+                  {isAdLoading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
+                      <span>Preparing Export...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Export Video</span>
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
+                  disabled={isAdLoading}
                   onClick={onClose}
-                  className="px-4 py-2 bg-[#2d2d38] hover:bg-[#383846] text-gray-300 hover:text-white text-xs rounded-lg transition cursor-pointer"
+                  className="px-4 py-2 bg-[#2d2d38] hover:bg-[#383846] text-gray-300 hover:text-white text-xs rounded-lg transition cursor-pointer disabled:opacity-40"
                 >
                   Cancel
                 </button>

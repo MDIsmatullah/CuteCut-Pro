@@ -6396,9 +6396,15 @@ export default function App() {
           canUndo={historyIndex > 0}
           canRedo={historyIndex < tracksHistory.length - 1}
           selectedClip={getSelectedClip()}
+          onDeselectClip={() => setSelectedClipId(null)}
           onSplitClip={splitClip}
           onDeleteClip={deleteClip}
           onDuplicateClip={duplicateClip}
+          onUpdateClip={updateClipProperties}
+          onAutoSegmentAudio={handleAutoSegmentAudio}
+          onAutoSyncVideoToAyahs={handleAutoSyncVideoToAyahs}
+          onAutoRemoveSilence={handleAutoRemoveSilence}
+          onAutoSegmentRhythm={handleAutoSegmentRhythm}
           renderPreviewPlayer={() => (
             <PreviewPlayer
               tracks={tracks}
@@ -6495,8 +6501,9 @@ export default function App() {
               onRepairQuranSync={handleRepairAndSnapQuranClips}
             />
           )}
-          renderMediaPanel={() => (
+          renderMediaPanel={(tab) => (
             <MediaPanel
+              initialTab={tab}
               onAddClip={addNewClip}
               selectedAspectRatio={aspectRatio}
               tracks={tracks}

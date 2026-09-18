@@ -117,6 +117,30 @@ export const STOCK_VIDEOS: PresetMedia[] = [
     thumbnail: 'https://images.unsplash.com/photo-1532693322450-2cb5c511067d?auto=format&fit=crop&w=800&q=80',
     category: 'Cosmic & Stars',
     isImage: false
+  },
+
+  // ======================== VFX & NOOR ========================
+  {
+    id: 'vid-vfx-golden-sunbeams',
+    name: 'Celestial Golden Light Beams (Noor VFX)',
+    type: 'video',
+    url: '/videos/golden_sunrise.mp4',
+    duration: 20,
+    thumbnail: 'https://images.pexels.com/photos/1420440/pexels-photo-1420440.jpeg?auto=compress&cs=tinysrgb&w=800',
+    category: 'VFX & Noor',
+    isImage: false
+  },
+
+  // ======================== GREEN SCREEN ========================
+  {
+    id: 'vid-floating-clouds-greenscreen',
+    name: 'Atmospheric Cloud Formation Overlay',
+    type: 'video',
+    url: '/videos/floating_clouds.mp4',
+    duration: 20,
+    thumbnail: 'https://images.pexels.com/photos/844297/pexels-photo-844297.jpeg?auto=compress&cs=tinysrgb&w=800',
+    category: 'Green Screen',
+    isImage: false
   }
 ];
 

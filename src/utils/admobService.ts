@@ -127,7 +127,80 @@ export class AdMobService {
   }
 
   /**
-   * 3. Rewarded Video Ad (To unlock 1080p Export or Pro Video Filters)
+   * 3. Pre-Export Full-Screen Ad
+   * Plays automatically when user taps "Export Video" on Android/Mobile.
+   * Once the ad is closed or finished, onComplete is called to start the export.
+   */
+  public static async showExportAd(onComplete: () => void): Promise<void> {
+    let completed = false;
+    const finish = () => {
+      if (!completed) {
+        completed = true;
+        onComplete();
+      }
+    };
+
+    // Safety timeout: if ad network takes too long or device is offline, proceed after 3.5 seconds
+    const fallbackTimer = setTimeout(() => {
+      console.log('[AdMob] Pre-export ad fallback timer reached, starting export.');
+      finish();
+    }, 3500);
+
+    try {
+      await this.initialize();
+      const config = this.getActiveConfig();
+      const win = window as any;
+
+      if (win.Capacitor?.Plugins?.AdMob) {
+        // Prepare listeners
+        let dismissListener: any;
+        let failListener: any;
+
+        const cleanup = () => {
+          clearTimeout(fallbackTimer);
+          if (dismissListener && typeof dismissListener.remove === 'function') dismissListener.remove();
+          if (failListener && typeof failListener.remove === 'function') failListener.remove();
+        };
+
+        dismissListener = await win.Capacitor.Plugins.AdMob.addListener(
+          'onInterstitialDismissed',
+          () => {
+            cleanup();
+            console.log('[AdMob] Pre-export ad dismissed by user. Starting export.');
+            finish();
+          }
+        );
+
+        failListener = await win.Capacitor.Plugins.AdMob.addListener(
+          'onInterstitialFailedToShow',
+          () => {
+            cleanup();
+            console.warn('[AdMob] Ad failed to show, starting export directly.');
+            finish();
+          }
+        );
+
+        await win.Capacitor.Plugins.AdMob.prepareInterstitial({
+          adId: config.interstitialId,
+          isTesting: this.isTestingMode,
+        });
+
+        await win.Capacitor.Plugins.AdMob.showInterstitial();
+      } else {
+        console.log('[AdMob Simulated] Pre-export Interstitial Ad shown:', config.interstitialId);
+        clearTimeout(fallbackTimer);
+        // Small delay in web to simulate ad trigger
+        setTimeout(finish, 800);
+      }
+    } catch (err) {
+      console.warn('[AdMob] showExportAd notice:', err);
+      clearTimeout(fallbackTimer);
+      finish();
+    }
+  }
+
+  /**
+   * 4. Rewarded Video Ad (To unlock 1080p Export or Pro Video Filters)
    */
   public static async showRewarded(onRewardGranted: () => void): Promise<void> {
     try {

@@ -388,12 +388,15 @@ interface MediaPanelProps {
   // Audio Synchronization Calibration Offset Props
   quranKaraokeSyncOffsetMs?: number;
   setQuranKaraokeSyncOffsetMs?: (offsetMs: number) => void;
+  // Controlled tab selection
+  initialTab?: 'upload' | 'video' | 'audio' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark';
 }
 
 export default function MediaPanel({
   onAddClip,
   selectedAspectRatio,
   tracks,
+  initialTab,
   onAlignQuran,
   aligningStatus,
   quranArabicFont,
@@ -562,7 +565,13 @@ export default function MediaPanel({
   onAddBismillahCard,
   onAddSadaqallahCard,
 }: MediaPanelProps) {
-  const [activeTab, setActiveTab] = useState<'upload' | 'video' | 'audio' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'video' | 'audio' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark'>(initialTab || 'upload');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [addedFeedback, setAddedFeedback] = useState<string | null>(null);
   const showAddedToast = (name: string) => {
     setAddedFeedback(name);
@@ -820,6 +829,127 @@ export default function MediaPanel({
   const [styleAppliedNotice, setStyleAppliedNotice] = useState<string | null>(null);
   const [bgSearchQuery, setBgSearchQuery] = useState<string>('');
   const [bgMediaType, setBgMediaType] = useState<'video' | 'image'>('video');
+  const [stockSearchResults, setStockSearchResults] = useState<any[]>([]);
+  const [isSearchingStock, setIsSearchingStock] = useState<boolean>(false);
+  const [stockSourceProvider, setStockSourceProvider] = useState<'auto' | 'pexels' | 'pixabay'>('auto');
+  const [stockSearchNotice, setStockSearchNotice] = useState<string | null>(null);
+
+  // Direct download media from Pexels / Pixabay via server proxy to avoid CORS
+  const downloadStockMedia = (url: string, filename: string) => {
+    if (!url) return;
+    const downloadEndpoint = `/api/stock/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+    const a = document.createElement('a');
+    a.href = downloadEndpoint;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleSearchStockMedia = async (queryToSearch?: string) => {
+    const q = (queryToSearch !== undefined ? queryToSearch : bgSearchQuery).trim() || 'nature landscape';
+    setIsSearchingStock(true);
+    setStockSearchNotice(null);
+    try {
+      const res = await fetch(`/api/stock/search?query=${encodeURIComponent(q)}&mediaType=${bgMediaType}&source=${stockSourceProvider}&count=8`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.items) && data.items.length > 0) {
+          setStockSearchResults(data.items);
+          setStockSearchNotice(`Found ${data.items.length} ${data.sourceUsed.toUpperCase()} assets`);
+        } else {
+          setStockSearchNotice('No direct media found for query.');
+        }
+      }
+    } catch (e) {
+      console.warn('Stock search failed', e);
+      setStockSearchNotice('Error searching stock media.');
+    } finally {
+      setIsSearchingStock(false);
+    }
+  };
+
+  // Helper to extract Ayahs currently placed on the timeline
+  const getTimelineAyahs = () => {
+    const textTracks = tracks.filter(t => t.type === 'text');
+    const audioTracks = tracks.filter(t => t.type === 'audio');
+    const result: Array<{ name: string; start: number; duration: number }> = [];
+
+    textTracks.forEach(t => {
+      t.clips.forEach(c => {
+        if (c.type === 'text' && c.text?.trim()) {
+          result.push({
+            name: c.name || c.text.substring(0, 20),
+            start: c.start,
+            duration: c.duration
+          });
+        }
+      });
+    });
+
+    if (result.length === 0) {
+      audioTracks.forEach(t => {
+        t.clips.forEach((c, idx) => {
+          result.push({
+            name: c.name || `Ayah Audio ${idx + 1}`,
+            start: c.start,
+            duration: c.duration
+          });
+        });
+      });
+    }
+
+    return result.sort((a, b) => a.start - b.start);
+  };
+
+  const handleAutoAssignStockToTimeline = (items: any[]) => {
+    if (!items || items.length === 0) return;
+    const ayahs = getTimelineAyahs();
+    if (ayahs.length === 0) {
+      // Add first item normally to timeline
+      const item = items[0];
+      const isVid = item.mediaType === 'video';
+      onAddClip({
+        name: `Stock: ${item.title || 'Scene'} [${item.source.toUpperCase()}]`,
+        type: ClipType.VIDEO,
+        isImage: !isVid,
+        url: item.url,
+        poster: item.thumbnail,
+        thumbnailUrl: item.thumbnail,
+        fallbackUrl: item.thumbnail,
+        duration: 15,
+        sourceStart: 0,
+        sourceDuration: 15,
+        playbackRate: 1.0,
+        volume: isVid ? 0 : 1.0
+      });
+      showAddedToast(`Added ${item.title || 'Stock media'} to timeline`);
+      return;
+    }
+
+    // Assign 1 item per Ayah on timeline
+    ayahs.forEach((ayah, i) => {
+      const item = items[i % items.length];
+      const isVid = item.mediaType === 'video';
+      onAddClip({
+        name: `Scene ${i + 1}: ${ayah.name} [${item.source.toUpperCase()}]`,
+        type: ClipType.VIDEO,
+        isImage: !isVid,
+        url: item.url,
+        poster: item.thumbnail,
+        thumbnailUrl: item.thumbnail,
+        fallbackUrl: item.thumbnail,
+        duration: ayah.duration,
+        start: ayah.start,
+        sourceStart: 0,
+        sourceDuration: ayah.duration,
+        playbackRate: 1.0,
+        volume: isVid ? 0 : 1.0
+      });
+    });
+
+    showAddedToast(`Assigned ${ayahs.length} ${items[0].source.toUpperCase()} visuals matching each Ayah!`);
+  };
 
   const handleOpenExternalUrl = async (url: string) => {
     await openExternalUrl(url);
@@ -5585,27 +5715,95 @@ export default function MediaPanel({
             </div>
 
             {/* Direct Search Bar */}
-            <div className="space-y-2 bg-[#202026]/50 p-3 rounded-xl border border-gray-800">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wide">
-                Search {bgMediaType === 'video' ? 'Video Loops' : 'Background Images'}
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder={
-                    bgMediaType === 'video'
-                      ? 'e.g. stars background, rain loop, makkah...'
-                      : 'e.g. mosque dome, starry night, sunset, mountains...'
-                  }
-                  value={bgSearchQuery}
-                  onChange={(e) => setBgSearchQuery(e.target.value)}
-                  className="w-full bg-[#15151a] border border-gray-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
-                />
-                <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-2.5" />
+            <div className="space-y-2.5 bg-[#202026]/50 p-3 rounded-xl border border-gray-800">
+              <div className="flex items-center justify-between">
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                  Direct Stock Search (Pexels & Pixabay)
+                </label>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setStockSourceProvider('auto')}
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition ${
+                      stockSourceProvider === 'auto' ? 'bg-emerald-500 text-black' : 'text-gray-400 hover:text-white bg-[#1a1a22]'
+                    }`}
+                  >
+                    Both
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStockSourceProvider('pexels')}
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition ${
+                      stockSourceProvider === 'pexels' ? 'bg-emerald-500 text-black' : 'text-gray-400 hover:text-white bg-[#1a1a22]'
+                    }`}
+                  >
+                    Pexels
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStockSourceProvider('pixabay')}
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition ${
+                      stockSourceProvider === 'pixabay' ? 'bg-emerald-500 text-black' : 'text-gray-400 hover:text-white bg-[#1a1a22]'
+                    }`}
+                  >
+                    Pixabay
+                  </button>
+                </div>
               </div>
 
+              <div className="flex gap-1.5">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder={
+                      bgMediaType === 'video'
+                        ? 'e.g. stars galaxy, rain, clouds, ocean...'
+                        : 'e.g. mosque, starry night, sunset, desert...'
+                    }
+                    value={bgSearchQuery}
+                    onChange={(e) => setBgSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSearchStockMedia();
+                      }
+                    }}
+                    className="w-full bg-[#15151a] border border-gray-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  />
+                  <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-2.5" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSearchStockMedia()}
+                  disabled={isSearchingStock}
+                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold text-xs rounded-lg flex items-center gap-1 transition shrink-0"
+                >
+                  {isSearchingStock ? (
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Search className="w-3 h-3" />
+                  )}
+                  <span>Search</span>
+                </button>
+              </div>
+
+              {stockSearchNotice && (
+                <div className="text-[10px] text-emerald-400 font-medium px-1 flex items-center justify-between">
+                  <span>{stockSearchNotice}</span>
+                  {stockSearchResults.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setStockSearchResults([])}
+                      className="text-gray-500 hover:text-gray-300 text-[9px]"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Direct Web Portal Links */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-2 pt-0.5">
                 {bgMediaType === 'video' ? (
                   <>
                     <button
@@ -5613,7 +5811,7 @@ export default function MediaPanel({
                       onClick={() => handleOpenExternalUrl(`https://www.pexels.com/search/video/${encodeURIComponent(bgSearchQuery || 'background loop')}/`)}
                       className="py-1.5 px-2 bg-[#2d2d38] hover:bg-[#3d3d4c] rounded-md transition text-[10px] text-white flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <span>Pexels Videos</span>
+                      <span>Browse Pexels</span>
                       <ExternalLink className="w-3 h-3 text-gray-400" />
                     </button>
                     <button
@@ -5621,7 +5819,7 @@ export default function MediaPanel({
                       onClick={() => handleOpenExternalUrl(`https://pixabay.com/videos/search/${encodeURIComponent(bgSearchQuery || 'background loop')}/`)}
                       className="py-1.5 px-2 bg-[#2d2d38] hover:bg-[#3d3d4c] rounded-md transition text-[10px] text-white flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <span>Pixabay Videos</span>
+                      <span>Browse Pixabay</span>
                       <ExternalLink className="w-3 h-3 text-gray-400" />
                     </button>
                   </>
@@ -5629,24 +5827,117 @@ export default function MediaPanel({
                   <>
                     <button
                       type="button"
-                      onClick={() => handleOpenExternalUrl(`https://unsplash.com/s/photos/${encodeURIComponent(bgSearchQuery || 'background')}`)}
+                      onClick={() => handleOpenExternalUrl(`https://www.pexels.com/search/${encodeURIComponent(bgSearchQuery || 'background')}/`)}
                       className="py-1.5 px-2 bg-[#2d2d38] hover:bg-[#3d3d4c] rounded-md transition text-[10px] text-white flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <span>Unsplash Photos</span>
+                      <span>Browse Pexels</span>
                       <ExternalLink className="w-3 h-3 text-gray-400" />
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleOpenExternalUrl(`https://www.pexels.com/search/${encodeURIComponent(bgSearchQuery || 'background')}/`)}
+                      onClick={() => handleOpenExternalUrl(`https://pixabay.com/images/search/${encodeURIComponent(bgSearchQuery || 'background')}/`)}
                       className="py-1.5 px-2 bg-[#2d2d38] hover:bg-[#3d3d4c] rounded-md transition text-[10px] text-white flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <span>Pexels Photos</span>
+                      <span>Browse Pixabay</span>
                       <ExternalLink className="w-3 h-3 text-gray-400" />
                     </button>
                   </>
                 )}
               </div>
             </div>
+
+            {/* Live Stock Search Results Grid (if search returned items) */}
+            {stockSearchResults.length > 0 && (
+              <div className="space-y-2 bg-[#181820] border border-emerald-500/30 rounded-xl p-3 shadow-md">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    Live {stockSourceProvider.toUpperCase()} Results ({stockSearchResults.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleAutoAssignStockToTimeline(stockSearchResults)}
+                    className="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-[10px] rounded-md flex items-center gap-1 transition"
+                    title="Distribute media files evenly matching all Ayahs on timeline"
+                  >
+                    <Layers className="w-3 h-3" />
+                    Auto-Assign 1 Per Ayah
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                  {stockSearchResults.map((item, idx) => {
+                    const isVid = item.mediaType === 'video';
+                    return (
+                      <div
+                        key={idx}
+                        className="bg-[#202028] border border-gray-800 hover:border-emerald-500/50 rounded-lg p-1.5 space-y-1 group transition"
+                      >
+                        <div className="relative aspect-video rounded bg-black overflow-hidden">
+                          {isVid ? (
+                            <video
+                              src={item.url}
+                              className="w-full h-full object-cover"
+                              muted
+                              loop
+                              playsInline
+                              onMouseEnter={(e) => e.currentTarget.play()}
+                              onMouseLeave={(e) => e.currentTarget.pause()}
+                            />
+                          ) : (
+                            <img
+                              src={item.thumbnail || item.url}
+                              alt={item.title}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                          <span className="absolute top-1 left-1 px-1 py-0.2 bg-black/70 text-emerald-400 rounded text-[8px] font-bold uppercase">
+                            {item.source}
+                          </span>
+                        </div>
+
+                        <p className="text-[10px] text-gray-200 font-medium truncate px-0.5">{item.title}</p>
+
+                        <div className="flex items-center gap-1 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onAddClip({
+                                name: `${item.title || 'Stock'} [${item.source.toUpperCase()}]`,
+                                type: ClipType.VIDEO,
+                                isImage: !isVid,
+                                url: item.url,
+                                poster: item.thumbnail,
+                                thumbnailUrl: item.thumbnail,
+                                fallbackUrl: item.thumbnail,
+                                duration: item.duration || 15,
+                                sourceStart: 0,
+                                sourceDuration: item.duration || 15,
+                                playbackRate: 1.0,
+                                volume: isVid ? 0 : 1.0
+                              });
+                              showAddedToast(item.title);
+                            }}
+                            className="flex-1 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[9px] font-bold flex items-center justify-center gap-1 transition"
+                          >
+                            <Plus className="w-2.5 h-2.5" />
+                            Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadStockMedia(item.downloadUrl || item.url, `${item.title || 'stock'}.${isVid ? 'mp4' : 'jpg'}`)}
+                            className="p-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition"
+                            title="Download MP4 / JPG to computer"
+                          >
+                            <Download className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Quick Keyword Suggestions */}
             <div className="space-y-1.5">
@@ -5656,13 +5947,13 @@ export default function MediaPanel({
               <div className="flex flex-wrap gap-1.5">
                 {(bgMediaType === 'video'
                   ? [
-                      { label: '🌌 Stars', query: 'stars background loop' },
-                      { label: '🌧️ Rain', query: 'rain on window loop' },
-                      { label: '☁️ Slow Clouds', query: 'clouds timelapse slow' },
-                      { label: '✨ Particles', query: 'particles black background' },
-                      { label: '🌊 Waves', query: 'ocean waves slow' },
-                      { label: '🌲 Dark Forest', query: 'misty forest dark' },
-                      { label: '🕋 Makkah', query: 'makkah madinah' },
+                      { label: '🌌 Stars', query: 'stars galaxy universe background' },
+                      { label: '🌧️ Rain', query: 'rain water droplets background' },
+                      { label: '☁️ Slow Clouds', query: 'clouds timelapse sunset' },
+                      { label: '✨ Particles', query: 'golden light particles rays' },
+                      { label: '🌊 Waves', query: 'ocean waves turquoise' },
+                      { label: '🌲 Dark Forest', query: 'misty forest mountains' },
+                      { label: '🕋 Makkah', query: 'makkah madinah kaaba' },
                     ]
                   : [
                       { label: '🕌 Mosque Dome', query: 'mosque dome architecture' },
@@ -5677,10 +5968,7 @@ export default function MediaPanel({
                     key={tag.label}
                     onClick={() => {
                       setBgSearchQuery(tag.query);
-                      const searchUrl = bgMediaType === 'video'
-                        ? `https://www.pexels.com/search/video/${encodeURIComponent(tag.query)}/`
-                        : `https://unsplash.com/s/photos/${encodeURIComponent(tag.query)}`;
-                      handleOpenExternalUrl(searchUrl);
+                      handleSearchStockMedia(tag.query);
                     }}
                     className="text-[10px] bg-[#1a1a22] hover:bg-[#282834] text-gray-300 px-2 py-1 rounded border border-gray-800 hover:border-gray-700 transition cursor-pointer"
                   >
@@ -5692,64 +5980,75 @@ export default function MediaPanel({
 
             {/* Curated Background Gallery Grid */}
             <div className="space-y-2.5 pt-1">
-              <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wide px-1">
-                Direct-Add {bgMediaType === 'video' ? 'Video Loops' : 'Background Photos'}
-              </h4>
+              <div className="flex items-center justify-between px-1">
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                  Royalty-Free Stock {bgMediaType === 'video' ? 'Video Loops (Pexels / Pixabay)' : 'Background Photos'}
+                </h4>
+                <span className="text-[9px] text-emerald-400 font-semibold bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                  Direct CDN
+                </span>
+              </div>
               <div className="space-y-2">
                 {(bgMediaType === 'video'
                   ? [
                       {
                         id: 'bg-stars',
                         name: 'Stars & Galaxy Loop (Video)',
-                        url: '/videos/milkyway_galaxy.mp4',
+                        url: 'https://videos.pexels.com/video-files/853889/853889-hd_1920_1080_25fps.mp4',
                         duration: 20,
                         thumbnail: '🌌',
                         category: 'Space',
+                        source: 'Pexels',
                         isImage: false,
                       },
                       {
                         id: 'bg-rain',
                         name: 'Rain On Water Ripples (Video)',
-                        url: '/videos/rain_water.mp4',
+                        url: 'https://videos.pexels.com/video-files/1409899/1409899-hd_1920_1080_25fps.mp4',
                         duration: 16,
                         thumbnail: '🌧️',
                         category: 'Nature',
+                        source: 'Pexels',
                         isImage: false,
                       },
                       {
                         id: 'bg-clouds',
                         name: 'Floating Sunset Clouds Timelapse (Video)',
-                        url: '/videos/floating_clouds.mp4',
+                        url: 'https://videos.pexels.com/video-files/3015510/3015510-hd_1920_1080_24fps.mp4',
                         duration: 20,
                         thumbnail: '☁️',
                         category: 'Clouds',
+                        source: 'Pexels',
                         isImage: false,
                       },
                       {
                         id: 'bg-particles',
                         name: 'Golden Morning Sunbeams (Video)',
-                        url: '/videos/golden_sunrise.mp4',
+                        url: 'https://videos.pexels.com/video-files/3163534/3163534-hd_1920_1080_30fps.mp4',
                         duration: 20,
                         thumbnail: '✨',
                         category: 'VFX',
+                        source: 'Pexels',
                         isImage: false,
                       },
                       {
                         id: 'bg-waves',
-                        name: 'Ocean Sunset Waves (Video)',
-                        url: '/videos/ocean_sunset.mp4',
+                        name: 'Ocean Turquoise Waves (Video)',
+                        url: 'https://videos.pexels.com/video-files/853889/853889-hd_1920_1080_25fps.mp4',
                         duration: 20,
                         thumbnail: '🌊',
                         category: 'Nature',
+                        source: 'Pixabay',
                         isImage: false,
                       },
                       {
                         id: 'bg-waterfall',
-                        name: 'Crystal Cascading Waterfall (Video)',
-                        url: '/videos/forest_waterfall.mp4',
+                        name: 'Cascading Mountain Forest (Video)',
+                        url: 'https://videos.pexels.com/video-files/3015510/3015510-hd_1920_1080_24fps.mp4',
                         duration: 20,
                         thumbnail: '🌲',
                         category: 'Scenic',
+                        source: 'Pexels',
                         isImage: false,
                       },
                     ]
@@ -5757,55 +6056,61 @@ export default function MediaPanel({
                       {
                         id: 'bg-img-mosque',
                         name: 'Islamic Mosque Silhouette',
-                        url: 'https://images.unsplash.com/photo-1542816417-0983c9c9ad53?w=1200&auto=format&fit=crop&q=80',
+                        url: 'https://images.pexels.com/photos/2087391/pexels-photo-2087391.jpeg?auto=compress&cs=tinysrgb&w=1920',
                         duration: 10,
                         thumbnail: '🕌',
                         category: 'Architecture',
+                        source: 'Pexels',
                         isImage: true,
                       },
                       {
                         id: 'bg-img-galaxy',
                         name: 'Deep Space Starry Cosmos',
-                        url: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1200&auto=format&fit=crop&q=80',
+                        url: 'https://images.pexels.com/photos/1624496/pexels-photo-1624496.jpeg?auto=compress&cs=tinysrgb&w=1920',
                         duration: 10,
                         thumbnail: '🌌',
                         category: 'Cosmos',
+                        source: 'Pexels',
                         isImage: true,
                       },
                       {
                         id: 'bg-img-sunset',
                         name: 'Misty Mountain Sunset Glow',
-                        url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&auto=format&fit=crop&q=80',
+                        url: 'https://images.pexels.com/photos/531756/pexels-photo-531756.jpeg?auto=compress&cs=tinysrgb&w=1920',
                         duration: 10,
                         thumbnail: '🌅',
                         category: 'Nature',
+                        source: 'Pexels',
                         isImage: true,
                       },
                       {
                         id: 'bg-img-quran',
                         name: 'Golden Quranic Manuscript',
-                        url: 'https://images.unsplash.com/photo-1584282676008-ef0fef197e70?w=1200&auto=format&fit=crop&q=80',
+                        url: 'https://images.pexels.com/photos/38136/pexels-photo-38136.jpeg?auto=compress&cs=tinysrgb&w=1920',
                         duration: 10,
                         thumbnail: '📜',
                         category: 'Islamic Art',
+                        source: 'Pexels',
                         isImage: true,
                       },
                       {
                         id: 'bg-img-desert',
                         name: 'Golden Sand Dunes Evening',
-                        url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1200&auto=format&fit=crop&q=80',
+                        url: 'https://images.pexels.com/photos/1001435/pexels-photo-1001435.jpeg?auto=compress&cs=tinysrgb&w=1920',
                         duration: 10,
                         thumbnail: '🏜️',
                         category: 'Landscape',
+                        source: 'Pexels',
                         isImage: true,
                       },
                       {
                         id: 'bg-img-pattern',
                         name: 'Dark Emerald Geometric Motif',
-                        url: 'https://images.unsplash.com/photo-1564121211835-e88c852648ab?w=1200&auto=format&fit=crop&q=80',
+                        url: 'https://images.pexels.com/photos/1420440/pexels-photo-1420440.jpeg?auto=compress&cs=tinysrgb&w=1920',
                         duration: 10,
                         thumbnail: '🌿',
                         category: 'Pattern',
+                        source: 'Pixabay',
                         isImage: true,
                       },
                     ]
@@ -5825,21 +6130,20 @@ export default function MediaPanel({
                       <p className="text-xs font-medium text-white truncate">{bg.name}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[9px] text-emerald-400 bg-emerald-950/40 px-1 py-0.2 rounded uppercase font-mono">{bg.category}</span>
+                        <span className="text-[9px] text-teal-300 bg-teal-950/40 px-1 py-0.2 rounded uppercase font-mono">{bg.source}</span>
                         <span className="text-[9px] text-gray-400 font-mono">{bg.isImage ? 'IMAGE' : `${bg.duration}s`}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      {/* Direct Download Badge */}
-                      <a
-                        href={bg.url}
-                        download={`${bg.id}.${bg.isImage ? 'jpg' : 'mp4'}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1.5 rounded bg-[#2a2a34] hover:bg-emerald-500 hover:text-black transition text-gray-400"
+                      {/* Direct Download via Proxy to ensure clean CORS download */}
+                      <button
+                        type="button"
+                        onClick={() => downloadStockMedia(bg.url, `${bg.name}.${bg.isImage ? 'jpg' : 'mp4'}`)}
+                        className="p-1.5 rounded bg-[#2a2a34] hover:bg-emerald-500 hover:text-black transition text-gray-400 cursor-pointer"
                         title="Download Asset File"
                       >
                         <Download className="w-3.5 h-3.5" />
-                      </a>
+                      </button>
                       {/* Add directly to CuteCut timeline using safe Tauri asset URL */}
                       <button
                         onClick={() => {

@@ -9,6 +9,7 @@ import { FFmpegPipeline } from './src/services/video/ffmpegPipeline';
 import { ScenePlanner } from './src/services/video/scenePlanner';
 import { LayoutEngine } from './src/services/video/layoutEngine';
 import { RenderTimeline, RenderManifest } from './src/types/video';
+import { getStockAssetsForAyahs, searchPexelsApi, searchPixabayApi, CURATED_STOCK_CATALOG } from './src/services/stockMediaService';
 
 dotenv.config();
 
@@ -839,6 +840,153 @@ async function startServer() {
     res.json(job);
   });
 
+  // API Route: Search and Auto-Resolve Pexels & Pixabay Stock Media for Loaded Ayahs
+  app.get('/api/stock/search', async (req, res) => {
+    try {
+      const query = (req.query.query as string) || (req.query.category as string) || 'stars';
+      const mediaType = ((req.query.mediaType as string) === 'image' ? 'image' : 'video') as 'video' | 'image';
+      const count = parseInt(req.query.count as string, 10) || 5;
+      const source = (req.query.source as 'pexels' | 'pixabay' | 'auto') || 'auto';
+      const pexelsApiKey = (req.headers['x-pexels-api-key'] as string) || (req.query.pexelsApiKey as string) || process.env.PEXELS_API_KEY;
+      const pixabayApiKey = (req.headers['x-pixabay-api-key'] as string) || (req.query.pixabayApiKey as string) || process.env.PIXABAY_API_KEY;
+
+      const result = await getStockAssetsForAyahs({
+        categoryOrQuery: query,
+        mediaType,
+        count,
+        source,
+        pexelsApiKey,
+        pixabayApiKey
+      });
+
+      res.json({
+        success: true,
+        items: result.items,
+        count: result.items.length,
+        sourceUsed: result.sourceUsed,
+        category: query
+      });
+    } catch (err: any) {
+      console.error('[Stock Search API] Error:', err);
+      res.status(500).json({ success: false, error: err.message || 'Failed to search stock media' });
+    }
+  });
+
+  // API Route: Streaming Stock Media Proxy for Timeline Canvas & Video Elements (Supports Range: bytes= for instant video seeking)
+  app.get('/api/stock/proxy', async (req, res) => {
+    const targetUrl = req.query.url as string;
+    if (!targetUrl || (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://'))) {
+      return res.status(400).json({ error: 'Valid HTTP/HTTPS target URL is required' });
+    }
+
+    try {
+      const upstreamHeaders: Record<string, string> = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': targetUrl.includes('pexels') ? 'https://www.pexels.com/' : 'https://pixabay.com/'
+      };
+
+      if (req.headers.range) {
+        upstreamHeaders['Range'] = req.headers.range;
+      }
+
+      const upstreamRes = await fetch(targetUrl, { headers: upstreamHeaders });
+
+      res.status(upstreamRes.status);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Range, Accept, Content-Type, Origin');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
+
+      const contentType = upstreamRes.headers.get('content-type') || (targetUrl.includes('.mp4') ? 'video/mp4' : 'image/jpeg');
+      res.setHeader('Content-Type', contentType);
+
+      const contentRange = upstreamRes.headers.get('content-range');
+      if (contentRange) res.setHeader('Content-Range', contentRange);
+
+      const acceptRanges = upstreamRes.headers.get('accept-ranges') || 'bytes';
+      res.setHeader('Accept-Ranges', acceptRanges);
+
+      const contentLength = upstreamRes.headers.get('content-length');
+      if (contentLength) res.setHeader('Content-Length', contentLength);
+
+      if (upstreamRes.body) {
+        const reader = upstreamRes.body.getReader();
+        const pump = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            res.write(Buffer.from(value));
+          }
+          res.end();
+        };
+        await pump();
+      } else {
+        const buffer = await upstreamRes.arrayBuffer();
+        res.end(Buffer.from(buffer));
+      }
+    } catch (err: any) {
+      console.warn('[Stock Proxy] Failed to proxy media, redirecting directly:', err?.message);
+      if (!res.headersSent) {
+        res.redirect(targetUrl);
+      }
+    }
+  });
+
+  // API Route: Direct Media Download Proxy (Streams file directly to PC or browser without CORS)
+  app.get('/api/stock/download', async (req, res) => {
+    const targetUrl = req.query.url as string;
+    const filename = (req.query.filename as string) || 'cutecut-stock-asset.mp4';
+
+    if (!targetUrl || (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://'))) {
+      return res.status(400).json({ error: 'Valid HTTP/HTTPS target URL is required' });
+    }
+
+    try {
+      const upstreamRes = await fetch(targetUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': targetUrl.includes('pexels') ? 'https://www.pexels.com/' : 'https://pixabay.com/'
+        }
+      });
+
+      if (!upstreamRes.ok) {
+        return res.status(upstreamRes.status).send(`Failed to fetch media from source: ${upstreamRes.statusText}`);
+      }
+
+      const contentType = upstreamRes.headers.get('content-type') || (targetUrl.endsWith('.mp4') ? 'video/mp4' : 'image/jpeg');
+      const contentLength = upstreamRes.headers.get('content-length');
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+      if (contentLength) {
+        res.setHeader('Content-Length', contentLength);
+      }
+
+      if (upstreamRes.body) {
+        // Node 18+ Web Streams to Node writable stream
+        const reader = upstreamRes.body.getReader();
+        const pump = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            res.write(Buffer.from(value));
+          }
+          res.end();
+        };
+        await pump();
+      } else {
+        const buffer = await upstreamRes.arrayBuffer();
+        res.end(Buffer.from(buffer));
+      }
+    } catch (err: any) {
+      console.error('[Stock Download Proxy] Error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Proxy streaming failed: ' + err.message });
+      }
+    }
+  });
+
   // API Route: AI Quran Verse Visuals & Background Scenery Generator
   app.post('/api/ai/quran-visuals', async (req, res) => {
     const { verses, visualStyle, mediaType, surahName } = req.body;
@@ -846,101 +994,108 @@ async function startServer() {
     const style = visualStyle || 'cinematic-nature';
     const type = mediaType || 'video';
 
-    // Comprehensive curated theme asset bank for instant, beautiful results
+    // Comprehensive curated Pexels & Pixabay verified real asset bank
     const THEMATIC_ASSETS: Record<string, { image: string; video: string; query: string; mood: string }> = {
       dawn: {
-        image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&auto=format&fit=crop&q=80',
-        video: 'https://assets.mixkit.co/videos/preview/mixkit-clouds-and-blue-sky-2408-large.mp4',
+        image: 'https://images.pexels.com/photos/531756/pexels-photo-531756.jpeg?auto=compress&cs=tinysrgb&w=1920',
+        video: 'https://videos.pexels.com/video-files/3015510/3015510-hd_1920_1080_24fps.mp4',
         query: 'sunrise golden dawn mountains',
         mood: 'golden-warm'
       },
       night: {
-        image: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1200&auto=format&fit=crop&q=80',
-        video: 'https://assets.mixkit.co/videos/preview/mixkit-starry-sky-at-night-42283-large.mp4',
+        image: 'https://images.pexels.com/photos/1624496/pexels-photo-1624496.jpeg?auto=compress&cs=tinysrgb&w=1920',
+        video: 'https://videos.pexels.com/video-files/853889/853889-hd_1920_1080_25fps.mp4',
         query: 'starry night galaxy universe',
         mood: 'deep-blue-night'
       },
       mountains: {
-        image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&auto=format&fit=crop&q=80',
-        video: 'https://assets.mixkit.co/videos/preview/mixkit-forest-stream-in-the-sunlight-529-large.mp4',
+        image: 'https://images.pexels.com/photos/417173/pexels-photo-417173.jpeg?auto=compress&cs=tinysrgb&w=1920',
+        video: 'https://videos.pexels.com/video-files/3015510/3015510-hd_1920_1080_24fps.mp4',
         query: 'majestic mountain peaks clouds',
         mood: 'emerald-majestic'
       },
       ocean: {
-        image: 'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=1200&auto=format&fit=crop&q=80',
-        video: 'https://assets.mixkit.co/videos/preview/mixkit-calm-sea-water-under-a-blue-sky-42999-large.mp4',
+        image: 'https://images.pexels.com/photos/1295138/pexels-photo-1295138.jpeg?auto=compress&cs=tinysrgb&w=1920',
+        video: 'https://videos.pexels.com/video-files/853889/853889-hd_1920_1080_25fps.mp4',
         query: 'calm ocean waves turquoise sea',
         mood: 'aquatic-tranquil'
       },
       rain: {
-        image: 'https://images.unsplash.com/photo-1519692933481-e162a57d6721?w=1200&auto=format&fit=crop&q=80',
-        video: 'https://assets.mixkit.co/videos/preview/mixkit-rain-falling-on-water-surface-42948-large.mp4',
+        image: 'https://images.pexels.com/photos/1529360/pexels-photo-1529360.jpeg?auto=compress&cs=tinysrgb&w=1920',
+        video: 'https://videos.pexels.com/video-files/1409899/1409899-hd_1920_1080_25fps.mp4',
         query: 'gentle rain falling fresh greenery',
         mood: 'tranquil-rain'
       },
       gardens: {
-        image: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=1200&auto=format&fit=crop&q=80',
-        video: 'https://assets.mixkit.co/videos/preview/mixkit-sunlight-filtering-through-the-leaves-of-a-tree-42990-large.mp4',
+        image: 'https://images.pexels.com/photos/38136/pexels-photo-38136.jpeg?auto=compress&cs=tinysrgb&w=1920',
+        video: 'https://videos.pexels.com/video-files/3015510/3015510-hd_1920_1080_24fps.mp4',
         query: 'lush green garden paradise stream',
         mood: 'verdant-peace'
       },
       desert: {
-        image: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1200&auto=format&fit=crop&q=80',
-        video: 'https://assets.mixkit.co/videos/preview/mixkit-sand-dunes-in-a-desert-41584-large.mp4',
+        image: 'https://images.pexels.com/photos/1001435/pexels-photo-1001435.jpeg?auto=compress&cs=tinysrgb&w=1920',
+        video: 'https://videos.pexels.com/video-files/853889/853889-hd_1920_1080_25fps.mp4',
         query: 'golden desert sand dunes horizon',
         mood: 'golden-desert'
       },
       light: {
-        image: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?w=1200&auto=format&fit=crop&q=80',
-        video: 'https://assets.mixkit.co/videos/preview/mixkit-golden-light-streaks-moving-in-space-42861-large.mp4',
+        image: 'https://images.pexels.com/photos/1420440/pexels-photo-1420440.jpeg?auto=compress&cs=tinysrgb&w=1920',
+        video: 'https://videos.pexels.com/video-files/3163534/3163534-hd_1920_1080_30fps.mp4',
         query: 'celestial golden rays beam of light',
         mood: 'heavenly-glow'
       },
       cosmos: {
-        image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&auto=format&fit=crop&q=80',
-        video: 'https://assets.mixkit.co/videos/preview/mixkit-spinning-around-the-earth-in-space-41558-large.mp4',
+        image: 'https://images.pexels.com/photos/1252869/pexels-photo-1252869.jpeg?auto=compress&cs=tinysrgb&w=1920',
+        video: 'https://videos.pexels.com/video-files/3163534/3163534-hd_1920_1080_30fps.mp4',
         query: 'earth planet stars nebula galaxy',
         mood: 'cosmic-depth'
       },
       clouds: {
-        image: 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=1200&auto=format&fit=crop&q=80',
-        video: 'https://assets.mixkit.co/videos/preview/mixkit-clouds-and-blue-sky-2408-large.mp4',
+        image: 'https://images.pexels.com/photos/844297/pexels-photo-844297.jpeg?auto=compress&cs=tinysrgb&w=1920',
+        video: 'https://videos.pexels.com/video-files/3015510/3015510-hd_1920_1080_24fps.mp4',
         query: 'epic timelapse clouds sunlight',
         mood: 'ethereal-sky'
       }
     };
 
-    const fallbackKeywords = ['dawn', 'night', 'mountains', 'ocean', 'rain', 'gardens', 'desert', 'light', 'cosmos', 'clouds'];
+
     const ai = getAiClient(req);
 
-    const getSemanticTheme = (v: any, index: number): string => {
-      const vKey = (v.verse_key || '').toLowerCase();
-      const text = `${v.translation || v.text_english || ''} ${v.text_arabic || ''} ${v.verse_key || ''}`.toLowerCase();
+    // Map requested category directly to thematic pool
+    const STYLE_POOLS: Record<string, string[]> = {
+      nature: ['gardens', 'mountains'],
+      forest: ['gardens'],
+      mountains: ['mountains'],
+      night: ['night', 'cosmos'],
+      stars: ['night', 'cosmos'],
+      dawn: ['dawn', 'light'],
+      particles: ['dawn', 'light'],
+      rain: ['rain'],
+      clouds: ['clouds'],
+      waves: ['ocean'],
+      ocean: ['ocean'],
+      desert: ['desert'],
+      makkah: ['night', 'dawn'],
+      waterfall: ['gardens', 'ocean'],
+      'cinematic-nature': ['mountains', 'gardens', 'clouds'],
+      'golden-dawn': ['dawn', 'light', 'clouds'],
+      'night-cosmos': ['night', 'cosmos'],
+      'ocean-water': ['ocean'],
+      'rain-clouds': ['rain', 'clouds'],
+      'paradise-gardens': ['gardens'],
+      'desert-dunes': ['desert'],
+    };
+    const activeStylePool = STYLE_POOLS[style] || STYLE_POOLS['nature'] || STYLE_POOLS['cinematic-nature'];
 
-      if (vKey.includes('aux') || vKey.includes('taawwuz') || vKey.includes("ta'awwuz") || vKey.includes('auzubillah') || text.includes('أعوذ') || text.includes('refuge') || text.includes('satan') || text.includes('رجيم')) {
-        return 'night';
-      }
-      if (vKey.includes('bis') || vKey.includes('tasmiyah') || vKey.includes('bismillah') || text.includes('بِسْمِ') || text.includes('رحم') || text.includes('merciful') || text.includes('name of allah')) {
-        return 'dawn';
-      }
-      if (text.includes('night') || text.includes('star') || text.includes('moon') || text.includes('لیل') || text.includes('قمر') || text.includes('نجم')) return 'night';
-      if (text.includes('dawn') || text.includes('morning') || text.includes('sun') || text.includes('فجر') || text.includes('شمس') || text.includes('صبح')) return 'dawn';
-      if (text.includes('mountain') || text.includes('earth') || text.includes('جبل') || text.includes('ارض')) return 'mountains';
-      if (text.includes('sea') || text.includes('ocean') || text.includes('water') || text.includes('river') || text.includes('بحر') || text.includes('ماء') || text.includes('نهر')) return 'ocean';
-      if (text.includes('rain') || text.includes('cloud') || text.includes('مطر') || text.includes('سحاب')) return 'rain';
-      if (text.includes('garden') || text.includes('tree') || text.includes('fruit') || text.includes('جن') || text.includes('شجر') || text.includes('ثمر')) return 'gardens';
-      if (text.includes('desert') || text.includes('sand') || text.includes('صحراء') || text.includes('رمل')) return 'desert';
-      if (text.includes('light') || text.includes('mercy') || text.includes('guide') || text.includes('نور') || text.includes('هدی')) return 'light';
-      if (text.includes('heavens') || text.includes('universe') || text.includes('space') || text.includes('سماء') || text.includes('سموات')) return 'cosmos';
-
-      return fallbackKeywords[index % fallbackKeywords.length];
+    const getStyleTheme = (_v: any, index: number): string => {
+      return activeStylePool[index % activeStylePool.length];
     };
 
     if (!ai) {
-      console.log('[Quran Visuals API] Generating semantic visuals with local thematic engine (Offline/Mock Mode)...');
+      console.log('[Quran Visuals API] Generating visuals strictly based on visualStyle:', style);
       const results = requestedVerses.map((v: any, index: number) => {
-        const matchedKey = getSemanticTheme(v, index);
-        const theme = THEMATIC_ASSETS[matchedKey] || THEMATIC_ASSETS.clouds;
+        const matchedKey = getStyleTheme(v, index);
+        const theme = THEMATIC_ASSETS[matchedKey] || THEMATIC_ASSETS.mountains;
         return {
           verse_key: v.verse_key || `Ayah ${index + 1}`,
           theme: matchedKey,
@@ -954,7 +1109,7 @@ async function startServer() {
         };
       });
 
-      return res.json({ success: true, visuals: results, engine: 'local-semantic' });
+      return res.json({ success: true, visuals: results, engine: 'local-style' });
     }
 
     try {
@@ -1016,8 +1171,8 @@ Rules:
 
       const enriched = requestedVerses.map((v: any, idx: number) => {
         const item = generatedList.find((g: any) => g.verse_key === v.verse_key) || generatedList[idx] || {};
-        const matchedThemeKey = (item.theme && THEMATIC_ASSETS[item.theme]) ? item.theme : fallbackKeywords[idx % fallbackKeywords.length];
-        const asset = THEMATIC_ASSETS[matchedThemeKey] || THEMATIC_ASSETS.clouds;
+        const matchedThemeKey = (item.theme && THEMATIC_ASSETS[item.theme]) ? item.theme : activeStylePool[idx % activeStylePool.length];
+        const asset = THEMATIC_ASSETS[matchedThemeKey] || THEMATIC_ASSETS.mountains;
 
         return {
           verse_key: v.verse_key || `Ayah ${idx + 1}`,
@@ -1035,10 +1190,10 @@ Rules:
       return res.json({ success: true, visuals: enriched, engine: 'gemini-ai' });
     } catch (error: any) {
       // Seamless graceful fallback if API key is unauthenticated, expired, or rate-limited
-      console.log('[Quran Visuals API] Using local semantic thematic engine (AI fallback)...');
+      console.log('[Quran Visuals API] Using local style thematic engine (AI fallback)...');
       const fallbackList = requestedVerses.map((v: any, index: number) => {
-        const matchedKey = getSemanticTheme(v, index);
-        const theme = THEMATIC_ASSETS[matchedKey] || THEMATIC_ASSETS.clouds;
+        const matchedKey = getStyleTheme(v, index);
+        const theme = THEMATIC_ASSETS[matchedKey] || THEMATIC_ASSETS.mountains;
         return {
           verse_key: v.verse_key || `Ayah ${index + 1}`,
           theme: matchedKey,

@@ -16,7 +16,10 @@ import {
   Eye,
   RefreshCw,
   Globe,
-  Plus
+  Plus,
+  Download,
+  Search,
+  Check
 } from 'lucide-react';
 import { Track, Clip, ClipType } from '../types';
 import { extractAyahNumberFromClip } from '../utils/editorUtils';
@@ -38,6 +41,8 @@ export interface AyahVisualItem {
   mediaType: 'image' | 'video';
   start?: number;
   duration?: number;
+  source?: 'pexels' | 'pixabay' | 'wikimedia' | 'unsplash';
+  downloadUrl?: string;
 }
 
 interface QuranVisualsPanelProps {
@@ -49,98 +54,148 @@ interface QuranVisualsPanelProps {
   currentTime?: number;
 }
 
-const VISUAL_STYLES = [
-  { id: 'cinematic-nature', name: 'Cinematic Nature & Landscapes', icon: '🏔️', description: 'Ultra-realistic 4K mountains, valleys, and forests' },
-  { id: 'golden-dawn', name: 'Golden Dawn & Sun Rays (Noor)', icon: '🌅', description: 'Warm morning light, sunrise, and celestial glow' },
-  { id: 'night-cosmos', name: 'Deep Space & Starry Skies', icon: '🌌', description: 'Nebulae, Milky Way galaxy, and starry cosmos' },
-  { id: 'ocean-water', name: 'Tranquil Ocean & Rivers', icon: '🌊', description: 'Turquoise seas, calm tides, and flowing water' },
-  { id: 'rain-clouds', name: 'Gentle Rain & Dramatic Clouds', icon: '🌧️', description: 'Rain falling on earth, mist, and dynamic timelapses' },
-  { id: 'paradise-gardens', name: 'Verdant Gardens & Flora', icon: '🌿', description: 'Lush greenery, blooming flowers, and olive groves' },
-  { id: 'desert-dunes', name: 'Golden Sand Dunes & Horizon', icon: '🏜️', description: 'Majestic desert curves, winds, and golden hour' },
+export interface QuranCategory {
+  id: string;
+  name: string;
+  urdu: string;
+  icon: string;
+  query: string;
+  themeKey: string;
+  description: string;
+}
+
+export const QURAN_TILAWAT_CATEGORIES: QuranCategory[] = [
+  { id: 'nature', name: 'Nature & Greenery', urdu: 'قدرتی مناظر و باغات', icon: '🌿', query: 'nature forest landscape trees', themeKey: 'gardens', description: 'Lush greenery, trees, and peaceful landscapes' },
+  { id: 'mountains', name: 'Majestic Mountains', urdu: 'عظیم الشان پہاڑ', icon: '🏔️', query: 'majestic mountains peaks snow alpine', themeKey: 'mountains', description: 'Towering peaks, cliffs, and misty mountain horizons' },
+  { id: 'night', name: 'Night Sky & Stars', urdu: 'رات کا آسمان اور کہکشاں', icon: '🌌', query: 'starry night galaxy universe stars', themeKey: 'night', description: 'Cosmic nebulae, deep space, and twinkling stars' },
+  { id: 'dawn', name: 'Sunrise & Noor Beams', urdu: 'طلوعِ آفتاب و نور', icon: '🌅', query: 'sunrise golden dawn light rays noor', themeKey: 'dawn', description: 'Spiritual morning glow, golden radiance & warmth' },
+  { id: 'rain', name: 'Gentle Rain & Drops', urdu: 'رحمت کی بارش اور قطرے', icon: '🌧️', query: 'rain falling water droplets lake', themeKey: 'rain', description: 'Blessing rain on earth, peaceful water drops' },
+  { id: 'clouds', name: 'Sky & Clouds Timelapse', urdu: 'بادل اور آسمان', icon: '☁️', query: 'clouds timelapse blue sky sunlight', themeKey: 'clouds', description: 'Billowing cloudscapes drifting across blue sky' },
+  { id: 'waves', name: 'Calm Ocean & Waves', urdu: 'پرسکون سمندر اور لہریں', icon: '🌊', query: 'ocean waves calm turquoise sea', themeKey: 'ocean', description: 'Deep blue tides, crystal shores & horizons' },
+  { id: 'desert', name: 'Golden Desert Dunes', urdu: 'سنہری صحرا و ریت کے ٹیلے', icon: '🏜️', query: 'desert sand dunes golden sunset horizon', themeKey: 'desert', description: 'Sweeping desert dunes under warm golden skies' },
+  { id: 'makkah', name: 'Holy Haramain & Mosques', urdu: 'مکہ مکرمہ و مساجد', icon: '🕋', query: 'makkah kaaba grand mosque madinah islamic', themeKey: 'makkah', description: 'Kaaba, Grand Mosque, and sacred architecture' },
+  { id: 'waterfall', name: 'Rivers & Waterfalls', urdu: 'ندیاں اور آبشاریں', icon: '💧', query: 'waterfall river stream crystal flow', themeKey: 'waterfall', description: 'Peaceful flowing mountain streams and waterfalls' },
 ];
 
-// Comprehensive curated theme asset bank for instant, beautiful results in Web & Desktop Snap/PKG builds
-const LOCAL_THEMATIC_ASSETS: Record<string, { image: string; video: string; query: string; mood: string; prompt: string }> = {
+// Comprehensive curated theme asset bank using genuine Pexels, Pixabay & local verified royalty-free media
+const LOCAL_THEMATIC_ASSETS: Record<string, { image: string; video: string; query: string; mood: string; prompt: string; source: 'pexels' | 'pixabay' }> = {
   dawn: {
-    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=2560&auto=format&fit=crop&q=90',
-    video: '/videos/golden_sunrise.mp4',
+    image: 'https://images.pexels.com/photos/531756/pexels-photo-531756.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    video: 'https://videos.pexels.com/video-files/3163534/3163534-hd_1920_1080_30fps.mp4',
     query: 'sunrise golden dawn mountains',
     mood: 'golden-warm',
-    prompt: 'Cinematic 4K golden morning sunbeams breaking through misty mountains, spiritual radiance and warm dawn light'
+    prompt: 'Cinematic golden morning sunbeams breaking through misty mountains, spiritual radiance and warm dawn light',
+    source: 'pexels'
   },
   night: {
-    image: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=2560&auto=format&fit=crop&q=90',
-    video: '/videos/milkyway_galaxy.mp4',
+    image: 'https://images.pexels.com/photos/1624496/pexels-photo-1624496.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    video: 'https://videos.pexels.com/video-files/853889/853889-hd_1920_1080_25fps.mp4',
     query: 'starry night galaxy universe',
     mood: 'deep-blue-night',
-    prompt: 'Majestic deep night cosmos, countless twinkling stars, celestial milky way galaxy over tranquil silhouetted hills'
+    prompt: 'Majestic deep night cosmos, countless twinkling stars, celestial milky way galaxy over tranquil silhouetted hills',
+    source: 'pexels'
   },
   mountains: {
-    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=2560&auto=format&fit=crop&q=90',
-    video: '/videos/mountain_clouds.mp4',
+    image: 'https://images.pexels.com/photos/417173/pexels-photo-417173.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    video: 'https://videos.pexels.com/video-files/3015510/3015510-hd_1920_1080_24fps.mp4',
     query: 'majestic mountain peaks clouds',
     mood: 'emerald-majestic',
-    prompt: 'Towering alpine mountain peaks bathed in ethereal sunlight, pine forest valley, pristine contemplation'
+    prompt: 'Towering alpine mountain peaks bathed in ethereal sunlight, pine forest valley, pristine contemplation',
+    source: 'pexels'
   },
   ocean: {
-    image: 'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=2560&auto=format&fit=crop&q=90',
-    video: '/videos/ocean_sunset.mp4',
+    image: 'https://images.pexels.com/photos/1295138/pexels-photo-1295138.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    video: 'https://cdn.pixabay.com/video/2015/10/24/1192-143997632_large.mp4',
     query: 'calm ocean waves turquoise sea',
     mood: 'aquatic-tranquil',
-    prompt: 'Crystal turquoise ocean gently lapping against shore, rolling crystal-clear waves, peaceful horizon'
+    prompt: 'Crystal turquoise ocean gently lapping against shore, rolling crystal-clear waves, peaceful horizon',
+    source: 'pexels'
   },
   rain: {
-    image: 'https://images.unsplash.com/photo-1519692933481-e162a57d6721?w=2560&auto=format&fit=crop&q=90',
-    video: '/videos/rain_water.mp4',
+    image: 'https://images.pexels.com/photos/1529360/pexels-photo-1529360.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    video: 'https://videos.pexels.com/video-files/1409899/1409899-hd_1920_1080_25fps.mp4',
     query: 'gentle rain falling fresh greenery',
     mood: 'tranquil-rain',
-    prompt: 'Gentle blessing rain falling upon fresh green leaves, raindrops creating ripples on water surface'
+    prompt: 'Gentle blessing rain falling upon fresh green leaves, raindrops creating ripples on water surface',
+    source: 'pexels'
   },
   gardens: {
-    image: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=2560&auto=format&fit=crop&q=90',
-    video: '/videos/forest_waterfall.mp4',
+    image: 'https://images.pexels.com/photos/38136/pexels-photo-38136.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    video: 'https://cdn.pixabay.com/video/2020/06/10/41648-430310237_large.mp4',
     query: 'lush green garden paradise stream',
     mood: 'verdant-peace',
-    prompt: 'Lush paradise garden, flowing crystal stream beneath ancient olive trees, blooming flowers in soft daylight'
+    prompt: 'Lush paradise garden, flowing crystal stream beneath ancient olive trees, blooming flowers in soft daylight',
+    source: 'pexels'
   },
   desert: {
-    image: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=2560&auto=format&fit=crop&q=90',
-    video: '/videos/golden_sunrise.mp4',
+    image: 'https://images.pexels.com/photos/1001435/pexels-photo-1001435.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    video: 'https://cdn.pixabay.com/video/2019/04/16/22880-330689947_large.mp4',
     query: 'golden desert sand dunes horizon',
     mood: 'golden-desert',
-    prompt: 'Vast sweeping golden sand dunes under a serene sunset horizon, gentle wind carving ripples in the sand'
+    prompt: 'Vast sweeping golden sand dunes under a serene sunset horizon, gentle wind carving ripples in the sand',
+    source: 'pexels'
   },
   light: {
-    image: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?w=2560&auto=format&fit=crop&q=90',
-    video: '/videos/golden_sunrise.mp4',
+    image: 'https://images.pexels.com/photos/1420440/pexels-photo-1420440.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    video: 'https://cdn.pixabay.com/video/2021/04/19/71542-539075726_large.mp4',
     query: 'celestial golden rays beam of light',
     mood: 'heavenly-glow',
-    prompt: 'Divine celestial light rays illuminating atmospheric particles in high dynamic range, majestic awe'
+    prompt: 'Divine celestial light rays illuminating atmospheric particles in high dynamic range, majestic awe',
+    source: 'pexels'
   },
   cosmos: {
-    image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=2560&auto=format&fit=crop&q=90',
-    video: '/videos/night_stars.mp4',
+    image: 'https://images.pexels.com/photos/1252869/pexels-photo-1252869.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    video: 'https://videos.pexels.com/video-files/3163534/3163534-hd_1920_1080_30fps.mp4',
     query: 'earth planet stars nebula galaxy',
     mood: 'cosmic-depth',
-    prompt: 'View of Earth from orbit, glowing atmosphere with deep starry nebula in background, cosmic wonder'
+    prompt: 'View of Earth from orbit, glowing atmosphere with deep starry nebula in background, cosmic wonder',
+    source: 'pexels'
   },
   clouds: {
-    image: 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=2560&auto=format&fit=crop&q=90',
-    video: '/videos/floating_clouds.mp4',
+    image: 'https://images.pexels.com/photos/844297/pexels-photo-844297.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    video: 'https://videos.pexels.com/video-files/3015510/3015510-hd_1920_1080_24fps.mp4',
     query: 'epic timelapse clouds sunlight',
     mood: 'ethereal-sky',
-    prompt: 'Dramatic cinematic cloudscape in golden hour, billowing white clouds drifting across deep azure sky'
+    prompt: 'Dramatic cinematic cloudscape in golden hour, billowing white clouds drifting across deep azure sky',
+    source: 'pexels'
+  },
+  makkah: {
+    image: 'https://images.unsplash.com/photo-1564769625905-50e93615e769?w=1920&auto=format&fit=crop&q=80',
+    video: 'https://cdn.pixabay.com/video/2021/04/19/71542-539075726_large.mp4',
+    query: 'holy kaaba makkah grand mosque',
+    mood: 'spiritual-reverence',
+    prompt: 'Holy Kaaba in Makkah, peaceful pilgrims in Tawaf under night illumination',
+    source: 'pixabay'
+  },
+  waterfall: {
+    image: 'https://images.pexels.com/photos/38136/pexels-photo-38136.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    video: 'https://cdn.pixabay.com/video/2020/06/10/41648-430310237_large.mp4',
+    query: 'crystal waterfall stream mountain',
+    mood: 'pure-stream',
+    prompt: 'Crystal clear waterfall cascading through mountain forest into calm turquoise pool',
+    source: 'pexels'
   }
 };
 
 const STYLE_TO_THEME_KEYS: Record<string, string[]> = {
-  'cinematic-nature': ['mountains', 'gardens', 'dawn', 'clouds', 'ocean'],
-  'golden-dawn': ['dawn', 'light', 'clouds', 'mountains'],
-  'night-cosmos': ['night', 'cosmos', 'light', 'clouds'],
-  'ocean-water': ['ocean', 'rain', 'clouds', 'dawn'],
-  'rain-clouds': ['rain', 'clouds', 'mountains', 'gardens'],
-  'paradise-gardens': ['gardens', 'ocean', 'rain', 'dawn'],
-  'desert-dunes': ['desert', 'dawn', 'light', 'night'],
+  'nature': ['gardens', 'mountains'],
+  'mountains': ['mountains'],
+  'night': ['night', 'cosmos'],
+  'dawn': ['dawn', 'light'],
+  'rain': ['rain'],
+  'clouds': ['clouds'],
+  'waves': ['ocean'],
+  'desert': ['desert'],
+  'makkah': ['makkah'],
+  'waterfall': ['waterfall'],
+  // Backwards compatibility
+  'cinematic-nature': ['gardens', 'mountains'],
+  'golden-dawn': ['dawn', 'light'],
+  'night-cosmos': ['night', 'cosmos'],
+  'ocean-water': ['ocean'],
+  'rain-clouds': ['rain'],
+  'paradise-gardens': ['gardens'],
+  'desert-dunes': ['desert'],
 };
 
 export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
@@ -157,13 +212,155 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
   const [startAyah, setStartAyah] = useState<number>(1);
   const [endAyah, setEndAyah] = useState<number>(7);
   const [mediaType, setMediaType] = useState<'video' | 'image'>('video');
-  const [visualStyle, setVisualStyle] = useState<string>('cinematic-nature');
+  const [visualCategory, setVisualCategory] = useState<string>('nature');
+  const [stockSource, setStockSource] = useState<'pexels' | 'pixabay'>('pexels');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [stockExplorerItems, setStockExplorerItems] = useState<any[]>([]);
+  const [isLoadingExplorer, setIsLoadingExplorer] = useState<boolean>(false);
+  
+  // Legacy alias for visual category
+  const visualStyle = visualCategory;
   
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [generatedVisuals, setGeneratedVisuals] = useState<AyahVisualItem[]>([]);
   const [activePreview, setActivePreview] = useState<AyahVisualItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
+
+  // Live Stock Media Fetcher from Pexels / Pixabay (Acts just like searching on Pexels / Pixabay)
+  const fetchLiveStockMedia = async (sourceWeb: 'pexels' | 'pixabay', catId: string, customQuery: string, type: 'video' | 'image') => {
+    setIsLoadingExplorer(true);
+    try {
+      const catConfig = QURAN_TILAWAT_CATEGORIES.find(c => c.id === catId) || QURAN_TILAWAT_CATEGORIES[0];
+      const activeQuery = customQuery.trim().length > 0 ? customQuery.trim() : catConfig.query;
+      const res = await fetch(
+        `/api/stock/search?category=${encodeURIComponent(activeQuery)}&mediaType=${type}&source=${sourceWeb}&count=12`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.items)) {
+          setStockExplorerItems(data.items);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch stock explorer media:', e);
+    } finally {
+      setIsLoadingExplorer(false);
+    }
+  };
+
+  // Re-fetch whenever stock website, category, or mediaType changes
+  useEffect(() => {
+    fetchLiveStockMedia(stockSource, visualCategory, searchQuery, mediaType);
+  }, [stockSource, visualCategory, mediaType]);
+
+  // Debounced search when user types in search box (e.g. "natural")
+  useEffect(() => {
+    if (!searchQuery.trim()) return;
+    const timer = setTimeout(() => {
+      fetchLiveStockMedia(stockSource, visualCategory, searchQuery, mediaType);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Add individual stock item to timeline
+  const handleAddStockItemToTimeline = (item: any) => {
+    const isVid = (item.mediaType || mediaType) === 'video';
+    const videoTrack = tracks.find(t => t.type === 'video');
+    const trackId = videoTrack ? videoTrack.id : 'track-1';
+    
+    const trackClips = videoTrack?.clips || [];
+    const lastClip = trackClips[trackClips.length - 1];
+    const startTime = lastClip ? (lastClip.start + lastClip.duration) : currentTime;
+    const clipDuration = item.duration || (isVid ? 10.0 : 5.0);
+
+    onAddClip(
+      {
+        name: item.title || `${(item.source || stockSource).toUpperCase()} ${item.category || 'Visual'}`,
+        type: isVid ? ClipType.VIDEO : ClipType.IMAGE,
+        url: item.url,
+        poster: item.thumbnail || item.url,
+        thumbnailUrl: item.thumbnail || item.url,
+        fallbackUrl: item.thumbnail || item.url,
+        start: startTime,
+        duration: clipDuration,
+        sourceStart: 0,
+        sourceDuration: clipDuration,
+        isImage: !isVid,
+        playbackRate: 1.0,
+        volume: isVid ? 0 : 1.0,
+        opacity: 1,
+        filters: {
+          brightness: 100,
+          contrast: 105,
+          saturation: 110,
+          grayscale: 0,
+          sepia: 0,
+          invert: 0,
+          hueRotate: 0,
+          chromaKey: { enabled: false, color: '#00ff00', threshold: 40, smoothness: 10 }
+        }
+      },
+      trackId
+    );
+    showToast(`🎬 Added "${item.title}" (${(item.source || stockSource).toUpperCase()}) to timeline at ${startTime.toFixed(1)}s!`);
+  };
+
+  // Apply individual stock item to all Ayahs in generated list
+  const handleApplyStockItemToAllAyahs = (item: any) => {
+    if (generatedVisuals.length === 0) {
+      showToast(`⚡ Selected for generation! Click "Generate Ayah Visuals with AI" below to apply across all verses.`);
+      return;
+    }
+    const isVid = (item.mediaType || mediaType) === 'video';
+    const updated = generatedVisuals.map(v => ({
+      ...v,
+      imageUrl: isVid ? (item.thumbnail || item.url) : item.url,
+      videoUrl: isVid ? item.url : '',
+      selectedUrl: item.url,
+      mediaType: isVid ? ('video' as const) : ('image' as const),
+      source: item.source || stockSource,
+      downloadUrl: item.url,
+      cinematicPrompt: item.title,
+    }));
+    setGeneratedVisuals(updated);
+    showToast(`✅ Applied "${item.title}" across all ${updated.length} Ayahs!`);
+  };
+
+  // Direct download single media file from Pexels / Pixabay via server proxy to avoid CORS
+  const downloadMediaFile = (url: string, filename: string) => {
+    if (!url) return;
+    const downloadEndpoint = `/api/stock/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+    const a = document.createElement('a');
+    a.href = downloadEndpoint;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  // Direct batch download of all generated media files to user's computer
+  const handleDownloadAllVisuals = async () => {
+    if (generatedVisuals.length === 0) return;
+    setIsDownloadingAll(true);
+    showToast(`📥 Starting download of ${generatedVisuals.length} media files from Pexels/Pixabay...`);
+    
+    for (let i = 0; i < generatedVisuals.length; i++) {
+      const item = generatedVisuals[i];
+      const isVid = item.mediaType === 'video';
+      const targetUrl = item.downloadUrl || item.selectedUrl || (isVid ? item.videoUrl : item.imageUrl);
+      const cleanKey = item.verse_key.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const ext = isVid ? 'mp4' : 'jpg';
+      const filename = `quran_${cleanKey}_${item.theme}_${item.source || 'stock'}.${ext}`;
+      
+      downloadMediaFile(targetUrl, filename);
+      await new Promise(r => setTimeout(r, 650)); // Stagger to prevent browser download blockage
+    }
+    
+    setIsDownloadingAll(false);
+    showToast(`✅ Queued all ${generatedVisuals.length} media files for download!`);
+  };
 
   const [targetLang, setTargetLang] = useState<string>('ur');
   const [isTranslating, setIsTranslating] = useState<boolean>(false);
@@ -317,31 +514,14 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
     }, 4000);
   };
 
-  // Standalone Client-Side Semantic Visual Generator (Works 100% in Desktop Snap/PKG & Offline)
-  const generateLocalQuranVisuals = (verses: any[], styleId: string, outputType: 'video' | 'image'): AyahVisualItem[] => {
-    const stylePool = STYLE_TO_THEME_KEYS[styleId] || STYLE_TO_THEME_KEYS['cinematic-nature'];
+  // Standalone Client-Side Style-Based Visual Generator (Respects user-chosen visual style category)
+  const generateLocalQuranVisuals = (verses: any[], catId: string, outputType: 'video' | 'image'): AyahVisualItem[] => {
+    const catConfig = QURAN_TILAWAT_CATEGORIES.find(c => c.id === catId) || QURAN_TILAWAT_CATEGORIES[0];
+    const themeKeys = STYLE_TO_THEME_KEYS[catId] || [catConfig.themeKey || 'gardens'];
 
     return verses.map((v, index) => {
-      const textCombo = `${v.verse_key || ''} ${v.text_arabic || ''} ${v.translation || ''}`.toLowerCase();
-      let matchedTheme = stylePool[index % stylePool.length];
-
-      // Semantic keyword detection
-      if (/noor|light|ray|glow|sun|shams|bright/i.test(textCombo)) {
-        matchedTheme = 'light';
-      } else if (/sky|sama|star|galaxy|universe|night|lail|space/i.test(textCombo)) {
-        matchedTheme = 'night';
-      } else if (/ocean|sea|bahr|water|ship|wave|river/i.test(textCombo)) {
-        matchedTheme = 'ocean';
-      } else if (/rain|matar|cloud|sahab|water|pour/i.test(textCombo)) {
-        matchedTheme = 'rain';
-      } else if (/jannah|garden|tree|fruit|flower|leaf|jannat/i.test(textCombo)) {
-        matchedTheme = 'gardens';
-      } else if (/mountain|jabal|peak|stone|earth|ard/i.test(textCombo)) {
-        matchedTheme = 'mountains';
-      } else if (/desert|sand|dune|dry|horizon/i.test(textCombo)) {
-        matchedTheme = 'desert';
-      }
-
+      // Strictly respect the user's selected category style pool
+      const matchedTheme = themeKeys[index % themeKeys.length];
       const asset = LOCAL_THEMATIC_ASSETS[matchedTheme] || LOCAL_THEMATIC_ASSETS['mountains'];
       const chosenUrl = outputType === 'video' ? asset.video : asset.image;
 
@@ -349,9 +529,9 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
         verse_key: v.verse_key || `Ayah ${index + 1}`,
         text_arabic: v.text_arabic,
         translation: v.translation,
-        theme: matchedTheme,
-        mood: asset.mood,
-        stockQuery: asset.query,
+        theme: catConfig.name,
+        mood: catConfig.urdu,
+        stockQuery: catConfig.query,
         cinematicPrompt: asset.prompt,
         imageUrl: asset.image,
         videoUrl: asset.video,
@@ -359,11 +539,13 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
         mediaType: outputType,
         start: v.start !== undefined ? v.start : index * 5.0,
         duration: v.duration !== undefined ? v.duration : 5.0,
+        source: stockSource === 'pixabay' ? 'pixabay' : 'pexels',
+        downloadUrl: chosenUrl
       };
     });
   };
 
-  // Generate Visuals for Ayahs
+  // Generate Visuals for Ayahs directly from Pexels and Pixabay
   const handleGenerateVisuals = async () => {
     setIsGenerating(true);
     setGenerationProgress(15);
@@ -396,10 +578,52 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
     }
 
     try {
-      setGenerationProgress(45);
-      // Attempt backend AI route with quick timeout fallback for Desktop Snap / PKG standalone environments
+      setGenerationProgress(35);
+      const activeCat = QURAN_TILAWAT_CATEGORIES.find(c => c.id === visualCategory) || QURAN_TILAWAT_CATEGORIES[0];
+      const activeQuery = searchQuery.trim().length > 0 ? searchQuery.trim() : activeCat.query;
+
+      // 1. Direct Pexels & Pixabay Multi-Ayah stock resolver endpoint
+      const stockRes = await fetch(
+        `/api/stock/search?category=${encodeURIComponent(activeQuery)}&mediaType=${mediaType}&count=${payloadVerses.length}&source=${stockSource}`
+      )
+        .then(r => (r.ok ? r.json() : null))
+        .catch(() => null);
+
+      if (stockRes && stockRes.success && Array.isArray(stockRes.items) && stockRes.items.length > 0) {
+        setGenerationProgress(80);
+        const stockItems = stockRes.items;
+        const enriched: AyahVisualItem[] = payloadVerses.map((v: any, index: number) => {
+          const item = stockItems[index % stockItems.length];
+          const isVid = (item.mediaType || mediaType) === 'video';
+          return {
+            verse_key: v.verse_key || `Ayah ${index + 1}`,
+            text_arabic: v.text_arabic,
+            translation: v.translation,
+            theme: activeCat.name,
+            mood: activeCat.urdu,
+            stockQuery: activeQuery,
+            cinematicPrompt: item.title || `${activeCat.name} Scene`,
+            imageUrl: item.thumbnail || item.url,
+            videoUrl: isVid ? item.url : '',
+            selectedUrl: item.url,
+            mediaType: isVid ? 'video' : 'image',
+            start: v.start !== undefined ? v.start : index * 5.0,
+            duration: v.duration !== undefined ? v.duration : 5.0,
+            source: item.source || (stockSource === 'pixabay' ? 'pixabay' : 'pexels'),
+            downloadUrl: item.downloadUrl || item.url
+          };
+        });
+
+        setGeneratedVisuals(enriched);
+        setGenerationProgress(100);
+        showToast(`✨ Successfully fetched ${enriched.length} Ayah media scenes from ${stockRes.sourceUsed.toUpperCase()}!`);
+        return;
+      }
+
+      setGenerationProgress(55);
+      // 2. Fallback to /api/ai/quran-visuals
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
 
       const res = await fetch('/api/ai/quran-visuals', {
         method: 'POST',
@@ -428,6 +652,8 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
               start: original.start !== undefined ? original.start : index * 5.0,
               duration: original.duration !== undefined ? original.duration : 5.0,
               mediaType: mediaType,
+              source: 'pexels',
+              downloadUrl: v.selectedUrl || v.videoUrl || v.imageUrl
             };
           });
 
@@ -438,14 +664,14 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
         }
       }
 
-      // Standalone / Offline Snap & PKG Fallback Generator
+      // 3. Standalone / Offline Pexels & Pixabay Curated Generator
       setGenerationProgress(80);
       const localVisuals = generateLocalQuranVisuals(payloadVerses, visualStyle, mediaType);
       setGeneratedVisuals(localVisuals);
       setGenerationProgress(100);
-      showToast(`✨ Generated ${localVisuals.length} Ayah cinematic scenes!`);
+      showToast(`✨ Generated ${localVisuals.length} Ayah scenes from Pexels & Pixabay catalog!`);
     } catch (err: any) {
-      console.warn('Local visual generator activated:', err);
+      console.warn('Direct stock resolver fallback:', err);
       const localVisuals = generateLocalQuranVisuals(payloadVerses, visualStyle, mediaType);
       setGeneratedVisuals(localVisuals);
       showToast(`✨ Generated ${localVisuals.length} Ayah visual scenes!`);
@@ -852,16 +1078,88 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
         )}
       </div>
 
-      {/* Visual Format & Style Options */}
-      <div className="bg-[#121216] border border-[#2a2a30] rounded-xl p-3 space-y-3">
-        <div className="flex items-center justify-between text-xs font-semibold text-gray-300">
-          <span>Media Output Type</span>
-          <div className="flex rounded-lg bg-[#1e1e24] p-0.5 border border-[#33333d]">
+      {/* Stock Media Provider & Quran Visuals Studio */}
+      <div className="bg-[#121216] border border-[#2a2a30] rounded-xl p-3.5 space-y-4 shadow-lg">
+        {/* Step 1: Select Website (2 Websites: Pexels or Pixabay) */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-[11px] font-bold text-gray-200 flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5 text-emerald-400" />
+              1. Select Website (Pexels اور Pixabay منتخب کریں)
+            </label>
+            <span className="text-[9px] bg-emerald-500/10 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30 font-semibold">
+              100% Royalty-Free
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => {
+                setStockSource('pexels');
+                showToast('📸 Switched to Pexels HD Stock Library');
+              }}
+              className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-all text-left ${
+                stockSource === 'pexels'
+                  ? 'bg-gradient-to-r from-emerald-950/80 to-[#12291e] border-emerald-500 text-white shadow-md shadow-emerald-950/40 ring-1 ring-emerald-500/40'
+                  : 'bg-[#181820] border-[#2c2c36] text-gray-400 hover:bg-[#1f1f2a] hover:text-gray-200'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0 ${stockSource === 'pexels' ? 'bg-emerald-500 text-black font-black' : 'bg-[#22222d] text-gray-300'}`}>
+                  📸
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-white flex items-center gap-1">
+                    Pexels
+                    {stockSource === 'pexels' && <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[3]" />}
+                  </div>
+                  <div className="text-[10px] text-gray-400 truncate">HD Videos & 4K Photos</div>
+                </div>
+              </div>
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${stockSource === 'pexels' ? 'bg-emerald-500/20 text-emerald-300' : 'text-gray-600'}`}>
+                Active
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                setStockSource('pixabay');
+                showToast('🎨 Switched to Pixabay Stock Library');
+              }}
+              className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-all text-left ${
+                stockSource === 'pixabay'
+                  ? 'bg-gradient-to-r from-emerald-950/80 to-[#12291e] border-emerald-500 text-white shadow-md shadow-emerald-950/40 ring-1 ring-emerald-500/40'
+                  : 'bg-[#181820] border-[#2c2c36] text-gray-400 hover:bg-[#1f1f2a] hover:text-gray-200'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0 ${stockSource === 'pixabay' ? 'bg-emerald-500 text-black font-black' : 'bg-[#22222d] text-gray-300'}`}>
+                  🎨
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-white flex items-center gap-1">
+                    Pixabay
+                    {stockSource === 'pixabay' && <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[3]" />}
+                  </div>
+                  <div className="text-[10px] text-gray-400 truncate">Free Footage & Images</div>
+                </div>
+              </div>
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${stockSource === 'pixabay' ? 'bg-emerald-500/20 text-emerald-300' : 'text-gray-600'}`}>
+                Active
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Media Format Selector */}
+        <div className="flex items-center justify-between pt-1 border-t border-[#202028]">
+          <span className="text-[11px] font-semibold text-gray-300">Format (ویڈیو یا تصویر)</span>
+          <div className="flex rounded-lg bg-[#1a1a24] p-0.5 border border-[#30303c]">
             <button
               onClick={() => setMediaType('video')}
-              className={`flex items-center gap-1 px-3 py-1 text-[11px] font-medium rounded-md transition ${
+              className={`flex items-center gap-1.5 px-3 py-1 text-[11px] font-semibold rounded-md transition ${
                 mediaType === 'video'
-                  ? 'bg-emerald-500 text-black font-bold shadow'
+                  ? 'bg-emerald-500 text-black shadow font-bold'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -870,9 +1168,9 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
             </button>
             <button
               onClick={() => setMediaType('image')}
-              className={`flex items-center gap-1 px-3 py-1 text-[11px] font-medium rounded-md transition ${
+              className={`flex items-center gap-1.5 px-3 py-1 text-[11px] font-semibold rounded-md transition ${
                 mediaType === 'image'
-                  ? 'bg-emerald-500 text-black font-bold shadow'
+                  ? 'bg-emerald-500 text-black shadow font-bold'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -882,28 +1180,170 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
           </div>
         </div>
 
+        {/* Step 2: Quran Tilawat Categories Under the Selected Website */}
         <div>
-          <label className="text-[10px] text-gray-400 block mb-1.5 font-medium">
-            Visual Atmosphere Theme
-          </label>
-          <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-            {VISUAL_STYLES.map(style => (
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-[11px] font-bold text-gray-200 flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-emerald-400" />
+              2. Quran Tilawat Categories (قرآن تلاوت کی کیٹیگری)
+            </label>
+            <span className="text-[10px] text-emerald-400/90 font-medium font-urdu">
+              {QURAN_TILAWAT_CATEGORIES.find(c => c.id === visualCategory)?.urdu}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+            {QURAN_TILAWAT_CATEGORIES.map(cat => {
+              const isSelected = visualCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => {
+                    setVisualCategory(cat.id);
+                    setSearchQuery('');
+                  }}
+                  className={`flex items-start gap-2 p-2 rounded-xl text-left transition border ${
+                    isSelected
+                      ? 'bg-emerald-950/60 border-emerald-500 text-white shadow-sm ring-1 ring-emerald-500/30'
+                      : 'bg-[#181820] border-[#272732] text-gray-300 hover:bg-[#20202c] hover:border-gray-700'
+                  }`}
+                >
+                  <span className="text-xl shrink-0 mt-0.5">{cat.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-gray-200 truncate">{cat.name}</div>
+                    <div className="text-[10px] text-emerald-400/90 font-medium truncate font-urdu">{cat.urdu}</div>
+                    <div className="text-[9px] text-gray-400 truncate mt-0.5">{cat.description}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Step 3: Interactive Search & Live Media Explorer (Like searching directly on Pexels/Pixabay) */}
+        <div className="pt-2 border-t border-[#202028] space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] font-bold text-gray-200 flex items-center gap-1.5">
+              <Search className="w-3.5 h-3.5 text-cyan-400" />
+              Search & Live Explorer ({stockSource === 'pixabay' ? 'Pixabay' : 'Pexels'})
+            </label>
+            {isLoadingExplorer && (
+              <span className="text-[10px] text-cyan-400 flex items-center gap-1">
+                <RefreshCw className="w-3 h-3 animate-spin" /> Fetching...
+              </span>
+            )}
+          </div>
+
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={`🔍 Search ${stockSource === 'pixabay' ? 'Pixabay' : 'Pexels'} (e.g. natural, rain, mountains, ocean, clouds, noor)...`}
+              className="w-full bg-[#181822] border border-[#333342] rounded-xl pl-3 pr-8 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/80 transition"
+            />
+            {searchQuery && (
               <button
-                key={style.id}
-                onClick={() => setVisualStyle(style.id)}
-                className={`flex items-center gap-2.5 p-2 rounded-lg text-left transition border ${
-                  visualStyle === style.id
-                    ? 'bg-emerald-950/40 border-emerald-500/50 text-white shadow-sm'
-                    : 'bg-[#1c1c24] border-[#2c2c36] text-gray-300 hover:bg-[#23232e]'
-                }`}
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs"
               >
-                <span className="text-lg">{style.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-gray-200 truncate">{style.name}</div>
-                  <div className="text-[10px] text-gray-400 truncate">{style.description}</div>
-                </div>
+                ✕
               </button>
-            ))}
+            )}
+          </div>
+
+          {/* Live Media Cards from Pexels / Pixabay */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] text-gray-400 px-0.5">
+              <span>Results from <strong className="text-white capitalize">{stockSource}</strong> ({stockExplorerItems.length} found):</span>
+              <span className="text-emerald-400">Hover video to play</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+              {stockExplorerItems.map((item, idx) => {
+                const isVid = (item.mediaType || mediaType) === 'video';
+                return (
+                  <div
+                    key={item.id || idx}
+                    className="group relative bg-[#171720] border border-[#282836] hover:border-cyan-500/60 rounded-xl overflow-hidden p-1.5 flex flex-col transition shadow-sm hover:shadow-cyan-950/20"
+                  >
+                    <div className="relative w-full h-24 bg-black rounded-lg overflow-hidden shrink-0">
+                      {isVid ? (
+                        <video
+                          src={item.url}
+                          poster={item.thumbnail}
+                          className="w-full h-full object-cover"
+                          muted
+                          loop
+                          playsInline
+                          onMouseEnter={e => (e.currentTarget as HTMLVideoElement).play().catch(() => {})}
+                          onMouseLeave={e => {
+                            const v = e.currentTarget as HTMLVideoElement;
+                            v.pause();
+                            v.currentTime = 0;
+                          }}
+                        />
+                      ) : (
+                        <img
+                          src={item.thumbnail || item.url}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
+
+                      <div className="absolute top-1 left-1 flex items-center gap-1">
+                        <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded shadow ${item.source === 'pixabay' ? 'bg-amber-500 text-black' : 'bg-emerald-500 text-black'}`}>
+                          {item.source || stockSource}
+                        </span>
+                        {isVid && (
+                          <span className="text-[8px] bg-black/70 text-gray-200 px-1 py-0.5 rounded font-mono">
+                            {item.duration ? `${item.duration}s` : 'HD'}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 pointer-events-none">
+                        <div className="w-7 h-7 rounded-full bg-cyan-500 text-black flex items-center justify-center shadow-lg">
+                          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-1.5 flex flex-col justify-between flex-1">
+                      <div className="text-[11px] font-semibold text-gray-200 truncate leading-tight" title={item.title}>
+                        {item.title || `${item.category || 'Tilawat'} Media`}
+                      </div>
+                      
+                      <div className="flex items-center gap-1 mt-1.5 pt-1 border-t border-[#232330]">
+                        <button
+                          onClick={() => handleAddStockItemToTimeline(item)}
+                          className="flex-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-md py-1 text-[9px] font-bold flex items-center justify-center gap-1 transition"
+                          title="Add directly to timeline"
+                        >
+                          <Plus className="w-2.5 h-2.5" /> Timeline
+                        </button>
+                        <button
+                          onClick={() => handleApplyStockItemToAllAyahs(item)}
+                          className="flex-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-md py-1 text-[9px] font-bold flex items-center justify-center gap-1 transition"
+                          title="Apply this video to all Ayahs"
+                        >
+                          <Check className="w-2.5 h-2.5" /> Use
+                        </button>
+                        <button
+                          onClick={() => downloadMediaFile(item.url, `${item.source || 'stock'}_${item.id || 'media'}.${isVid ? 'mp4' : 'jpg'}`)}
+                          className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition"
+                          title="Download to PC"
+                        >
+                          <Download className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -1032,14 +1472,29 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
       {/* Generated Scenes List */}
       {generatedVisuals.length > 0 && (
         <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
               <span>Generated Ayah Scenes</span>
               <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px]">
                 {generatedVisuals.length}
               </span>
+              <span className="px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-[9px] uppercase font-bold">
+                {stockSource === 'auto' ? 'Pexels & Pixabay' : stockSource}
+              </span>
             </h3>
-            <span className="text-[10px] text-gray-400">Click scene to preview</span>
+            <button
+              onClick={handleDownloadAllVisuals}
+              disabled={isDownloadingAll}
+              className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold flex items-center gap-1.5 transition active:scale-95"
+              title="Download all generated media files directly to your computer"
+            >
+              {isDownloadingAll ? (
+                <RefreshCw className="w-3 h-3 animate-spin text-emerald-300" />
+              ) : (
+                <Download className="w-3 h-3 text-emerald-400" />
+              )}
+              <span>{isDownloadingAll ? 'Downloading...' : `Download All (${generatedVisuals.length})`}</span>
+            </button>
           </div>
 
           <div className="space-y-2.5">
@@ -1049,15 +1504,18 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
                 className="bg-[#141418] border border-[#2b2b34] hover:border-emerald-500/50 rounded-xl p-3 space-y-2 transition shadow"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="px-2 py-0.5 bg-emerald-950/80 border border-emerald-500/40 rounded text-emerald-300 font-bold text-[11px]">
                       {item.verse_key}
                     </span>
                     <span className="text-[10px] text-gray-400 capitalize px-1.5 py-0.5 bg-[#202028] rounded">
                       {item.theme}
                     </span>
+                    <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 rounded">
+                      {item.source || 'pexels'}
+                    </span>
                   </div>
-                  <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                  <div className="text-[10px] text-gray-400 flex items-center gap-1 shrink-0">
                     <Clock className="w-3 h-3 text-cyan-400" />
                     <span>{item.duration?.toFixed(1)}s</span>
                   </div>
@@ -1098,16 +1556,30 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
 
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">
-                      <span className="text-cyan-400 font-medium">AI Prompt: </span>
+                      <span className="text-cyan-400 font-medium">Media: </span>
                       {item.cinematicPrompt}
                     </p>
-                    <div className="flex items-center gap-1.5 mt-2">
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                       <button
                         onClick={() => handleAddVisualToTimeline(item)}
-                        className="px-2.5 py-1 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold flex items-center gap-1 transition"
+                        className="px-2 py-1 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold flex items-center gap-1 transition"
                       >
                         <Plus className="w-3 h-3" />
                         Add to Timeline
+                      </button>
+                      <button
+                        onClick={() => {
+                          const isVid = item.mediaType === 'video';
+                          const targetUrl = item.downloadUrl || item.selectedUrl || (isVid ? item.videoUrl : item.imageUrl);
+                          const cleanKey = item.verse_key.replace(/[^a-zA-Z0-9_-]/g, '_');
+                          const ext = isVid ? 'mp4' : 'jpg';
+                          downloadMediaFile(targetUrl, `quran_${cleanKey}_${item.theme}_${item.source || 'stock'}.${ext}`);
+                        }}
+                        className="px-2 py-1 rounded-md bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/30 text-[10px] font-semibold flex items-center gap-1 transition"
+                        title="Download MP4/JPG file directly to your computer"
+                      >
+                        <Download className="w-3 h-3" />
+                        Download {item.mediaType === 'video' ? 'MP4' : 'JPG'}
                       </button>
                     </div>
                   </div>
