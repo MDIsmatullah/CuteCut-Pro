@@ -40,7 +40,7 @@ export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({ isOpen, 
         setChecked(true);
       }, 1600);
     } catch (err) {
-      log('[Error] Failed to fetch remote tag, using local manifest build v2.4.1.');
+      log('[Error] Failed to fetch remote tag, using local manifest build v2.4.2.');
       setChecking(false);
       setChecked(true);
     }
@@ -87,12 +87,12 @@ export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({ isOpen, 
               <div>
                 <p className="text-xs font-bold text-white">CUTECUT PRO Suite</p>
                 <p className="text-[10px] text-gray-400 font-mono">
-                  {latestRelease ? `Active Tag: ${latestRelease.tagName}` : 'Current Build: v2.4.1-PRO'} (Universal Engine)
+                  {latestRelease ? `Active Tag: ${latestRelease.tagName}` : 'Current Build: v2.4.2-PRO'} (Universal Engine)
                 </p>
               </div>
             </div>
             <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-              {latestRelease ? latestRelease.tagName : 'STABLE'}
+              {latestRelease ? latestRelease.tagName : 'v2.4.2'}
             </span>
           </div>
 
@@ -115,7 +115,7 @@ export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({ isOpen, 
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-teal-400 shrink-0" />
                 <span>
-                  Synchronized with latest release ({latestRelease ? latestRelease.tagName : 'v2.4.1'})!
+                  Synchronized with latest release ({latestRelease ? latestRelease.tagName : 'v2.4.2'})!
                 </span>
               </div>
               {latestRelease?.htmlUrl && (

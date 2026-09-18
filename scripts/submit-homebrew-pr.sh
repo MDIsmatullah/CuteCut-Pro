@@ -5,7 +5,7 @@ set -e
 # Submits cutecut-pro.rb to Homebrew/homebrew-cask
 
 CASK_NAME="cutecut-pro"
-VERSION="2.4.1"
+VERSION="2.4.2"
 BRANCH_NAME="add-${CASK_NAME}-${VERSION}"
 REPO_OWNER="${GITHUB_REPOSITORY_OWNER:-MDIsmatullah}"
 GITHUB_TOKEN="${GH_TOKEN:-$GITHUB_TOKEN}"
