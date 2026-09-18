@@ -18,7 +18,8 @@ jobs:
 
       - name: Run AppImageHub Submission Script
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GH_PAT || secrets.APPIMAGE_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GH_PAT || secrets.APPIMAGE_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           chmod +x scripts/submit-appimagehub.sh

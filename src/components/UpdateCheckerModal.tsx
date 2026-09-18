@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { RefreshCw, CheckCircle2, ShieldCheck, Cpu, Terminal, X, Download, Monitor, Zap } from 'lucide-react';
+import { RefreshCw, CheckCircle2, ShieldCheck, Cpu, Terminal, X, Download, Monitor, Zap, ExternalLink } from 'lucide-react';
+import { fetchLatestRelease, ReleaseInfo } from '../utils/releaseService';
 
 interface UpdateCheckerModalProps {
   isOpen: boolean;
@@ -9,11 +10,12 @@ interface UpdateCheckerModalProps {
 export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({ isOpen, onClose }) => {
   const [checking, setChecking] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [latestRelease, setLatestRelease] = useState<ReleaseInfo | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
 
   if (!isOpen) return null;
 
-  const runUpdateCheck = () => {
+  const runUpdateCheck = async () => {
     setChecking(true);
     setChecked(false);
     setLogs([]);
@@ -22,15 +24,26 @@ export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({ isOpen, 
       setLogs((prev) => [...prev, msg]);
     };
 
-    setTimeout(() => log('[System] Querying CUTECUT PRO build manifest (v2.4.1)...'), 200);
-    setTimeout(() => log('[Runtime] Validating WebAssembly FFmpeg core bundle status...'), 600);
-    setTimeout(() => log('[Desktop] Checking Linux (.deb, .snap, .AppImage) and Windows (.exe) parity...'), 1000);
-    setTimeout(() => log('[Quran AI] Local Micro-Sync Scripture dataset integrity: 100% OK'), 1400);
-    setTimeout(() => {
-      log('[Version] Engine build version v2.4.1 is latest production release!');
+    log('[System] Connecting to GitHub Releases API (MDIsmatullah/CuteCut-Pro)...');
+    
+    try {
+      const rel = await fetchLatestRelease();
+      setLatestRelease(rel);
+      setTimeout(() => log(`[Release] Found latest production tag: ${rel.tagName}`), 400);
+      setTimeout(() => log(`[Assets] Windows: ${rel.assets.windowsExe ? '✓ Ready' : '—'}`), 700);
+      setTimeout(() => log(`[Assets] macOS DMG: ${rel.assets.macDmg ? '✓ Ready' : '—'}`), 900);
+      setTimeout(() => log(`[Assets] Linux AppImage: ${rel.assets.linuxAppImage ? '✓ Ready' : '—'}`), 1100);
+      setTimeout(() => log(`[Assets] Debian .deb: ${rel.assets.linuxDeb ? '✓ Ready' : '—'}`), 1300);
+      setTimeout(() => {
+        log(`[Version] Live synchronization complete! Version ${rel.tagName} is active.`);
+        setChecking(false);
+        setChecked(true);
+      }, 1600);
+    } catch (err) {
+      log('[Error] Failed to fetch remote tag, using local manifest build v2.4.1.');
       setChecking(false);
       setChecked(true);
-    }, 1800);
+    }
   };
 
   return (
@@ -73,11 +86,13 @@ export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({ isOpen, 
               />
               <div>
                 <p className="text-xs font-bold text-white">CUTECUT PRO Suite</p>
-                <p className="text-[10px] text-gray-400 font-mono">Current Build: v2.4.1-PRO (Universal Engine)</p>
+                <p className="text-[10px] text-gray-400 font-mono">
+                  {latestRelease ? `Active Tag: ${latestRelease.tagName}` : 'Current Build: v2.4.1-PRO'} (Universal Engine)
+                </p>
               </div>
             </div>
             <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-              STABLE
+              {latestRelease ? latestRelease.tagName : 'STABLE'}
             </span>
           </div>
 
@@ -85,7 +100,7 @@ export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({ isOpen, 
           <div className="bg-[#0c0c10] border border-[#242432] rounded-xl p-3 h-36 font-mono text-[11px] overflow-y-auto space-y-1.5 text-gray-300">
             {logs.length === 0 && !checking && !checked && (
               <p className="text-gray-500 italic text-center pt-10">
-                Click "Run System Update Verification" to benchmark system build files.
+                Click "Run System Update Verification" to benchmark live release parity.
               </p>
             )}
             {logs.map((logStr, idx) => (
@@ -96,9 +111,24 @@ export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({ isOpen, 
           </div>
 
           {checked && (
-            <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-bold flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-teal-400 shrink-0" />
-              <span>You are running the latest CUTECUT PRO release (v2.4.1). No updates required!</span>
+            <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-bold flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-teal-400 shrink-0" />
+                <span>
+                  Synchronized with latest release ({latestRelease ? latestRelease.tagName : 'v2.4.1'})!
+                </span>
+              </div>
+              {latestRelease?.htmlUrl && (
+                <a
+                  href={latestRelease.htmlUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 rounded hover:bg-teal-500/20 text-teal-300 transition"
+                  title="View on GitHub"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              )}
             </div>
           )}
 

@@ -48,7 +48,21 @@ fi
 
 echo "4. Pushing branch ${BRANCH_NAME} to ${REPO_OWNER}/appimage.github.io..."
 git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_OWNER}/appimage.github.io.git" 2>/dev/null || git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_OWNER}/appimage.github.io.git"
-git push -u origin "${BRANCH_NAME}" --force
+
+if ! git push -u origin "${BRANCH_NAME}" --force; then
+  echo "------------------------------------------------------------------"
+  echo "⚠️ GITHUB 403 PERMISSION NOTICE:"
+  echo "The default GITHUB_TOKEN (github-actions[bot]) only has write permissions"
+  echo "for the current repository and cannot push to external forked repositories."
+  echo ""
+  echo "To allow automated Pull Requests across repositories:"
+  echo "1. Go to GitHub Settings -> Developer Settings -> Personal Access Tokens (Classic)"
+  echo "2. Generate token with 'repo' and 'workflow' scope."
+  echo "3. In CuteCut-Pro -> Settings -> Secrets and variables -> Actions"
+  echo "4. Add Secret: PAT_TOKEN with your Personal Access Token value."
+  echo "------------------------------------------------------------------"
+  exit 1
+fi
 
 echo "5. Creating Pull Request to AppImage/appimage.github.io..."
 gh pr create \

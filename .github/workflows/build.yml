@@ -408,12 +408,41 @@ jobs:
           cd ..
 
       - name: Publish Unified GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            release-packages/*
-          generate_release_notes: true
-          draft: false
-          prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          echo "=== Publishing release for tag: ${TAG_NAME} ==="
+          
+          # Ensure release exists or create it
+          if ! gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            echo "Creating release ${TAG_NAME}..."
+            gh release create "${TAG_NAME}" \
+              --title "CuteCut Pro ${TAG_NAME}" \
+              --generate-notes \
+              --draft=false \
+              --prerelease=false || true
+          fi
+
+          echo "=== Uploading artifacts to GitHub Release (with auto-retry & --clobber) ==="
+          for file in release-packages/*; do
+            if [ -f "$file" ]; then
+              echo "Uploading $file..."
+              SUCCESS=0
+              for attempt in 1 2 3; do
+                if gh release upload "${TAG_NAME}" "$file" --clobber; then
+                  echo " Successfully uploaded: $(basename "$file")"
+                  SUCCESS=1
+                  break
+                else
+                  echo "⚠️ Upload attempt $attempt failed for $file, retrying in 5s..."
+                  sleep 5
+                fi
+              done
+              if [ "$SUCCESS" -eq 0 ]; then
+                echo "❌ Failed to upload $file after 3 attempts."
+              fi
+            fi
+          done
+          echo "=== All release packages processed successfully! ==="

@@ -33,10 +33,12 @@ import {
   Apple,
   Terminal,
   Package,
-  Check
+  Check,
+  Smartphone
 } from 'lucide-react';
 import { UserProfile } from './AuthModal';
 import { SavedProjectSession } from './ProjectSaveModal';
+import { fetchLatestRelease, fallbackReleaseInfo, ReleaseInfo } from '../utils/releaseService';
 
 interface LandingPortalProps {
   user: UserProfile | null;
@@ -57,6 +59,13 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
 }) => {
   const [activeCategory, setActiveCategory] = useState<'all' | 'quran' | 'shorts' | 'cinematic' | 'calligraphy'>('all');
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [release, setRelease] = useState<ReleaseInfo>(fallbackReleaseInfo);
+
+  useEffect(() => {
+    fetchLatestRelease().then((data) => {
+      if (data) setRelease(data);
+    });
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -484,38 +493,41 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
           </a>
         </div>
 
-        {/* Desktop Downloads Bar (Windows, macOS, Linux, Debian, Snapcraft, Flathub) */}
+        {/* Desktop & Mobile Downloads Bar (Windows, macOS, Linux, Debian, Snapcraft, Flathub, Android) */}
         <div className="flex flex-col items-center justify-center gap-3 mb-14 w-full max-w-5xl">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
             <Download className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Download Desktop Native Apps (v2.4.1)</span>
+            <span>Download Native Apps ({release.tagName})</span>
+            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-mono">
+              Latest
+            </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 w-full">
             {/* Windows Download */}
             <a
-              href="https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CUTECUT.PRO.Setup.2.4.1.exe"
-              download="CUTECUT.PRO.Setup.2.4.1.exe"
+              href={release.assets.windowsExe}
+              download
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#14141f] hover:bg-[#1c1c2b] border border-[#28283c] hover:border-cyan-400/60 text-gray-200 hover:text-white transition group cursor-pointer shadow-lg shadow-black/40"
-              title="Download for Windows 10/11 64-bit (.exe Setup)"
+              title={`Download for Windows 10/11 64-bit (.exe Setup ${release.tagName})`}
             >
               <Monitor className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition shrink-0" />
               <div className="text-left min-w-0">
                 <div className="text-xs font-bold leading-tight truncate">Windows</div>
-                <div className="text-[10px] text-gray-400 font-mono">.exe Setup</div>
+                <div className="text-[10px] text-gray-400 font-mono">.exe ({release.version})</div>
               </div>
             </a>
 
             {/* macOS Download */}
             <a
-              href="https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CUTECUT.PRO-2.4.1-arm64.dmg"
-              download="CUTECUT.PRO-2.4.1-arm64.dmg"
+              href={release.assets.macDmg}
+              download
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#14141f] hover:bg-[#1c1c2b] border border-[#28283c] hover:border-gray-200/60 text-gray-200 hover:text-white transition group cursor-pointer shadow-lg shadow-black/40"
-              title="Download for macOS Apple Silicon arm64 (.dmg)"
+              title={`Download for macOS Apple Silicon arm64 (.dmg ${release.tagName})`}
             >
               <Apple className="w-4 h-4 text-gray-300 group-hover:scale-110 transition shrink-0" />
               <div className="text-left min-w-0">
@@ -526,12 +538,12 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
 
             {/* Linux AppImage */}
             <a
-              href="https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CUTECUT.PRO-2.4.1.AppImage"
-              download="CUTECUT.PRO-2.4.1.AppImage"
+              href={release.assets.linuxAppImage}
+              download
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#14141f] hover:bg-[#1c1c2b] border border-[#28283c] hover:border-emerald-400/60 text-gray-200 hover:text-white transition group cursor-pointer shadow-lg shadow-black/40"
-              title="Download Linux Portable .AppImage"
+              title={`Download Linux Portable .AppImage (${release.tagName})`}
             >
               <Terminal className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition shrink-0" />
               <div className="text-left min-w-0">
@@ -542,12 +554,12 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
 
             {/* Linux DEB */}
             <a
-              href="https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/cutecut-pro_2.4.1_amd64.deb"
-              download="cutecut-pro_2.4.1_amd64.deb"
+              href={release.assets.linuxDeb}
+              download
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#14141f] hover:bg-[#1c1c2b] border border-[#28283c] hover:border-blue-400/60 text-gray-200 hover:text-white transition group cursor-pointer shadow-lg shadow-black/40"
-              title="Download Debian / Ubuntu .deb package"
+              title={`Download Debian / Ubuntu .deb package (${release.tagName})`}
             >
               <Terminal className="w-4 h-4 text-blue-400 group-hover:scale-110 transition shrink-0" />
               <div className="text-left min-w-0">
@@ -556,28 +568,29 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               </div>
             </a>
 
-            {/* Snapcraft Store */}
+            {/* Android APK */}
             <a
-              href="https://snapcraft.io/cutecut-pro"
+              href={release.assets.androidApk || `https://github.com/MDIsmatullah/CuteCut-Pro/releases/latest`}
+              download
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#14141f] hover:bg-[#1c1c2b] border border-[#28283c] hover:border-orange-400/60 text-gray-200 hover:text-white transition group cursor-pointer shadow-lg shadow-black/40"
-              title="Install from Snap Store (Snapcraft)"
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#14141f] hover:bg-[#1c1c2b] border border-[#28283c] hover:border-green-400/60 text-gray-200 hover:text-white transition group cursor-pointer shadow-lg shadow-black/40"
+              title={`Download Android APK (${release.tagName})`}
             >
-              <Package className="w-4 h-4 text-orange-400 group-hover:scale-110 transition shrink-0" />
+              <Smartphone className="w-4 h-4 text-green-400 group-hover:scale-110 transition shrink-0" />
               <div className="text-left min-w-0">
-                <div className="text-xs font-bold leading-tight truncate">Snapcraft</div>
-                <div className="text-[10px] text-gray-400 font-mono">Snap Store</div>
+                <div className="text-xs font-bold leading-tight truncate">Android</div>
+                <div className="text-[10px] text-gray-400 font-mono">.apk Mobile</div>
               </div>
             </a>
 
             {/* Flathub / Flatpak */}
             <a
-              href="https://flathub.org/apps/org.guldasta.cutecutpro"
+              href={release.assets.flatpak || "https://flathub.org/apps/org.guldasta.cutecutpro"}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#14141f] hover:bg-[#1c1c2b] border border-[#28283c] hover:border-purple-400/60 text-gray-200 hover:text-white transition group cursor-pointer shadow-lg shadow-black/40"
-              title="Install from Flathub (Flatpak)"
+              title="Install from Flathub or Download Flatpak"
             >
               <Package className="w-4 h-4 text-purple-400 group-hover:scale-110 transition shrink-0" />
               <div className="text-left min-w-0">
