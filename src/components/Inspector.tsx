@@ -4,9 +4,9 @@ import { Clip, ClipType, VideoFilters, Keyframe, Track, TransitionType, ClipTran
 import { PRESET_LUTS, ColorGradingPreset } from '../data/presetAssets';
 import { ColorGradingSection } from './ColorGradingSection';
 import { DEFAULT_COLOR_GRADING } from '../utils/editorUtils';
-import { CapCutAudioInspector } from './CapCutAudioInspector';
-import { CapCutVideoInspector } from './CapCutVideoInspector';
-import { CapCutTextInspector } from './CapCutTextInspector';
+import { CuteCutAudioInspector } from './CuteCutAudioInspector';
+import { CuteCutVideoInspector } from './CuteCutVideoInspector';
+import { CuteCutTextInspector } from './CuteCutTextInspector';
 
 interface InspectorProps {
   selectedClip: Clip | null;
@@ -497,15 +497,15 @@ export default function Inspector({
         </div>
       </div>
 
-      {/* CapCut Native Inspector View */}
+      {/* CuteCut Native Inspector View */}
       {activeSubTab === 'capcut' ? (
         <div className="flex-1 overflow-hidden flex flex-col">
           {isAudio ? (
-            <CapCutAudioInspector clip={selectedClip} onUpdateClip={onUpdateClip} />
+            <CuteCutAudioInspector clip={selectedClip} onUpdateClip={onUpdateClip} currentTime={currentTime} />
           ) : isText ? (
-            <CapCutTextInspector clip={selectedClip} onUpdateClip={onUpdateClip} onGenerateTTS={onGenerateTTS} />
+            <CuteCutTextInspector clip={selectedClip} onUpdateClip={onUpdateClip} onGenerateTTS={onGenerateTTS} />
           ) : (
-            <CapCutVideoInspector clip={selectedClip} onUpdateClip={onUpdateClip} />
+            <CuteCutVideoInspector clip={selectedClip} onUpdateClip={onUpdateClip} currentTime={currentTime} onSeek={onSeek} />
           )}
         </div>
       ) : (

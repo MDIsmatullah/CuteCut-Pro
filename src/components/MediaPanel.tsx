@@ -9,7 +9,7 @@ import {
   CAPCUT_TRANSITIONS,
   CAPCUT_FILTERS,
   CapCutAudioItem,
-} from '../data/capcutAssets';
+} from '../data/cutecutAssets';
 import { AyahSymbolStyle, AyahDigitType, AyahSymbolPosition, formatAyahSymbol } from '../utils/editorUtils';
 import { QURAN_TRANSLATION_OPTIONS, getTranslationOptionById, SUPPORTED_TRANSLATION_FONTS, getSuggestedFontsForLanguage } from '../utils/quranTranslations';
 import { FAMOUS_MIX_COLLECTIONS } from '../utils/quranSurahData';

@@ -101,7 +101,11 @@ export interface Clip {
   captionDisplayMode?: 'full-ayah' | 'single-word';
   singleWordPop?: boolean;
   singleWordScaleMultiplier?: number;
-  karaokeHighlight?: boolean;
+  karaokeHighlight?: boolean | {
+    enabled: boolean;
+    color?: string;
+    intensity?: number;
+  };
   karaokeColor?: string;
   syncOffsetMs?: number; // Word-by-word / Karaoke audio synchronization calibration offset in ms
   textLetterSpacing?: number; // Tracking -2 to 30 px
@@ -148,6 +152,12 @@ export interface Clip {
       enabled: boolean;
       style: 'zoom-in' | 'zoom-out' | 'pan-left' | 'pan-right';
     };
+    rotation3D?: {
+      enabled: boolean;
+      rotateX: number;
+      rotateY: number;
+      rotateZ: number;
+    };
     filmGrain?: boolean;
     glitch?: boolean;
     shake?: boolean;
@@ -181,11 +191,21 @@ export interface Clip {
     preset: 'none' | 'hero' | 'bullet' | 'montage' | 'custom';
     curve: number[]; // e.g., [1, 2.5, 0.5, 1]
   };
+  subtitleTranslation?: {
+    enabled: boolean;
+    text: string;
+    fontSize?: number;
+    color?: string;
+  };
   audioEffects?: {
     reverb?: boolean; // Qiraat Hall Echo
     echo?: boolean; // Fast feedback echo
     bassBoost?: boolean; // Low-end frequency boost
-    vocalIsolation?: boolean; // AI Vocal Isolation
+    vocalIsolation?: boolean | {
+      enabled: boolean;
+      vocalGain?: number;
+      instrumentalGain?: number;
+    };
     voiceEnhancer?: boolean; // Voice Clarity Enhancer
     noiseGateThreshold?: number; // dB threshold, e.g. -40
     mosqueReverb?: {
@@ -195,6 +215,11 @@ export interface Clip {
     };
     denoiser?: boolean; // Remove background hiss/hum
     pitchShiftSemitones?: number; // -12 to +12
+    stereoPan?: number; // -100 to 100
+    spatial8D?: boolean;
+    equalizerBands?: number[];
+    deReverb?: number;
+    autoDucking?: boolean;
   };
   blendMode?: string;
   mask?: {

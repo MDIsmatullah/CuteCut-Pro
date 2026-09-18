@@ -38,7 +38,7 @@ export type ClipControlTab =
   | 'fade' 
   | null;
 
-interface MobileCapCutLayoutProps {
+interface MobileCuteCutLayoutProps {
   onBackToPortal: () => void;
   onOpenExport: () => void;
   aspectRatio: '16:9' | '9:16' | '1:1';
@@ -67,7 +67,7 @@ interface MobileCapCutLayoutProps {
   renderInspector: () => React.ReactNode;
 }
 
-export const MobileCapCutLayout: React.FC<MobileCapCutLayoutProps> = ({
+export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
   onBackToPortal,
   onOpenExport,
   aspectRatio,

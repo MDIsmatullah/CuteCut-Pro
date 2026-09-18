@@ -17,7 +17,7 @@ import { Quran100ProtocolsModal } from './components/Quran100ProtocolsModal';
 import { VideoExport } from './components/video/VideoExport';
 import LandingPortal from './components/LandingPortal';
 import NativeSplashScreen from './components/NativeSplashScreen';
-import { MobileCapCutLayout } from './components/MobileCapCutLayout';
+import { MobileCuteCutLayout } from './components/MobileCuteCutLayout';
 import { AdMobService } from './utils/admobService';
 import {
   normalizeMediaUrl,
@@ -6403,7 +6403,7 @@ export default function App() {
             platformName={nativePlatformName}
           />
         )}
-        <MobileCapCutLayout
+        <MobileCuteCutLayout
           onBackToPortal={() => setCurrentView('portal')}
           onOpenExport={triggerExport}
           aspectRatio={aspectRatio}

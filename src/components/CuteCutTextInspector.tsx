@@ -2,44 +2,51 @@ import React, { useState } from 'react';
 import { Type, Sparkles, Wand2, AlignLeft, AlignCenter, AlignRight, AlignJustify, Bold, Italic, Underline, Volume2, MessageSquare, Play, Check, Crown, Move, Layers, Sliders, Palette } from 'lucide-react';
 import { Clip } from '../types';
 
-interface CapCutTextInspectorProps {
+interface CuteCutTextInspectorProps {
   clip: Clip;
   onUpdateClip: (clipId: string, updates: Partial<Clip>) => void;
   onGenerateTTS: (text: string, voice: string) => Promise<void>;
 }
 
-export const CapCutTextInspector: React.FC<CapCutTextInspectorProps> = ({
+export const CuteCutTextInspector: React.FC<CuteCutTextInspectorProps> = ({
   clip,
   onUpdateClip,
   onGenerateTTS,
 }) => {
-  const [mainTab, setMainTab] = useState<'text' | 'animation' | 'tracking' | 'tts'>('text');
+  const [mainTab, setMainTab] = useState<'text' | 'quran' | 'animation' | 'tracking' | 'tts'>('text');
   const [textSubTab, setTextSubTab] = useState<'basic' | 'bubble' | 'effects'>('basic');
   const [effectCategory, setEffectCategory] = useState<'trending' | 'basic' | 'luminescence' | 'multicolor'>('trending');
   const [ttsVoice, setTtsVoice] = useState('Jessie');
   const [isGeneratingTts, setIsGeneratingTts] = useState(false);
+  const [ayahNumber, setAyahNumber] = useState('1');
 
   // Available Fonts
   const FONTS = [
-    { id: 'system-ui', name: 'System' },
-    { id: 'Inter', name: 'Inter' },
+    { id: 'Amiri', name: 'Amiri (Classic Quranic Naskh)' },
+    { id: 'Noto Naskh Arabic', name: 'Noto Naskh Arabic' },
+    { id: 'Scheherazade New', name: 'Scheherazade New (Uthmani)' },
+    { id: 'Lateef', name: 'Lateef (Sindhi/Urdu Nastaliq)' },
+    { id: 'Reem Kufi', name: 'Reem Kufi (Geometric Calligraphy)' },
+    { id: 'Aref Ruqaa', name: 'Aref Ruqaa (Artisan Script)' },
+    { id: 'Cairo', name: 'Cairo (Modern Arabic UI)' },
+    { id: 'Cinzel Decorative', name: 'Cinzel Decorative (Imperial Title)' },
+    { id: 'Playfair Display', name: 'Playfair Display (Serif Elegance)' },
+    { id: 'Inter', name: 'Inter (Clean Sans)' },
     { id: 'Montserrat', name: 'Montserrat' },
     { id: 'Poppins', name: 'Poppins' },
-    { id: 'Playfair Display', name: 'Playfair Display' },
     { id: 'Bebas Neue', name: 'Bebas Neue' },
     { id: 'Oswald', name: 'Oswald' },
-    { id: 'Amiri', name: 'Amiri (Arabic/Quranic)' },
-    { id: 'Noto Naskh Arabic', name: 'Noto Naskh Arabic' },
   ];
 
-  // ART Text Effects from CapCut video (at 1:01 - 1:16 & 3:25)
+  // ART Text Effects from CapCut video (at 1:01 - 1:16 & 3:25) + Sacred Calligraphy
   const ART_EFFECTS = [
+    { id: 'art-gold-divine', label: 'NOOR', color: '#facc15', glow: '#eab308', stroke: '#713f12', style: 'gold-glow' },
     { id: 'art-cyan-neon', label: 'ART', color: '#06b6d4', glow: '#22d3ee', stroke: '#083344', style: 'neon' },
     { id: 'art-gold-3d', label: 'ART', color: '#facc15', glow: '#eab308', stroke: '#713f12', style: 'gold-glow' },
+    { id: 'art-emerald-glow', label: 'KAABA', color: '#34d399', glow: '#10b981', stroke: '#064e3b', style: 'neon' },
+    { id: 'art-white-shadow', label: 'PURE', color: '#ffffff', glow: '#94a3b8', stroke: '#0f172a', style: 'shadow' },
     { id: 'art-magenta-fire', label: 'ART', color: '#f43f5e', glow: '#fb7185', stroke: '#881337', style: 'neon' },
-    { id: 'art-emerald-glow', label: 'ART', color: '#10b981', glow: '#34d399', stroke: '#064e3b', style: 'neon' },
     { id: 'art-cyber-pink', label: 'ART', color: '#ec4899', glow: '#f472b6', stroke: '#831843', style: 'neon' },
-    { id: 'art-white-shadow', label: 'ART', color: '#ffffff', glow: '#94a3b8', stroke: '#0f172a', style: 'shadow' },
     { id: 'art-orange-sunset', label: 'ART', color: '#f97316', glow: '#fb923c', stroke: '#7c2d12', style: 'outline' },
     { id: 'art-purple-dream', label: 'ART', color: '#a855f7', glow: '#c084fc', stroke: '#581c87', style: 'neon' },
   ];
@@ -79,6 +86,17 @@ export const CapCutTextInspector: React.FC<CapCutTextInspectorProps> = ({
           }`}
         >
           Text
+        </button>
+        <button
+          onClick={() => setMainTab('quran')}
+          className={`flex items-center gap-1 px-3 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 whitespace-nowrap ${
+            mainTab === 'quran'
+              ? 'text-amber-400 border-amber-400 bg-[#1a1a22]'
+              : 'text-amber-400/80 border-transparent hover:text-amber-300'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <span>Quran & Captions</span>
         </button>
         <button
           onClick={() => setMainTab('animation')}
@@ -520,7 +538,7 @@ export const CapCutTextInspector: React.FC<CapCutTextInspectorProps> = ({
             {/* Subtab: EFFECTS */}
             {textSubTab === 'effects' && (
               <div className="space-y-3">
-                <div className="font-semibold text-gray-200">CapCut ART Text Presets</div>
+                <div className="font-semibold text-gray-200">CuteCut ART Text Presets</div>
                 <div className="grid grid-cols-4 gap-2">
                   {ART_EFFECTS.map((eff) => {
                     const isSelected = clip.textEffectPreset === eff.id;
@@ -559,6 +577,316 @@ export const CapCutTextInspector: React.FC<CapCutTextInspectorProps> = ({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ================= QURAN & CAPTIONS TAB ================= */}
+        {mainTab === 'quran' && (
+          <div className="space-y-4">
+            {/* Calligraphic Ayah Ornaments */}
+            <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-amber-300 flex items-center gap-1.5">
+                  <span>۝</span>
+                  <span>Sacred Ayah Rosettes & Symbols</span>
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-gray-400">Ayah #:</span>
+                  <input
+                    type="text"
+                    value={ayahNumber}
+                    onChange={(e) => setAyahNumber(e.target.value)}
+                    className="w-10 bg-[#121217] border border-gray-700 rounded px-1.5 py-0.5 text-center font-mono text-xs text-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  {
+                    name: `Ayah Rosette ۝ ${ayahNumber}`,
+                    symbol: ` ۝${ayahNumber} `,
+                    desc: 'End of Ayah circle with number',
+                  },
+                  {
+                    name: 'Rub el Hizb ۞',
+                    symbol: ' ۞ ',
+                    desc: 'Eight-pointed Quranic quarter star',
+                  },
+                  {
+                    name: 'Sajdah Indicator ۩',
+                    symbol: ' ۩ ',
+                    desc: 'Prostration mark',
+                  },
+                  {
+                    name: 'Full Basmalah ﷽',
+                    symbol: 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+                    desc: 'Opening ligature calligraphy',
+                  },
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      const newText = (clip.text || '') + item.symbol;
+                      onUpdateClip(clip.id, {
+                        text: newText,
+                        fontFamily: clip.fontFamily || 'Amiri',
+                      });
+                    }}
+                    className="p-2 rounded bg-[#121217] border border-gray-800 hover:border-amber-500/50 text-left transition group"
+                  >
+                    <div className="font-bold text-amber-300 text-sm group-hover:text-amber-200">
+                      {item.name}
+                    </div>
+                    <div className="text-[9px] text-gray-400 mt-0.5 line-clamp-1">{item.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dual-Layer Translation Subtitles */}
+            <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-gray-200">Dual-Layer Translation Subtitle</div>
+                  <div className="text-[10px] text-gray-400">Display secondary translation (Urdu, English, etc.) below Arabic</div>
+                </div>
+                <button
+                  onClick={() =>
+                    onUpdateClip(clip.id, {
+                      subtitleTranslation: {
+                        enabled: !clip.subtitleTranslation?.enabled,
+                        text: clip.subtitleTranslation?.text || 'In the name of Allah, the Entirely Merciful, the Especially Merciful.',
+                        fontSize: clip.subtitleTranslation?.fontSize || 18,
+                        color: clip.subtitleTranslation?.color || '#e2e8f0',
+                      },
+                    })
+                  }
+                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                    clip.subtitleTranslation?.enabled ? 'bg-amber-500 justify-end' : 'bg-gray-700 justify-start'
+                  }`}
+                >
+                  <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                </button>
+              </div>
+
+              {clip.subtitleTranslation?.enabled && (
+                <div className="space-y-3 pt-2 border-t border-[#262633]">
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-1">Translation Subtitle Text</label>
+                    <textarea
+                      value={clip.subtitleTranslation?.text || ''}
+                      onChange={(e) =>
+                        onUpdateClip(clip.id, {
+                          subtitleTranslation: {
+                            ...(clip.subtitleTranslation || { enabled: true }),
+                            text: e.target.value,
+                          },
+                        })
+                      }
+                      rows={2}
+                      className="w-full bg-[#121217] border border-gray-700 rounded-lg p-2 text-xs text-gray-200 focus:outline-none focus:border-amber-400 resize-none"
+                      placeholder="Enter translation subtitle..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-gray-400">Subtitle Size</span>
+                        <span className="font-mono text-amber-400 font-bold">
+                          {clip.subtitleTranslation?.fontSize || 18}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="12"
+                        max="36"
+                        value={clip.subtitleTranslation?.fontSize || 18}
+                        onChange={(e) =>
+                          onUpdateClip(clip.id, {
+                            subtitleTranslation: {
+                              ...(clip.subtitleTranslation || { enabled: true }),
+                              fontSize: parseInt(e.target.value),
+                            },
+                          })
+                        }
+                        className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-gray-400 block">Color</span>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="color"
+                          value={clip.subtitleTranslation?.color || '#e2e8f0'}
+                          onChange={(e) =>
+                            onUpdateClip(clip.id, {
+                              subtitleTranslation: {
+                                ...(clip.subtitleTranslation || { enabled: true }),
+                                color: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-7 h-7 rounded border border-gray-700 bg-transparent cursor-pointer"
+                        />
+                        <span className="font-mono text-[11px] text-gray-300 uppercase">
+                          {clip.subtitleTranslation?.color || '#e2e8f0'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Glowing Karaoke Word Highlighting */}
+            <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-gray-200 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>Dynamic Karaoke Word Glow</span>
+                  </div>
+                  <div className="text-[10px] text-gray-400">
+                    Illuminates each Quranic word in radiant glow as recited
+                  </div>
+                </div>
+                <button
+                  onClick={() =>
+                    onUpdateClip(clip.id, {
+                      karaokeHighlight: {
+                        enabled: !clip.karaokeHighlight?.enabled,
+                        color: clip.karaokeHighlight?.color || '#facc15',
+                        intensity: clip.karaokeHighlight?.intensity || 25,
+                      },
+                    })
+                  }
+                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                    clip.karaokeHighlight?.enabled ? 'bg-amber-500 justify-end' : 'bg-gray-700 justify-start'
+                  }`}
+                >
+                  <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                </button>
+              </div>
+
+              {clip.karaokeHighlight?.enabled && (
+                <div className="space-y-3 pt-2 border-t border-[#262633]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-400">Radiant Glow Theme</span>
+                    <div className="flex items-center gap-2">
+                      {[
+                        { color: '#facc15', label: 'Noor Gold' },
+                        { color: '#34d399', label: 'Emerald' },
+                        { color: '#22d3ee', label: 'Sky Cyan' },
+                        { color: '#fb7185', label: 'Rose' },
+                      ].map((th) => (
+                        <button
+                          key={th.color}
+                          onClick={() =>
+                            onUpdateClip(clip.id, {
+                              karaokeHighlight: {
+                                ...(clip.karaokeHighlight || { enabled: true }),
+                                color: th.color,
+                              },
+                            })
+                          }
+                          title={th.label}
+                          className={`w-5 h-5 rounded-full border-2 transition ${
+                            clip.karaokeHighlight?.color === th.color
+                              ? 'border-white scale-110 shadow-lg'
+                              : 'border-transparent opacity-60 hover:opacity-100'
+                          }`}
+                          style={{ backgroundColor: th.color }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-gray-400">Glow Halo Radius</span>
+                      <span className="font-mono text-amber-400 font-bold">
+                        {clip.karaokeHighlight?.intensity || 25}px
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="5"
+                      max="50"
+                      value={clip.karaokeHighlight?.intensity || 25}
+                      onChange={(e) =>
+                        onUpdateClip(clip.id, {
+                          karaokeHighlight: {
+                            ...(clip.karaokeHighlight || { enabled: true }),
+                            intensity: parseInt(e.target.value),
+                          },
+                        })
+                      }
+                      className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Sacred Typography Presets */}
+            <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-2.5">
+              <span className="font-semibold text-gray-200">Sacred Visual Typography Styles</span>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  {
+                    name: '🌟 Pure Gold Leaf',
+                    color: '#facc15',
+                    glow: '#ca8a04',
+                    stroke: '#713f12',
+                    font: 'Amiri',
+                  },
+                  {
+                    name: '🕋 Haramain Noor',
+                    color: '#ffffff',
+                    glow: '#10b981',
+                    stroke: '#064e3b',
+                    font: 'Scheherazade New',
+                  },
+                  {
+                    name: '🌙 Emerald Sanctuary',
+                    color: '#6ee7b7',
+                    glow: '#059669',
+                    stroke: '#064e3b',
+                    font: 'Amiri',
+                  },
+                  {
+                    name: '📜 Classical Naskh',
+                    color: '#fef08a',
+                    glow: '#a16207',
+                    stroke: '#451a03',
+                    font: 'Noto Naskh Arabic',
+                  },
+                ].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() =>
+                      onUpdateClip(clip.id, {
+                        color: preset.color,
+                        textGlowColor: preset.glow,
+                        textGlowIntensity: 25,
+                        textStrokeColor: preset.stroke,
+                        textStrokeWidth: 3,
+                        fontFamily: preset.font,
+                      })
+                    }
+                    className="p-2.5 rounded bg-[#121217] border border-gray-800 hover:border-amber-400 text-left transition"
+                  >
+                    <div className="font-bold text-xs text-gray-200">{preset.name}</div>
+                    <div className="text-[10px] text-gray-400 font-serif mt-1" style={{ color: preset.color }}>
+                      بِسْمِ اللَّهِ
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
@@ -652,7 +980,7 @@ export const CapCutTextInspector: React.FC<CapCutTextInspectorProps> = ({
                 {isGeneratingTts ? (
                   <>
                     <Wand2 className="w-4 h-4 animate-spin" />
-                    <span>Generating CapCut Speech...</span>
+                    <span>Generating CuteCut Speech...</span>
                   </>
                 ) : (
                   <>

@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { Volume2, Mic, Gauge, RotateCcw, Sparkles, Sliders, Music, Check, Radio, Wand2 } from 'lucide-react';
+import { Volume2, Mic, Gauge, RotateCcw, Sparkles, Sliders, Music, Check, Radio, Wand2, SlidersHorizontal, Disc, MicVocal, Headphones, Activity, CircleDot, Zap } from 'lucide-react';
 import { Clip } from '../types';
 
-interface CapCutAudioInspectorProps {
+interface CuteCutAudioInspectorProps {
   clip: Clip;
   onUpdateClip: (clipId: string, updates: Partial<Clip>) => void;
+  currentTime?: number;
 }
 
-export const CapCutAudioInspector: React.FC<CapCutAudioInspectorProps> = ({
+export const CuteCutAudioInspector: React.FC<CuteCutAudioInspectorProps> = ({
   clip,
   onUpdateClip,
+  currentTime,
 }) => {
-  const [audioTab, setAudioTab] = useState<'basic' | 'voiceChanger' | 'speed'>('basic');
+  const [audioTab, setAudioTab] = useState<'basic' | 'equalizer' | 'aiVocal' | 'voiceChanger' | 'speed'>('basic');
   const [voiceChangerCategory, setVoiceChangerCategory] = useState<'filters' | 'characters' | 'speechToSong'>('filters');
 
   const audioSettings = clip.audioSettings || {};
@@ -37,6 +39,35 @@ export const CapCutAudioInspector: React.FC<CapCutAudioInspectorProps> = ({
   const handleResetVolume = () => {
     handleVolumeDbChange(0);
   };
+
+  const currentOffset = currentTime !== undefined ? Math.max(0, Math.min(clip.duration, currentTime - clip.start)) : 0;
+  const hasKeyframeAtCurrent = clip.keyframes?.some(k => Math.abs(k.timestamp - currentOffset) < 0.1);
+
+  const toggleVolumeKeyframe = () => {
+    const existing = clip.keyframes ? [...clip.keyframes] : [];
+    const index = existing.findIndex(k => Math.abs(k.timestamp - currentOffset) < 0.1);
+    if (index >= 0) {
+      existing.splice(index, 1);
+    } else {
+      existing.push({
+        id: `kf-aud-${Date.now()}`,
+        timestamp: Number(currentOffset.toFixed(2)),
+        opacity: clip.volume ?? 1,
+      });
+      existing.sort((a, b) => a.timestamp - b.timestamp);
+    }
+    onUpdateClip(clip.id, { keyframes: existing });
+  };
+
+  const EQ_FREQUENCIES = [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+  const EQ_PRESETS = [
+    { id: 'haramain', name: '🕋 Haramain Kaaba Sanctuary', bands: [2, 1, -1, -2, 0, 2, 4, 5, 6, 7], desc: 'Holy Mosque acoustic reflection & crystal clarity' },
+    { id: 'tajweed', name: '🎙️ Warm Quranic Tajweed', bands: [4, 5, 3, 1, 2, 3, 2, 1, 0, 0], desc: 'Deep throat resonance and warm chest voice' },
+    { id: 'clarity', name: '✨ Vocal Air & Shimmer', bands: [-3, -2, 0, 1, 2, 4, 5, 6, 4, 3], desc: 'Cuts mud and brings silky top-end presence' },
+    { id: 'podcast', name: '🎧 Broadcast & Voiceover', bands: [-4, 1, 3, 2, 3, 4, 3, 2, 1, 0], desc: 'Close-mic proximity warmth with clean highs' },
+    { id: 'bass', name: '🔊 Sub-Bass & Low-End Punch', bands: [7, 6, 4, 2, 0, -1, -1, 0, 0, 0], desc: 'Deep resonant low frequency enhancement' },
+    { id: 'flat', name: '⚖️ Flat Master Reference', bands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], desc: 'Linear unmodified audio signal' },
+  ];
 
   const VOICE_FILTERS = [
     { id: 'original', name: 'Original', icon: '🎙️', desc: 'Natural voice' },
@@ -73,12 +104,12 @@ export const CapCutAudioInspector: React.FC<CapCutAudioInspectorProps> = ({
 
   return (
     <div className="flex flex-col h-full select-none text-gray-300">
-      {/* CapCut Sub Tabs: Basic | Voice changer | Speed */}
-      <div className="flex border-b border-[#23232b] bg-[#141418] px-3">
+      {/* CapCut Sub Tabs: Basic | 10-Band EQ | AI Vocal & Stems | Voice changer | Speed */}
+      <div className="flex border-b border-[#23232b] bg-[#141418] px-3 overflow-x-auto custom-scrollbar">
         <button
           id="audio-tab-basic"
           onClick={() => setAudioTab('basic')}
-          className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 ${
+          className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 whitespace-nowrap ${
             audioTab === 'basic'
               ? 'text-cyan-400 border-cyan-400 bg-[#1a1a22]'
               : 'text-gray-400 border-transparent hover:text-white'
@@ -87,9 +118,33 @@ export const CapCutAudioInspector: React.FC<CapCutAudioInspectorProps> = ({
           Basic
         </button>
         <button
+          id="audio-tab-equalizer"
+          onClick={() => setAudioTab('equalizer')}
+          className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 whitespace-nowrap ${
+            audioTab === 'equalizer'
+              ? 'text-cyan-400 border-cyan-400 bg-[#1a1a22]'
+              : 'text-gray-400 border-transparent hover:text-white'
+          }`}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
+          <span>10-Band EQ</span>
+        </button>
+        <button
+          id="audio-tab-aivocal"
+          onClick={() => setAudioTab('aiVocal')}
+          className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 whitespace-nowrap ${
+            audioTab === 'aiVocal'
+              ? 'text-cyan-400 border-cyan-400 bg-[#1a1a22]'
+              : 'text-amber-400 border-transparent hover:text-amber-300'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <span>AI Vocal & Stems</span>
+        </button>
+        <button
           id="audio-tab-voice-changer"
           onClick={() => setAudioTab('voiceChanger')}
-          className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 ${
+          className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 whitespace-nowrap ${
             audioTab === 'voiceChanger'
               ? 'text-cyan-400 border-cyan-400 bg-[#1a1a22]'
               : 'text-gray-400 border-transparent hover:text-white'
@@ -100,7 +155,7 @@ export const CapCutAudioInspector: React.FC<CapCutAudioInspectorProps> = ({
         <button
           id="audio-tab-speed"
           onClick={() => setAudioTab('speed')}
-          className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 ${
+          className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 whitespace-nowrap ${
             audioTab === 'speed'
               ? 'text-cyan-400 border-cyan-400 bg-[#1a1a22]'
               : 'text-gray-400 border-transparent hover:text-white'
@@ -124,6 +179,18 @@ export const CapCutAudioInspector: React.FC<CapCutAudioInspectorProps> = ({
                   <span>Volume</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleVolumeKeyframe}
+                    title={hasKeyframeAtCurrent ? "Remove volume keyframe at playhead" : "Add volume keyframe at playhead"}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border transition ${
+                      hasKeyframeAtCurrent
+                        ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                        : 'bg-[#121217] border-gray-800 text-gray-400 hover:text-cyan-400'
+                    }`}
+                  >
+                    <CircleDot className={`w-3 h-3 ${hasKeyframeAtCurrent ? 'text-cyan-400 animate-pulse' : 'text-gray-500'}`} />
+                    <span>{hasKeyframeAtCurrent ? 'Keyframe Set' : '+ Keyframe'}</span>
+                  </button>
                   <span className="font-mono text-cyan-400 font-bold bg-[#121217] px-2 py-0.5 rounded border border-[#2e2e3e]">
                     {currentDb > 0 ? `+${currentDb.toFixed(1)}dB` : `${currentDb.toFixed(1)}dB`}
                   </span>
@@ -150,6 +217,69 @@ export const CapCutAudioInspector: React.FC<CapCutAudioInspectorProps> = ({
                 <span>-50dB</span>
                 <span>0.0dB</span>
                 <span>+20dB</span>
+              </div>
+            </div>
+
+            {/* Stereo Pan & 3D Spatial Audio */}
+            <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-medium text-gray-200">
+                  <Headphones className="w-4 h-4 text-cyan-400" />
+                  <span>Stereo Panning & 8D Audio</span>
+                </div>
+                <span className="font-mono text-cyan-400 font-bold">
+                  {(clip.audioEffects?.stereoPan ?? 0) === 0
+                    ? 'Center'
+                    : (clip.audioEffects?.stereoPan ?? 0) < 0
+                    ? `L ${Math.abs(clip.audioEffects?.stereoPan ?? 0)}%`
+                    : `R ${clip.audioEffects?.stereoPan}%`}
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <input
+                  type="range"
+                  min="-100"
+                  max="100"
+                  value={clip.audioEffects?.stereoPan ?? 0}
+                  onChange={(e) =>
+                    onUpdateClip(clip.id, {
+                      audioEffects: {
+                        ...clip.audioEffects,
+                        stereoPan: parseInt(e.target.value),
+                      },
+                    })
+                  }
+                  className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                />
+                <div className="flex justify-between text-[10px] text-gray-500 font-mono">
+                  <span>Left (100%)</span>
+                  <span>Center</span>
+                  <span>Right (100%)</span>
+                </div>
+              </div>
+
+              {/* 8D Spatial Headphone Surround Toggle */}
+              <div className="flex items-center justify-between pt-2 border-t border-[#262633]">
+                <div>
+                  <div className="text-gray-200 font-medium text-xs">8D Binaural Rotation</div>
+                  <div className="text-[10px] text-gray-400">Rotates Quran recitation smoothly across left/right stereo fields</div>
+                </div>
+                <button
+                  onClick={() =>
+                    onUpdateClip(clip.id, {
+                      audioEffects: {
+                        ...clip.audioEffects,
+                        spatial8D: !clip.audioEffects?.spatial8D,
+                      },
+                    })
+                  }
+                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                    clip.audioEffects?.spatial8D ? 'bg-cyan-500 justify-end' : 'bg-gray-700 justify-start'
+                  }`}
+                >
+                  <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                </button>
               </div>
             </div>
 
@@ -461,6 +591,259 @@ export const CapCutAudioInspector: React.FC<CapCutAudioInspectorProps> = ({
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= 10-BAND GRAPHIC EQUALIZER ================= */}
+        {audioTab === 'equalizer' && (
+          <div className="space-y-4">
+            {/* EQ Presets */}
+            <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-gray-200">Acoustic Presets</span>
+                <button
+                  onClick={() =>
+                    onUpdateClip(clip.id, {
+                      audioEffects: {
+                        ...clip.audioEffects,
+                        equalizerBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      },
+                    })
+                  }
+                  className="text-[10px] text-gray-400 hover:text-cyan-400 flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset EQ</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {EQ_PRESETS.map((preset) => {
+                  const currentBands = clip.audioEffects?.equalizerBands || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                  const isMatch = preset.bands.every((val, idx) => (currentBands[idx] || 0) === val);
+
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() =>
+                        onUpdateClip(clip.id, {
+                          audioEffects: {
+                            ...clip.audioEffects,
+                            equalizerBands: [...preset.bands],
+                          },
+                        })
+                      }
+                      className={`p-2 rounded text-left border transition flex flex-col justify-between ${
+                        isMatch
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                          : 'bg-[#121217] border-gray-800 text-gray-300 hover:border-gray-700'
+                      }`}
+                    >
+                      <span className="font-bold text-xs">{preset.name}</span>
+                      <span className="text-[9px] text-gray-400 line-clamp-1 mt-0.5">{preset.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 10-Band Visual Sliders */}
+            <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-gray-200">10-Band Graphic Equalizer (-12dB to +12dB)</span>
+                <span className="text-[10px] font-mono text-cyan-400 font-bold">Studio Master</span>
+              </div>
+
+              {/* Fader Console */}
+              <div className="bg-[#121217] p-3 rounded-lg border border-gray-800 flex justify-between gap-1">
+                {EQ_FREQUENCIES.map((freq, idx) => {
+                  const bands = clip.audioEffects?.equalizerBands || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                  const gain = bands[idx] || 0;
+                  const label = freq >= 1000 ? `${freq / 1000}k` : `${freq}`;
+
+                  return (
+                    <div key={freq} className="flex flex-col items-center flex-1 space-y-2">
+                      <span className={`text-[9px] font-mono font-bold ${gain > 0 ? 'text-cyan-400' : gain < 0 ? 'text-amber-400' : 'text-gray-400'}`}>
+                        {gain > 0 ? `+${gain}` : `${gain}`}
+                      </span>
+                      {/* Vertical Slider Track */}
+                      <div className="h-28 flex items-center justify-center relative">
+                        <input
+                          type="range"
+                          min="-12"
+                          max="12"
+                          step="1"
+                          value={gain}
+                          onChange={(e) => {
+                            const newBands = [...(clip.audioEffects?.equalizerBands || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])];
+                            newBands[idx] = parseInt(e.target.value);
+                            onUpdateClip(clip.id, {
+                              audioEffects: {
+                                ...clip.audioEffects,
+                                equalizerBands: newBands,
+                              },
+                            });
+                          }}
+                          className="h-24 w-1 appearance-none bg-gray-700 rounded-full cursor-pointer accent-cyan-400 [writing-mode:bt-lr] [-webkit-appearance:slider-vertical]"
+                        />
+                      </div>
+                      <span className="text-[9px] font-mono text-gray-400">{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= AI VOCAL & STEM SEPARATION ================= */}
+        {audioTab === 'aiVocal' && (
+          <div className="space-y-4">
+            {/* AI Stem Separation */}
+            <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-semibold text-amber-300">
+                  <MicVocal className="w-4 h-4 text-amber-400" />
+                  <span>AI Reciter Vocal Isolation</span>
+                </div>
+                <button
+                  onClick={() =>
+                    onUpdateClip(clip.id, {
+                      audioEffects: {
+                        ...clip.audioEffects,
+                        vocalIsolation: {
+                          enabled: !clip.audioEffects?.vocalIsolation?.enabled,
+                          vocalGain: 1.0,
+                          instrumentalGain: 0.2,
+                        },
+                      },
+                    })
+                  }
+                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                    clip.audioEffects?.vocalIsolation?.enabled ? 'bg-amber-500 justify-end' : 'bg-gray-700 justify-start'
+                  }`}
+                >
+                  <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                </button>
+              </div>
+
+              <p className="text-[10px] text-gray-400">
+                Separates human recitation from background Nasheed, ambient nature, or wind noise.
+              </p>
+
+              {clip.audioEffects?.vocalIsolation?.enabled && (
+                <div className="space-y-3 pt-2 border-t border-[#262633]">
+                  {/* Vocal Gain */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-300">Vocal / Quran Reciter Volume</span>
+                      <span className="font-mono text-cyan-400 font-bold">
+                        {Math.round((clip.audioEffects?.vocalIsolation?.vocalGain ?? 1.0) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="150"
+                      value={Math.round((clip.audioEffects?.vocalIsolation?.vocalGain ?? 1.0) * 100)}
+                      onChange={(e) =>
+                        onUpdateClip(clip.id, {
+                          audioEffects: {
+                            ...clip.audioEffects,
+                            vocalIsolation: {
+                              ...(clip.audioEffects?.vocalIsolation || { enabled: true }),
+                              vocalGain: parseInt(e.target.value) / 100,
+                            },
+                          },
+                        })
+                      }
+                      className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                    />
+                  </div>
+
+                  {/* Instrumental/Nasheed Gain */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-300">Background Nasheed / Ambience</span>
+                      <span className="font-mono text-amber-400 font-bold">
+                        {Math.round((clip.audioEffects?.vocalIsolation?.instrumentalGain ?? 0.2) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={Math.round((clip.audioEffects?.vocalIsolation?.instrumentalGain ?? 0.2) * 100)}
+                      onChange={(e) =>
+                        onUpdateClip(clip.id, {
+                          audioEffects: {
+                            ...clip.audioEffects,
+                            vocalIsolation: {
+                              ...(clip.audioEffects?.vocalIsolation || { enabled: true }),
+                              instrumentalGain: parseInt(e.target.value) / 100,
+                            },
+                          },
+                        })
+                      }
+                      className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* AI Room De-Reverb & Noise Neutralizer */}
+            <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-gray-200">AI De-Reverb (Acoustic Cleanup)</div>
+                  <div className="text-[10px] text-gray-400">Eliminates hollow bedroom echo and boxy room reflection</div>
+                </div>
+                <span className="font-mono text-cyan-400 font-bold text-xs">
+                  {clip.audioEffects?.deReverb ?? 0}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={clip.audioEffects?.deReverb ?? 0}
+                onChange={(e) =>
+                  onUpdateClip(clip.id, {
+                    audioEffects: {
+                      ...clip.audioEffects,
+                      deReverb: parseInt(e.target.value),
+                    },
+                  })
+                }
+                className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
+            </div>
+
+            {/* Smart Auto Audio Ducking */}
+            <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-gray-200">Smart Auto-Ducking</div>
+                  <div className="text-[10px] text-gray-400">Automatically lowers background nasheed when reciter speaks</div>
+                </div>
+                <button
+                  onClick={() =>
+                    onUpdateClip(clip.id, {
+                      audioEffects: {
+                        ...clip.audioEffects,
+                        autoDucking: !clip.audioEffects?.autoDucking,
+                      },
+                    })
+                  }
+                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                    clip.audioEffects?.autoDucking ? 'bg-cyan-500 justify-end' : 'bg-gray-700 justify-start'
+                  }`}
+                >
+                  <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                </button>
               </div>
             </div>
           </div>

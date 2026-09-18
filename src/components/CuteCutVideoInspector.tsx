@@ -1,22 +1,61 @@
 import React, { useState } from 'react';
-import { Sliders, Move, RotateCcw, Sparkles, Blend, Palette, Wand2, Eye, Sun, Droplet, Layers, Scissors, Heart, Square, Circle, Shield, FlipHorizontal, FlipVertical, Moon, Flame, ZoomIn } from 'lucide-react';
+import { Sliders, Move, RotateCcw, Sparkles, Blend, Palette, Wand2, Eye, Sun, Droplet, Layers, Scissors, Heart, Square, Circle, Shield, FlipHorizontal, FlipVertical, Moon, Flame, ZoomIn, Gauge, CircleDot, Activity, Camera, Film, SunMedium, Compass, Wind, Play, Zap } from 'lucide-react';
 import { Clip, VideoFilters, ColorGrading } from '../types';
 import { ColorGradingSection } from './ColorGradingSection';
 import { PRESET_LUTS } from '../data/presetAssets';
 
-interface CapCutVideoInspectorProps {
+interface CuteCutVideoInspectorProps {
   clip: Clip;
   onUpdateClip: (clipId: string, updates: Partial<Clip>) => void;
+  currentTime?: number;
+  onSeek?: (time: number) => void;
 }
 
-export const CapCutVideoInspector: React.FC<CapCutVideoInspectorProps> = ({
+export const CuteCutVideoInspector: React.FC<CuteCutVideoInspectorProps> = ({
   clip,
   onUpdateClip,
+  currentTime,
+  onSeek,
 }) => {
-  const [mainTab, setMainTab] = useState<'video' | 'animation' | 'adjust'>('video');
-  const [videoSubTab, setVideoSubTab] = useState<'basic' | 'removeBg' | 'mask' | 'retouch'>('basic');
+  const [mainTab, setMainTab] = useState<'video' | 'speed' | 'animation' | 'adjust'>('video');
+  const [videoSubTab, setVideoSubTab] = useState<'basic' | 'removeBg' | 'mask' | 'retouch' | 'cinematic'>('basic');
   const [animSubTab, setAnimSubTab] = useState<'in' | 'out' | 'combo'>('in');
   const [adjustSubTab, setAdjustSubTab] = useState<'basic' | 'hsl' | 'curves' | 'colorWheel'>('basic');
+  const [speedMode, setSpeedMode] = useState<'normal' | 'curve'>('normal');
+  const [smoothSlowMo, setSmoothSlowMo] = useState(false);
+  const [preservePitch, setPreservePitch] = useState(true);
+
+  const currentOffset = currentTime !== undefined ? Math.max(0, Math.min(clip.duration, currentTime - clip.start)) : 0;
+  const hasKeyframeAtCurrent = clip.keyframes?.some(k => Math.abs(k.timestamp - currentOffset) < 0.1);
+
+  const toggleKeyframeAtCurrent = () => {
+    const existing = clip.keyframes ? [...clip.keyframes] : [];
+    const index = existing.findIndex(k => Math.abs(k.timestamp - currentOffset) < 0.1);
+    if (index >= 0) {
+      existing.splice(index, 1);
+    } else {
+      existing.push({
+        id: `kf-${Date.now()}`,
+        timestamp: Number(currentOffset.toFixed(2)),
+        scale: clip.transform?.scale || 100,
+        posX: clip.transform?.posX || 0,
+        posY: clip.transform?.posY || 0,
+        rotation: clip.transform?.rotation || 0,
+        opacity: (clip.opacity ?? 1),
+      });
+      existing.sort((a, b) => a.timestamp - b.timestamp);
+    }
+    onUpdateClip(clip.id, { keyframes: existing });
+  };
+
+  const SPEED_PRESETS = [
+    { id: 'custom', name: 'Custom', curve: [1.0, 1.0, 1.0, 1.0, 1.0], desc: 'Adjust velocity manually' },
+    { id: 'montage', name: 'Montage', curve: [0.5, 2.5, 4.0, 0.4, 1.0], desc: 'High energy beat drops' },
+    { id: 'hero', name: 'Hero', curve: [0.3, 3.2, 3.0, 0.2, 0.4], desc: 'Fast rush into freeze frame' },
+    { id: 'bullet', name: 'Bullet', curve: [4.5, 4.5, 0.2, 0.2, 4.5], desc: 'Matrix style slow-motion' },
+    { id: 'jump-cut', name: 'Jump Cut', curve: [1.0, 3.5, 1.0, 3.5, 1.0], desc: 'Rapid velocity pulses' },
+    { id: 'flash-in', name: 'Flash In', curve: [5.0, 2.0, 1.0, 0.6, 0.4], desc: 'Fast intro deceleration' },
+  ];
 
   const transform = clip.transform || { scale: 100, posX: 0, posY: 0, rotation: 0 };
   const filters = clip.filters || { brightness: 100, contrast: 100, saturation: 100, grayscale: 0, sepia: 0, invert: 0, hueRotate: 0, chromaKey: { enabled: false, color: '#00ff00', threshold: 40, smoothness: 10 } };
@@ -80,21 +119,32 @@ export const CapCutVideoInspector: React.FC<CapCutVideoInspectorProps> = ({
 
   return (
     <div className="flex flex-col h-full select-none text-gray-300">
-      {/* Top Main Tabs: Video | Animation | Adjust */}
-      <div className="flex border-b border-[#23232b] bg-[#141418] px-3">
+      {/* Top Main Tabs: Video | Speed | Animation | Adjust */}
+      <div className="flex border-b border-[#23232b] bg-[#141418] px-3 overflow-x-auto custom-scrollbar">
         <button
           onClick={() => setMainTab('video')}
-          className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 ${
+          className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 whitespace-nowrap ${
             mainTab === 'video'
               ? 'text-cyan-400 border-cyan-400 bg-[#1a1a22]'
               : 'text-gray-400 border-transparent hover:text-white'
           }`}
         >
-          Video
+          {clip.type === 'image' ? 'Image' : 'Video'}
+        </button>
+        <button
+          onClick={() => setMainTab('speed')}
+          className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 whitespace-nowrap ${
+            mainTab === 'speed'
+              ? 'text-cyan-400 border-cyan-400 bg-[#1a1a22]'
+              : 'text-gray-400 border-transparent hover:text-white'
+          }`}
+        >
+          <Gauge className="w-3.5 h-3.5 text-cyan-400" />
+          <span>Speed</span>
         </button>
         <button
           onClick={() => setMainTab('animation')}
-          className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 ${
+          className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 whitespace-nowrap ${
             mainTab === 'animation'
               ? 'text-cyan-400 border-cyan-400 bg-[#1a1a22]'
               : 'text-gray-400 border-transparent hover:text-white'
@@ -104,7 +154,7 @@ export const CapCutVideoInspector: React.FC<CapCutVideoInspectorProps> = ({
         </button>
         <button
           onClick={() => setMainTab('adjust')}
-          className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 ${
+          className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition border-b-2 whitespace-nowrap ${
             mainTab === 'adjust'
               ? 'text-cyan-400 border-cyan-400 bg-[#1a1a22]'
               : 'text-gray-400 border-transparent hover:text-white'
@@ -120,11 +170,11 @@ export const CapCutVideoInspector: React.FC<CapCutVideoInspectorProps> = ({
         {/* ================= VIDEO TAB ================= */}
         {mainTab === 'video' && (
           <div className="space-y-4">
-            {/* Subtabs: Basic | Remove BG | Mask | Retouch */}
-            <div className="flex border-b border-[#262633] pb-1 gap-2">
+            {/* Subtabs: Basic | Remove BG | Mask | Retouch | Cinematic & 3D */}
+            <div className="flex border-b border-[#262633] pb-1 gap-2 overflow-x-auto custom-scrollbar">
               <button
                 onClick={() => setVideoSubTab('basic')}
-                className={`text-[11px] pb-1 font-semibold transition ${
+                className={`text-[11px] pb-1 font-semibold transition whitespace-nowrap ${
                   videoSubTab === 'basic' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-white'
                 }`}
               >
@@ -132,7 +182,7 @@ export const CapCutVideoInspector: React.FC<CapCutVideoInspectorProps> = ({
               </button>
               <button
                 onClick={() => setVideoSubTab('removeBg')}
-                className={`text-[11px] pb-1 font-semibold transition ${
+                className={`text-[11px] pb-1 font-semibold transition whitespace-nowrap ${
                   videoSubTab === 'removeBg' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-white'
                 }`}
               >
@@ -140,7 +190,7 @@ export const CapCutVideoInspector: React.FC<CapCutVideoInspectorProps> = ({
               </button>
               <button
                 onClick={() => setVideoSubTab('mask')}
-                className={`text-[11px] pb-1 font-semibold transition ${
+                className={`text-[11px] pb-1 font-semibold transition whitespace-nowrap ${
                   videoSubTab === 'mask' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-white'
                 }`}
               >
@@ -148,11 +198,20 @@ export const CapCutVideoInspector: React.FC<CapCutVideoInspectorProps> = ({
               </button>
               <button
                 onClick={() => setVideoSubTab('retouch')}
-                className={`text-[11px] pb-1 font-semibold transition ${
+                className={`text-[11px] pb-1 font-semibold transition whitespace-nowrap ${
                   videoSubTab === 'retouch' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-white'
                 }`}
               >
                 Retouch
+              </button>
+              <button
+                onClick={() => setVideoSubTab('cinematic')}
+                className={`text-[11px] pb-1 font-semibold transition whitespace-nowrap flex items-center gap-1 ${
+                  videoSubTab === 'cinematic' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-amber-400 hover:text-amber-300'
+                }`}
+              >
+                <Sparkles className="w-3 h-3 text-amber-400" />
+                <span>Cinematic & 3D</span>
               </button>
             </div>
 
@@ -161,7 +220,24 @@ export const CapCutVideoInspector: React.FC<CapCutVideoInspectorProps> = ({
               <div className="space-y-4">
                 {/* Transform: Scale, Position, Rotate */}
                 <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
-                  <div className="font-semibold text-gray-200">Transform</div>
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold text-gray-200 flex items-center gap-1.5">
+                      <Move className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Transform</span>
+                    </div>
+                    <button
+                      onClick={toggleKeyframeAtCurrent}
+                      title={hasKeyframeAtCurrent ? "Delete keyframe at current playhead" : "Add keyframe at current playhead"}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border transition ${
+                        hasKeyframeAtCurrent
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-sm shadow-cyan-500/30'
+                          : 'bg-[#121217] border-gray-700 text-gray-400 hover:text-cyan-400 hover:border-cyan-500'
+                      }`}
+                    >
+                      <CircleDot className={`w-3 h-3 ${hasKeyframeAtCurrent ? 'text-cyan-400 animate-pulse' : 'text-gray-500'}`} />
+                      <span>{hasKeyframeAtCurrent ? 'Keyframe Set' : '+ Keyframe'}</span>
+                    </button>
+                  </div>
                   
                   {/* Scale */}
                   <div className="space-y-1.5">
@@ -758,6 +834,427 @@ export const CapCutVideoInspector: React.FC<CapCutVideoInspectorProps> = ({
                       }
                       className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
                     />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Subtab: CINEMATIC & 3D STUDIO */}
+            {videoSubTab === 'cinematic' && (
+              <div className="space-y-4">
+                {/* Ken Burns Dynamic Pan & Zoom */}
+                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-semibold text-amber-300">
+                      <Camera className="w-4 h-4 text-amber-400" />
+                      <span>Ken Burns Pan & Zoom</span>
+                    </div>
+                    <button
+                      onClick={() =>
+                        onUpdateClip(clip.id, {
+                          videoEffects: {
+                            ...clip.videoEffects,
+                            kenBurns: {
+                              enabled: !clip.videoEffects?.kenBurns?.enabled,
+                              style: clip.videoEffects?.kenBurns?.style || 'zoom-in',
+                            },
+                          },
+                        })
+                      }
+                      className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                        clip.videoEffects?.kenBurns?.enabled ? 'bg-amber-500 justify-end' : 'bg-gray-700 justify-start'
+                      }`}
+                    >
+                      <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-gray-400">
+                    Brings static photos and recitations to life with cinematic slow-motion focal movement.
+                  </p>
+                  {clip.videoEffects?.kenBurns?.enabled && (
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {[
+                        { id: 'zoom-in', label: 'Slow Zoom In', icon: '🔍' },
+                        { id: 'zoom-out', label: 'Slow Zoom Out', icon: '🔎' },
+                        { id: 'pan-left', label: 'Pan Left to Right', icon: '➡️' },
+                        { id: 'pan-right', label: 'Pan Right to Left', icon: '⬅️' },
+                      ].map((style) => (
+                        <button
+                          key={style.id}
+                          onClick={() =>
+                            onUpdateClip(clip.id, {
+                              videoEffects: {
+                                ...clip.videoEffects,
+                                kenBurns: {
+                                  enabled: true,
+                                  style: style.id as any,
+                                },
+                              },
+                            })
+                          }
+                          className={`p-2 rounded text-[11px] font-medium border flex items-center gap-1.5 transition ${
+                            clip.videoEffects?.kenBurns?.style === style.id
+                              ? 'bg-amber-500/20 border-amber-400 text-amber-300'
+                              : 'bg-[#121217] border-gray-800 text-gray-300 hover:border-gray-700'
+                          }`}
+                        >
+                          <span>{style.icon}</span>
+                          <span>{style.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3D Perspective & Spatial Tilt */}
+                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-semibold text-cyan-300">
+                      <Compass className="w-4 h-4 text-cyan-400" />
+                      <span>3D Spatial Rotation</span>
+                    </div>
+                    <span className="font-mono text-[10px] text-cyan-400">XYZ Axes</span>
+                  </div>
+                  
+                  {/* Rotation Angle */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-gray-300">
+                      <span>Z-Rotation</span>
+                      <span className="font-mono text-cyan-400">{transform.rotation || 0}°</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="360"
+                      value={transform.rotation || 0}
+                      onChange={(e) =>
+                        onUpdateClip(clip.id, {
+                          transform: { ...transform, rotation: parseInt(e.target.value) },
+                        })
+                      }
+                      className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                    />
+                  </div>
+
+                  {/* Flip Orientation */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      onClick={() =>
+                        onUpdateClip(clip.id, {
+                          videoEffects: {
+                            ...clip.videoEffects,
+                            flipHorizontal: !clip.videoEffects?.flipHorizontal,
+                          },
+                        })
+                      }
+                      className={`flex items-center justify-center gap-1.5 py-1.5 rounded border text-[11px] font-medium transition ${
+                        clip.videoEffects?.flipHorizontal
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                          : 'bg-[#121217] border-gray-800 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <FlipHorizontal className="w-3.5 h-3.5" />
+                      <span>Flip Horizontal</span>
+                    </button>
+                    <button
+                      onClick={() =>
+                        onUpdateClip(clip.id, {
+                          videoEffects: {
+                            ...clip.videoEffects,
+                            flipVertical: !clip.videoEffects?.flipVertical,
+                          },
+                        })
+                      }
+                      className={`flex items-center justify-center gap-1.5 py-1.5 rounded border text-[11px] font-medium transition ${
+                        clip.videoEffects?.flipVertical
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                          : 'bg-[#121217] border-gray-800 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <FlipVertical className="w-3.5 h-3.5" />
+                      <span>Flip Vertical</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Islamic Noor, Rays & Sacred Atmosphere FX */}
+                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-semibold text-amber-300">
+                      <SunMedium className="w-4 h-4 text-amber-400" />
+                      <span>Divine Noor & Light FX</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { key: 'noorRays', label: 'Noor Sunbeams', icon: '✨' },
+                      { key: 'goldenDust', label: 'Golden Dust', icon: '🌟' },
+                      { key: 'dreamyGlow', label: 'Dreamy Soft Glow', icon: '🌙' },
+                      { key: 'upscaler4k', label: '4K AI Sharpness', icon: '⚡' },
+                    ].map((fx) => {
+                      const isActive = Boolean((clip.videoEffects as any)?.[fx.key]);
+                      return (
+                        <button
+                          key={fx.key}
+                          onClick={() =>
+                            onUpdateClip(clip.id, {
+                              videoEffects: {
+                                ...clip.videoEffects,
+                                [fx.key]: !isActive,
+                              },
+                            })
+                          }
+                          className={`p-2 rounded text-[11px] font-medium border flex items-center justify-between transition ${
+                            isActive
+                              ? 'bg-amber-500/20 border-amber-400 text-amber-300 font-bold'
+                              : 'bg-[#121217] border-gray-800 text-gray-400 hover:text-gray-200'
+                          }`}
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <span>{fx.icon}</span>
+                            <span>{fx.label}</span>
+                          </span>
+                          <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-amber-400' : 'bg-gray-700'}`} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= SPEED TAB (NORMAL & CURVE SPEED RAMPING) ================= */}
+        {mainTab === 'speed' && (
+          <div className="space-y-4">
+            {/* Sub-mode switcher: Normal vs Curve */}
+            <div className="flex bg-[#121217] p-1 rounded-lg border border-[#262633]">
+              <button
+                onClick={() => setSpeedMode('normal')}
+                className={`flex-1 py-1.5 rounded text-xs font-semibold transition ${
+                  speedMode === 'normal' ? 'bg-cyan-500 text-black shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Normal Speed
+              </button>
+              <button
+                onClick={() => setSpeedMode('curve')}
+                className={`flex-1 py-1.5 rounded text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
+                  speedMode === 'curve' ? 'bg-cyan-500 text-black shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5" />
+                <span>Curve (Speed Ramping)</span>
+              </button>
+            </div>
+
+            {/* NORMAL SPEED */}
+            {speedMode === 'normal' && (
+              <div className="space-y-4">
+                <div className="bg-[#1a1a22] p-4 rounded-lg border border-[#262633] space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-200 font-semibold">Speed Multiplier</span>
+                    <span className="font-mono text-cyan-400 font-bold text-base">
+                      {(clip.playbackRate || 1.0).toFixed(2)}x
+                    </span>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="10.0"
+                    step="0.05"
+                    value={clip.playbackRate || 1.0}
+                    onChange={(e) => onUpdateClip(clip.id, { playbackRate: parseFloat(e.target.value) })}
+                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                  />
+
+                  {/* Quick Preset Buttons */}
+                  <div className="flex items-center justify-between gap-1 pt-1">
+                    {[0.25, 0.5, 1.0, 1.5, 2.0, 4.0, 8.0].map((rate) => (
+                      <button
+                        key={rate}
+                        onClick={() => onUpdateClip(clip.id, { playbackRate: rate })}
+                        className={`px-2 py-1 rounded text-[10px] font-mono font-bold border transition ${
+                          Math.abs((clip.playbackRate || 1.0) - rate) < 0.05
+                            ? 'bg-cyan-400 text-black border-cyan-300'
+                            : 'bg-[#121217] text-gray-400 border-gray-800 hover:text-white hover:border-gray-700'
+                        }`}
+                      >
+                        {rate}x
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Effective Duration Info */}
+                  <div className="flex justify-between items-center text-[11px] pt-2 border-t border-[#262633] text-gray-400">
+                    <span>Source Duration: {clip.sourceDuration ? `${clip.sourceDuration.toFixed(1)}s` : `${clip.duration.toFixed(1)}s`}</span>
+                    <span className="text-cyan-400 font-mono font-semibold">
+                      Effective: {((clip.duration || 1) / (clip.playbackRate || 1.0)).toFixed(1)}s
+                    </span>
+                  </div>
+                </div>
+
+                {/* Professional Engine Toggles */}
+                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-gray-200 font-medium text-xs">Smooth Slow-Mo (AI Optical Flow)</div>
+                      <div className="text-[10px] text-gray-400">AI frame blending for silky stutter-free 0.2x slow-mo</div>
+                    </div>
+                    <button
+                      onClick={() => setSmoothSlowMo(!smoothSlowMo)}
+                      className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                        smoothSlowMo ? 'bg-cyan-500 justify-end' : 'bg-gray-700 justify-start'
+                      }`}
+                    >
+                      <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-[#262633]">
+                    <div>
+                      <div className="text-gray-200 font-medium text-xs">Maintain Audio Pitch</div>
+                      <div className="text-[10px] text-gray-400">Prevents chipmunk or monster voice when speed changes</div>
+                    </div>
+                    <button
+                      onClick={() => setPreservePitch(!preservePitch)}
+                      className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                        preservePitch ? 'bg-cyan-500 justify-end' : 'bg-gray-700 justify-start'
+                      }`}
+                    >
+                      <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CURVE SPEED RAMPING */}
+            {speedMode === 'curve' && (
+              <div className="space-y-4">
+                {/* Presets Grid */}
+                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-2.5">
+                  <span className="text-gray-200 font-semibold">Speed Ramp Presets</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SPEED_PRESETS.map((preset) => {
+                      const isCurrent = clip.speedRamp?.preset === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          onClick={() =>
+                            onUpdateClip(clip.id, {
+                              speedRamp: {
+                                preset: preset.id as any,
+                                curve: preset.curve,
+                              },
+                              playbackRate: preset.curve[Math.floor(preset.curve.length / 2)] || 1.0,
+                            })
+                          }
+                          className={`p-2 rounded text-left border transition flex flex-col justify-between ${
+                            isCurrent
+                              ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                              : 'bg-[#121217] border-gray-800 text-gray-300 hover:border-gray-700'
+                          }`}
+                        >
+                          <span className="font-bold text-xs">{preset.name}</span>
+                          <span className="text-[9px] text-gray-400 line-clamp-1 mt-0.5">{preset.desc}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Interactive Curve Graph Visualizer */}
+                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-200 font-semibold">Velocity Curve Visualizer</span>
+                    <span className="text-[10px] font-mono text-cyan-400">Bezier Points</span>
+                  </div>
+
+                  {/* SVG Graph */}
+                  <div className="relative h-28 bg-[#121217] rounded-lg border border-gray-800 p-2 overflow-hidden flex items-end">
+                    {/* Grid lines */}
+                    <div className="absolute inset-0 grid grid-rows-3 opacity-10 pointer-events-none">
+                      <div className="border-b border-cyan-400" />
+                      <div className="border-b border-cyan-400" />
+                    </div>
+
+                    {/* Curve Polyline */}
+                    <svg className="w-full h-full overflow-visible">
+                      {(() => {
+                        const curve = clip.speedRamp?.curve || [1, 1, 1, 1, 1];
+                        const maxVal = 5.0;
+                        const points = curve
+                          .map((val, idx) => {
+                            const x = (idx / (curve.length - 1)) * 100;
+                            const y = 100 - (Math.min(val, maxVal) / maxVal) * 85;
+                            return `${x},${y}`;
+                          })
+                          .join(' ');
+
+                        return (
+                          <>
+                            <polyline
+                              fill="none"
+                              stroke="#06b6d4"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              points={points}
+                            />
+                            {curve.map((val, idx) => {
+                              const cx = `${(idx / (curve.length - 1)) * 100}%`;
+                              const cy = `${100 - (Math.min(val, maxVal) / maxVal) * 85}%`;
+                              return (
+                                <circle
+                                  key={idx}
+                                  cx={cx}
+                                  cy={cy}
+                                  r="5"
+                                  fill="#22d3ee"
+                                  stroke="#0f172a"
+                                  strokeWidth="2"
+                                  className="cursor-pointer hover:r-6 transition-all"
+                                />
+                              );
+                            })}
+                          </>
+                        );
+                      })()}
+                    </svg>
+                  </div>
+
+                  {/* Node Fine-tuning sliders */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="text-[10px] text-gray-400">Fine-tune Curve Velocity Nodes (0.2x to 5.0x):</div>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {(clip.speedRamp?.curve || [1, 1, 1, 1, 1]).map((val, idx) => (
+                        <div key={idx} className="flex flex-col items-center gap-1 bg-[#121217] p-1.5 rounded border border-gray-800">
+                          <span className="text-[9px] font-mono text-cyan-400 font-bold">{val.toFixed(1)}x</span>
+                          <input
+                            type="range"
+                            min="0.2"
+                            max="5.0"
+                            step="0.1"
+                            value={val}
+                            onChange={(e) => {
+                              const newCurve = [...(clip.speedRamp?.curve || [1, 1, 1, 1, 1])];
+                              newCurve[idx] = parseFloat(e.target.value);
+                              onUpdateClip(clip.id, {
+                                speedRamp: {
+                                  preset: 'custom',
+                                  curve: newCurve,
+                                },
+                              });
+                            }}
+                            className="w-full h-1 bg-gray-700 rounded appearance-none cursor-pointer accent-cyan-400"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

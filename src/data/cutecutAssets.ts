@@ -1,4 +1,4 @@
-export interface CapCutAudioItem {
+export interface CuteCutAudioItem {
   id: string;
   name: string;
   category: string;
@@ -6,15 +6,17 @@ export interface CapCutAudioItem {
   durationFormatted: string;
   url: string;
 }
+export type CapCutAudioItem = CuteCutAudioItem;
 
-export interface CapCutStickerItem {
+export interface CuteCutStickerItem {
   id: string;
   name: string;
   category: 'trending' | 'islamic' | 'social' | 'emoji' | 'emphasis' | 'arrows' | 'celebration';
   emoji: string;
 }
+export type CapCutStickerItem = CuteCutStickerItem;
 
-export interface CapCutEffectItem {
+export interface CuteCutEffectItem {
   id: string;
   name: string;
   category: 'trending' | 'spiritual' | 'particles' | 'opening' | 'lens' | 'retro' | 'party' | 'glitch';
@@ -22,15 +24,17 @@ export interface CapCutEffectItem {
   color: string;
   description: string;
 }
+export type CapCutEffectItem = CuteCutEffectItem;
 
-export interface CapCutTransitionItem {
+export interface CuteCutTransitionItem {
   id: string;
   name: string;
   category: 'trending' | 'spiritual' | 'basic' | 'overlay' | 'light' | 'camera' | '3d';
   icon: string;
 }
+export type CapCutTransitionItem = CuteCutTransitionItem;
 
-export interface CapCutFilterItem {
+export interface CuteCutFilterItem {
   id: string;
   name: string;
   category: 'featured' | 'islamic' | 'cinematic' | 'life' | 'scenery' | 'movie' | 'retro' | 'night';
@@ -42,6 +46,7 @@ export interface CapCutFilterItem {
     sepia?: number;
   };
 }
+export type CapCutFilterItem = CuteCutFilterItem;
 
 // Audio tracks directly from the CapCut video (at 0:08 and 1:25 - 1:36)
 export const CAPCUT_AUDIO_TRACKS: CapCutAudioItem[] = [
