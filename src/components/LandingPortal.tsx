@@ -34,7 +34,8 @@ import {
   Terminal,
   Package,
   Check,
-  Smartphone
+  Smartphone,
+  Youtube
 } from 'lucide-react';
 import { UserProfile } from './AuthModal';
 import { SavedProjectSession } from './ProjectSaveModal';
@@ -373,6 +374,10 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
 
         {/* Center Quick Navigation */}
         <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-gray-300">
+          <a href="#walkthrough" className="hover:text-red-400 transition flex items-center gap-1">
+            <Youtube className="w-3.5 h-3.5 text-red-500" />
+            <span>Video Demo</span>
+          </a>
           <a href="#templates" className="hover:text-cyan-400 transition">Templates</a>
           <a href="#features" className="hover:text-cyan-400 transition">Features</a>
           <a href="#cloud" className="hover:text-cyan-400 transition">Cloud Sync</a>
@@ -709,6 +714,199 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
         </div>
       </section>
 
+      {/* Official Video Walkthrough & Features Showcase (YouTube Embed) */}
+      <section id="walkthrough" className="py-12 px-4 lg:px-8 max-w-7xl mx-auto w-full">
+        <div className="bg-gradient-to-b from-[#131422] via-[#0f101a] to-[#0c0d14] border border-[#26283d] rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+          {/* Ambient Glow */}
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[500px] h-[200px] bg-red-500/10 blur-[100px] pointer-events-none rounded-full" />
+          
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 relative z-10">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono font-bold mb-3">
+                <Youtube className="w-3.5 h-3.5 text-red-500" />
+                <span>Official Video Demonstration</span>
+                <span className="bg-red-500 text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-full uppercase">
+                  Full HD
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                Watch CUTECUT PRO in Action
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-2xl leading-relaxed">
+                Experience high-precision Quranic audio synchronization, dynamic multi-layer visualizers, 
+                and studio-grade video timeline editing in our complete walkthrough.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <a
+                href="https://youtu.be/Jye-UqYt2E4?si=ou66LXnFKIQitx2g"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-200 hover:text-white text-xs font-bold transition group shadow-lg shadow-red-500/10 cursor-pointer"
+              >
+                <Youtube className="w-4 h-4 text-red-400 group-hover:scale-110 transition shrink-0" />
+                <span>Open on YouTube</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+              </a>
+            </div>
+          </div>
+
+          {/* Video Player Container */}
+          <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-[#2d2f47] shadow-2xl bg-black group">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/Jye-UqYt2E4?rel=0&modestbranding=1"
+              title="CUTECUT PRO Studio Video Walkthrough"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="w-full h-full border-0"
+            />
+          </div>
+
+          {/* Video Highlights Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-[#1f2030] relative z-10">
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-[#151624] border border-[#222438]">
+              <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 shrink-0">
+                <Scissors className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-white">Multi-Track Timeline</p>
+                <p className="text-[10px] text-gray-400">Frame-accurate cuts & transitions</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-[#151624] border border-[#222438]">
+              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-white">Ayah & Word Sync</p>
+                <p className="text-[10px] text-gray-400">Automated Arabic & Urdu subtitles</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-[#151624] border border-[#222438]">
+              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 shrink-0">
+                <Palette className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-white">3D Gold Calligraphy</p>
+                <p className="text-[10px] text-gray-400">Metallic foil & neon glow shaders</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-[#151624] border border-[#222438]">
+              <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 shrink-0">
+                <Zap className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-white">WASM GPU Render</p>
+                <p className="text-[10px] text-gray-400">Blazing fast 1080p & 4K exports</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Official YouTube Channels Section */}
+          <div className="mt-8 pt-6 border-t border-[#1f2030] relative z-10 text-left">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-red-600/20 text-red-400">
+                  <Youtube className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Our Official YouTube Channels</h3>
+                  <p className="text-[11px] text-gray-400">Subscribe for Quran tilawat videos, tutorials, and development updates</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Channel 1: NOOR-QURAN */}
+              <div className="p-4 rounded-2xl bg-[#141522] border border-[#26283d] hover:border-emerald-500/50 transition flex flex-col justify-between group shadow-lg">
+                <div>
+                  <div className="flex items-center justify-between gap-3 mb-2.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-black text-sm shadow-md shadow-emerald-500/20">
+                        <BookOpen className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-sm font-bold text-white group-hover:text-emerald-300 transition">
+                            NOOR-QURAN
+                          </h4>
+                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                        </div>
+                        <span className="text-[10px] font-mono text-emerald-400 font-semibold uppercase">
+                          Quran Tilawat & Subtitles
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                      Verified
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 leading-relaxed mb-4">
+                    High-definition Quran recitations, ayah-by-ayah Urdu translations, and soothing aesthetic tilawat visualizers.
+                  </p>
+                </div>
+
+                <a
+                  href="https://www.youtube.com/channel/UCVP3RNRdficqmriDszLjzcQ/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs shadow-md shadow-red-600/20 transition cursor-pointer"
+                >
+                  <Youtube className="w-4 h-4 fill-white" />
+                  <span>Subscribe @NOOR-QURAN</span>
+                  <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                </a>
+              </div>
+
+              {/* Channel 2: As Devolper */}
+              <div className="p-4 rounded-2xl bg-[#141522] border border-[#26283d] hover:border-cyan-500/50 transition flex flex-col justify-between group shadow-lg">
+                <div>
+                  <div className="flex items-center justify-between gap-3 mb-2.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-teal-500 flex items-center justify-center text-white font-black text-sm shadow-md shadow-cyan-500/20">
+                        <Scissors className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-sm font-bold text-white group-hover:text-cyan-300 transition">
+                            As Devolper
+                          </h4>
+                          <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                        </div>
+                        <span className="text-[10px] font-mono text-cyan-400 font-semibold uppercase">
+                          Developer & Tech Tutorials
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                      Official Dev
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 leading-relaxed mb-4">
+                    Official CuteCut Pro release walkthroughs, video editing masterclasses, and software development guides.
+                  </p>
+                </div>
+
+                <a
+                  href="https://www.youtube.com/channel/UCgTnf68omNLAr4kHTYXa10g/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs shadow-md shadow-red-600/20 transition cursor-pointer"
+                >
+                  <Youtube className="w-4 h-4 fill-white" />
+                  <span>Subscribe @As Devolper</span>
+                  <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Video Templates Showcase Section (CapCut Gallery Style) */}
       <section id="templates" className="py-16 px-4 lg:px-8 max-w-7xl mx-auto w-full border-t border-[#1a1a28]">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
@@ -900,6 +1098,30 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             <span className="text-gray-300 font-bold">CUTECUT PRO Suite</span>
             <span>— Free High-Performance Video Editor</span>
           </div>
+
+          {/* Social YouTube Links */}
+          <div className="flex items-center gap-4 text-xs font-semibold">
+            <a
+              href="https://www.youtube.com/channel/UCVP3RNRdficqmriDszLjzcQ/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-gray-400 hover:text-red-400 transition"
+            >
+              <Youtube className="w-3.5 h-3.5 text-red-500" />
+              <span>NOOR-QURAN</span>
+            </a>
+            <span className="text-gray-700">•</span>
+            <a
+              href="https://www.youtube.com/channel/UCgTnf68omNLAr4kHTYXa10g/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-gray-400 hover:text-cyan-400 transition"
+            >
+              <Youtube className="w-3.5 h-3.5 text-red-500" />
+              <span>As Devolper</span>
+            </a>
+          </div>
+
           <p className="text-[11px] text-gray-400 font-mono">
             Designed for Quran Tilawat Channels & Content Creators • Cloud Powered
           </p>

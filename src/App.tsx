@@ -16,6 +16,7 @@ import { PreferencesModal } from './components/PreferencesModal';
 import { Quran100ProtocolsModal } from './components/Quran100ProtocolsModal';
 import { VideoExport } from './components/video/VideoExport';
 import LandingPortal from './components/LandingPortal';
+import NativeSplashScreen from './components/NativeSplashScreen';
 import { MobileCapCutLayout } from './components/MobileCapCutLayout';
 import { AdMobService } from './utils/admobService';
 import {
@@ -302,6 +303,20 @@ export default function App() {
       return false;
     }
   })();
+
+  const nativePlatformName = (() => {
+    if (typeof navigator === 'undefined') return 'Desktop Studio Engine';
+    const ua = navigator.userAgent || '';
+    if (/android/i.test(ua)) return 'Android Mobile Engine';
+    if (/win/i.test(ua)) return 'Windows x64 Native Studio';
+    if (/mac/i.test(ua)) return 'macOS Metal Studio';
+    if (/linux/i.test(ua)) return 'Linux Desktop Studio';
+    return 'Desktop Studio Engine';
+  })();
+
+  const [showNativeSplash, setShowNativeSplash] = useState<boolean>(() => {
+    return isNativeShell;
+  });
 
   const [currentView, setCurrentView] = useState<'portal' | 'editor'>(() => {
     try {
@@ -6382,6 +6397,12 @@ export default function App() {
   if (isMobileScreen) {
     return (
       <div id="video-editor-mobile-workspace" className="h-screen w-screen bg-[#07070b] overflow-hidden">
+        {showNativeSplash && (
+          <NativeSplashScreen
+            onComplete={() => setShowNativeSplash(false)}
+            platformName={nativePlatformName}
+          />
+        )}
         <MobileCapCutLayout
           onBackToPortal={() => setCurrentView('portal')}
           onOpenExport={triggerExport}
@@ -6761,8 +6782,13 @@ export default function App() {
   }
 
   return (
-    <div id="video-editor-workspace" className="h-screen bg-[#0e0e11] text-gray-200 flex flex-col font-sans overflow-hidden">
-      
+    <div id="video-editor-workspace" className="h-screen bg-[#0e0e11] text-gray-200 flex flex-col font-sans overflow-hidden relative">
+      {showNativeSplash && (
+        <NativeSplashScreen
+          onComplete={() => setShowNativeSplash(false)}
+          platformName={nativePlatformName}
+        />
+      )}
 
       {/* Top Header */}
       <header className="h-14 bg-[#121217] border-b border-[#242430] flex items-center justify-between px-5 z-10 select-none shadow-md">
