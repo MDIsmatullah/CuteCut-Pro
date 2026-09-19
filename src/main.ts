@@ -25,7 +25,7 @@ if (process.platform === 'linux') {
   
   // Safe Audio Configuration for Linux (.deb, Snap, AppImage, PulseAudio & PipeWire)
   app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox');
-  app.commandLine.appendSwitch('alsa-output-device', 'default');
+  app.commandLine.appendSwitch('enable-features', 'PulseaudioLoopbackForCast');
 
   // Fix ALSA configuration path if running in Snap or constrained environment
   const possibleAlsaPaths = [
@@ -48,8 +48,10 @@ if (process.platform === 'linux') {
   const realUid = typeof process.getuid === 'function' ? process.getuid() : 1000;
   if (!process.env.PULSE_SERVER) {
     const pulsePaths = [
-      `/run/user/${realUid}/pulse/native`,
       xdgRuntime ? path.join(xdgRuntime, 'pulse/native') : '',
+      xdgRuntime ? path.join(xdgRuntime, '../pulse/native') : '',
+      `/run/user/${realUid}/pulse/native`,
+      `/run/user/${realUid}/snap.cutecut-pro/pulse/native`,
       '/var/run/pulse/native'
     ].filter(Boolean);
     for (const p of pulsePaths) {
@@ -57,6 +59,17 @@ if (process.platform === 'linux') {
         process.env.PULSE_SERVER = `unix:${p}`;
         break;
       }
+    }
+  }
+
+  if (!process.env.PIPEWIRE_RUNTIME_DIR) {
+    const pipewirePaths = [
+      xdgRuntime && fs.existsSync(path.join(xdgRuntime, 'pipewire-0')) ? xdgRuntime : '',
+      xdgRuntime && fs.existsSync(path.join(xdgRuntime, '../pipewire-0')) ? path.join(xdgRuntime, '..') : '',
+      fs.existsSync(`/run/user/${realUid}/pipewire-0`) ? `/run/user/${realUid}` : ''
+    ].filter(Boolean);
+    if (pipewirePaths[0]) {
+      process.env.PIPEWIRE_RUNTIME_DIR = pipewirePaths[0];
     }
   }
 

@@ -911,7 +911,7 @@ export default function MediaPanel({
       const isVid = item.mediaType === 'video';
       onAddClip({
         name: `Stock: ${item.title || 'Scene'} [${item.source.toUpperCase()}]`,
-        type: ClipType.VIDEO,
+        type: isVid ? ClipType.VIDEO : ClipType.IMAGE,
         isImage: !isVid,
         url: item.url,
         poster: item.thumbnail,
@@ -933,7 +933,7 @@ export default function MediaPanel({
       const isVid = item.mediaType === 'video';
       onAddClip({
         name: `Scene ${i + 1}: ${ayah.name} [${item.source.toUpperCase()}]`,
-        type: ClipType.VIDEO,
+        type: isVid ? ClipType.VIDEO : ClipType.IMAGE,
         isImage: !isVid,
         url: item.url,
         poster: item.thumbnail,

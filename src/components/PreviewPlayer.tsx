@@ -1049,7 +1049,7 @@ export default function PreviewPlayer({
             const normUrl = normalizeMediaUrl(clip.url);
             const safeCrossOrigin = getSafeCrossOrigin(clip.url);
 
-            const isExplicitImg = clip.isImage || clip.url.startsWith('data:image/') || (/\.(jpeg|jpg|png|gif|webp|svg|avif)(\?|$)/i.test(clip.url) && !clip.url.includes('.mp4') && !clip.url.includes('.webm'));
+            const isExplicitImg = clip.isImage || clip.type === ClipType.IMAGE || clip.url.startsWith('data:image/') || (/\.(jpeg|jpg|png|gif|webp|svg|avif|bmp)(\?|$)/i.test(clip.url) && !clip.url.includes('.mp4') && !clip.url.includes('.webm'));
 
             if (isExplicitImg) {
               const img = document.createElement('img');
@@ -1109,7 +1109,7 @@ export default function PreviewPlayer({
           let isFallbackMotion = false;
 
           if (media) {
-            const isImg = clip.isImage || (media instanceof HTMLImageElement);
+            const isImg = clip.isImage || clip.type === ClipType.IMAGE || (media instanceof HTMLImageElement);
             const videoEl = media as HTMLVideoElement;
 
             const isVideoReady = !isImg && !(videoEl as any).hasError && (videoEl.readyState >= 1 || videoEl.videoWidth > 0);

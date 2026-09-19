@@ -189,7 +189,8 @@ export default function Inspector({
     );
   }
 
-  const isVideo = selectedClip.type === ClipType.VIDEO;
+  const isImage = selectedClip.type === ClipType.IMAGE || selectedClip.isImage;
+  const isVideo = selectedClip.type === ClipType.VIDEO || isImage;
   const isAudio = selectedClip.type === ClipType.AUDIO;
   const isText = selectedClip.type === ClipType.TEXT;
 
@@ -491,8 +492,8 @@ export default function Inspector({
               </button>
             )}
           </div>
-          <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase flex-shrink-0 ${isVideo ? 'bg-cyan-950 text-cyan-400' : isAudio ? 'bg-teal-950 text-teal-400' : 'bg-purple-950 text-purple-400'}`}>
-            {selectedClip.type}
+          <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase flex-shrink-0 ${isImage ? 'bg-emerald-950/80 border border-emerald-500/40 text-emerald-300' : isVideo ? 'bg-cyan-950 text-cyan-400' : isAudio ? 'bg-teal-950 text-teal-400' : 'bg-purple-950 text-purple-400'}`}>
+            {isImage ? 'IMAGE' : selectedClip.type}
           </span>
         </div>
       </div>

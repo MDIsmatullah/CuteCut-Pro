@@ -2196,6 +2196,9 @@ export default function App() {
       speakerGainRef.current = speakerGain;
       exportDestinationRef.current = exportDest;
     }
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume().catch(() => {});
+    }
     return {
       ctx: audioCtxRef.current,
       masterGain: masterGainRef.current!,
@@ -2203,6 +2206,23 @@ export default function App() {
       exportDest: exportDestinationRef.current!
     };
   };
+
+  // Auto-unlock AudioContext on first user interaction (avoids browser & snap audio silence)
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+    };
+    window.addEventListener('pointerdown', unlockAudio, { passive: true });
+    window.addEventListener('keydown', unlockAudio, { passive: true });
+    window.addEventListener('touchstart', unlockAudio, { passive: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
 
   const applyWebAudioEffects = (element: HTMLAudioElement | HTMLVideoElement, clip: Clip) => {
     try {
@@ -2452,6 +2472,16 @@ export default function App() {
                   video.removeAttribute('crossorigin');
                   video.src = effectiveUrl;
                   video.load();
+                } else {
+                  (video as any).hasError = true;
+                  const backup = clip.fallbackUrl || clip.poster || clip.thumbnailUrl;
+                  if (backup && backup !== effectiveUrl) {
+                    console.warn(`Video media error for ${effectiveUrl}. Falling back to visual poster.`);
+                    const fbImg = document.createElement('img');
+                    fbImg.src = normalizeMediaUrl(backup);
+                    videoElementsRef.current[clip.id] = fbImg;
+                    mediaPool.appendChild(fbImg);
+                  }
                 }
               };
               video.addEventListener('error', handleVideoError);
@@ -3522,9 +3552,12 @@ export default function App() {
       }
       if (!targetClip) return prevTracks;
 
+      const destTrack = prevTracks.find(t => t.id === targetTrackId);
       const updatedClip: Clip = {
         ...targetClip,
         trackId: targetTrackId,
+        type: destTrack ? destTrack.type : targetClip.type,
+        isImage: destTrack ? (destTrack.type === ClipType.IMAGE || targetClip.isImage) : targetClip.isImage,
         start: newStart !== undefined ? newStart : targetClip.start
       };
 
@@ -3557,12 +3590,14 @@ export default function App() {
   };
 
   const addNewClip = (clipData: Partial<Clip>) => {
-    let targetType = clipData.type || ClipType.VIDEO;
-    const isImg = clipData.isImage || clipData.type === ClipType.IMAGE || (clipData.url ? !!clipData.url.match(/\.(png|jpg|jpeg|webp|avif|gif)/i) : false);
-
-    // Normalize image clips into the primary visual video track layer
-    if (targetType === ClipType.IMAGE) {
-      targetType = ClipType.VIDEO;
+    const isImg = Boolean(
+      clipData.isImage || 
+      clipData.type === ClipType.IMAGE || 
+      (clipData.url ? (clipData.url.startsWith('data:image/') || /\.(png|jpg|jpeg|webp|avif|gif|bmp|svg)(\?|$)/i.test(clipData.url)) : false)
+    );
+    let targetType = clipData.type || (isImg ? ClipType.IMAGE : ClipType.VIDEO);
+    if (isImg) {
+      targetType = ClipType.IMAGE;
     }
 
     // Generate guaranteed unique clip ID with timestamp and random entropy
@@ -3595,7 +3630,7 @@ export default function App() {
       const newClip: Clip = {
         ...clipData,
         id: uniqueClipId,
-        name: clipData.name || (targetType === ClipType.VIDEO ? (isImg ? 'Image Clip' : 'Video Clip') : targetType === ClipType.AUDIO ? 'Audio Track' : 'Text Overlay'),
+        name: clipData.name || (targetType === ClipType.VIDEO ? 'Video Clip' : targetType === ClipType.IMAGE ? 'Image Clip' : targetType === ClipType.AUDIO ? 'Audio Track' : 'Text Overlay'),
         type: targetType,
         trackId: trackId,
         start: clipStart,
@@ -3629,9 +3664,26 @@ export default function App() {
       setCurrentTime(clipStart);
 
       if (!existingTrack) {
+        if (prevTracks.length === 0) {
+          const baseTracks: Track[] = [
+            { id: 'track-text-1', name: 'Text Track 1', type: ClipType.TEXT, clips: [] },
+            { id: 'track-image-1', name: 'Image Track 1', type: ClipType.IMAGE, clips: [] },
+            { id: 'track-video-1', name: 'Video Track 1', type: ClipType.VIDEO, clips: [] },
+            { id: 'track-audio-1', name: 'Audio Track 1', type: ClipType.AUDIO, clips: [] },
+          ];
+          return baseTracks.map(t => {
+            if (t.type === targetType) {
+              return { ...t, clips: [{ ...newClip, trackId: t.id }] };
+            }
+            return t;
+          });
+        }
+
         const trackCountOfType = prevTracks.filter(t => t.type === targetType).length + 1;
         const trackName = targetType === ClipType.VIDEO 
           ? `Video Track ${trackCountOfType}` 
+          : targetType === ClipType.IMAGE
+          ? `Image Track ${trackCountOfType}`
           : targetType === ClipType.AUDIO 
           ? `Audio Track ${trackCountOfType}` 
           : targetType === ClipType.TEXT 
@@ -3803,13 +3855,31 @@ export default function App() {
 
   const handleAddTrack = (type: ClipType) => {
     const count = tracks.filter(t => t.type === type).length + 1;
+    let trackName = `${type.toUpperCase()} Track ${count}`;
+    if (type === ClipType.VIDEO) trackName = `Video Track ${count}`;
+    else if (type === ClipType.IMAGE) trackName = `Image Track ${count}`;
+    else if (type === ClipType.AUDIO) trackName = `Audio Track ${count}`;
+    else if (type === ClipType.TEXT) trackName = `Text Track ${count}`;
+    else if (type === ClipType.EFFECT) trackName = `Effect Track ${count}`;
+
     const newTrack: Track = {
       id: `track-${type}-${Date.now()}`,
-      name: `${type.toUpperCase()} Track ${count}`,
+      name: trackName,
       type,
       clips: [],
     };
-    setTracks(prev => insertTrackInProperOrder(prev, newTrack));
+    setTracks(prev => {
+      if (prev.length === 0) {
+        const baseTracks: Track[] = [
+          { id: 'track-text-1', name: 'Text Track 1', type: ClipType.TEXT, clips: [] },
+          { id: 'track-image-1', name: 'Image Track 1', type: ClipType.IMAGE, clips: [] },
+          { id: 'track-video-1', name: 'Video Track 1', type: ClipType.VIDEO, clips: [] },
+          { id: 'track-audio-1', name: 'Audio Track 1', type: ClipType.AUDIO, clips: [] },
+        ];
+        return baseTracks.some(t => t.type === type) ? baseTracks : insertTrackInProperOrder(baseTracks, newTrack);
+      }
+      return insertTrackInProperOrder(prev, newTrack);
+    });
   };
 
   const handleDeleteTrack = (trackId: string) => {
@@ -5638,7 +5708,7 @@ export default function App() {
       const formattedClips = (trackId: string): Clip[] => newClips.map((c, i) => ({
         id: c.id || `clip-vid-${Date.now()}-${i}`,
         name: c.name || `Scene ${i + 1}`,
-        type: ClipType.VIDEO,
+        type: (c.type === ClipType.IMAGE || c.isImage) ? ClipType.IMAGE : ClipType.VIDEO,
         trackId: trackId,
         start: c.start !== undefined ? c.start : i * 5,
         duration: c.duration || 5,

@@ -227,49 +227,52 @@ export function applyColorGrading(
 }
 
 /**
- * Clean default initial timeline tracks with zero initial tracks (auto-created on media drop)
+ * Default initial timeline tracks structured into designated areas:
+ * 1. Text Track 1 (top)
+ * 2. Image Track 1 (upper-middle)
+ * 3. Video Track 1 (lower-middle)
+ * 4. Audio Track 1 (bottom)
  */
-export const DEFAULT_INITIAL_TRACKS: Track[] = [];
+export const DEFAULT_INITIAL_TRACKS: Track[] = [
+  { id: 'track-text-1', name: 'Text Track 1', type: ClipType.TEXT, clips: [] },
+  { id: 'track-image-1', name: 'Image Track 1', type: ClipType.IMAGE, clips: [] },
+  { id: 'track-video-1', name: 'Video Track 1', type: ClipType.VIDEO, clips: [] },
+  { id: 'track-audio-1', name: 'Audio Track 1', type: ClipType.AUDIO, clips: [] },
+];
 
 /**
  * Inserts a newly auto-created or manual track in its designated position based on track type hierarchy:
- * 1. Top Section (highest visual layers): TEXT, IMAGE, EFFECT (above video and audio)
- * 2. Middle Section: VIDEO (above audio, below text/image)
- * 3. Bottom / Last Section: AUDIO (at the very bottom / last of the timeline tracks)
+ * 1. Top Section: TEXT (highest visual layer for subtitles/captions/Quran text)
+ * 2. Second Section: EFFECT (overlays, filters, stickers)
+ * 3. Third Section: IMAGE (dedicated image track for photos, logos, B-roll stills, picture-in-picture)
+ * 4. Fourth Section: VIDEO (primary and secondary video tracks)
+ * 5. Bottom / Last Section: AUDIO (voiceover, Quran recitation, sound effects at the very bottom)
  */
+const TRACK_HIERARCHY_RANK: Record<ClipType, number> = {
+  [ClipType.TEXT]: 10,
+  [ClipType.EFFECT]: 20,
+  [ClipType.IMAGE]: 30,
+  [ClipType.VIDEO]: 40,
+  [ClipType.AUDIO]: 50,
+};
+
 export function insertTrackInProperOrder(existingTracks: Track[], newTrack: Track): Track[] {
   const result = [...existingTracks];
-  const type = newTrack.type;
+  const newRank = TRACK_HIERARCHY_RANK[newTrack.type] ?? 35;
 
-  // 1. AUDIO track: Always placed at the very bottom / last of all tracks
-  if (type === ClipType.AUDIO) {
-    result.push(newTrack);
-    return result;
-  }
+  // Find the first track with a lower priority / higher rank number (placed below this track)
+  const insertIdx = result.findIndex(t => {
+    const tRank = TRACK_HIERARCHY_RANK[t.type] ?? 35;
+    return tRank > newRank;
+  });
 
-  // 2. VIDEO track: Placed above all AUDIO tracks, but below any existing TEXT/IMAGE/EFFECT tracks
-  if (type === ClipType.VIDEO) {
-    const firstAudioIdx = result.findIndex(t => t.type === ClipType.AUDIO);
-    if (firstAudioIdx !== -1) {
-      result.splice(firstAudioIdx, 0, newTrack);
-    } else {
-      // If no audio track exists yet, append at the end (below text/image/video tracks)
-      result.push(newTrack);
-    }
-    return result;
-  }
-
-  // 3. TEXT, IMAGE, EFFECT tracks: Placed at the top section (above VIDEO and AUDIO tracks)
-  // If there are existing text/image tracks, it is placed after them, but before any VIDEO or AUDIO tracks
-  const firstVideoOrAudioIdx = result.findIndex(
-    t => t.type === ClipType.VIDEO || t.type === ClipType.AUDIO
-  );
-  if (firstVideoOrAudioIdx !== -1) {
-    result.splice(firstVideoOrAudioIdx, 0, newTrack);
+  if (insertIdx !== -1) {
+    result.splice(insertIdx, 0, newTrack);
   } else {
-    // If no video or audio tracks exist yet, append after existing text/image tracks
+    // If no lower rank exists, append at the end
     result.push(newTrack);
   }
+
   return result;
 }
 

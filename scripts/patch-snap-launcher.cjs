@@ -20,38 +20,31 @@ const templatePatch = `const launcherScript = '#!/bin/bash\\n' +
           'export GTK_PATH="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gtk-3.0"\\n' +
           'export GIO_MODULE_DIR="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gio/modules"\\n' +
           'REAL_UID=$(id -u 2>/dev/null || echo 1000)\\n' +
-          'if [ -e "/run/user/$REAL_UID/pulse/native" ]; then\\n' +
-          '  export PULSE_SERVER="unix:/run/user/$REAL_UID/pulse/native"\\n' +
-          'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/pulse/native" ]; then\\n' +
+          'if [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then\\n' +
           '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"\\n' +
-          'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
+          'elif [ -S "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
           '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/../pulse/native"\\n' +
-          'elif [ -e "/var/run/pulse/native" ]; then\\n' +
+          'elif [ -S "/run/user/$REAL_UID/pulse/native" ]; then\\n' +
+          '  export PULSE_SERVER="unix:/run/user/$REAL_UID/pulse/native"\\n' +
+          'elif [ -S "/run/user/$REAL_UID/snap.cutecut-pro/pulse/native" ]; then\\n' +
+          '  export PULSE_SERVER="unix:/run/user/$REAL_UID/snap.cutecut-pro/pulse/native"\\n' +
+          'elif [ -S "/var/run/pulse/native" ]; then\\n' +
           '  export PULSE_SERVER="unix:/var/run/pulse/native"\\n' +
           'fi\\n' +
-          'if [ -e "/run/user/$REAL_UID/pipewire-0" ]; then\\n' +
-          '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"\\n' +
-          'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/pipewire-0" ]; then\\n' +
+          'if [ -S "$XDG_RUNTIME_DIR/pipewire-0" ]; then\\n' +
           '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR"\\n' +
+          'elif [ -S "$XDG_RUNTIME_DIR/../pipewire-0" ]; then\\n' +
+          '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR/.."\\n' +
+          'elif [ -S "/run/user/$REAL_UID/pipewire-0" ]; then\\n' +
+          '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"\\n' +
           'fi\\n' +
-          'if [ -n "$SNAP_USER_DATA" ]; then\\n' +
-          '  ALSA_DIR="$SNAP_USER_DATA/alsa"\\n' +
-          '  if [ ! -f "$ALSA_DIR/alsa.conf" ]; then\\n' +
-          '    mkdir -p "$ALSA_DIR" 2>/dev/null || true\\n' +
-          '    if [ -d "/snap/gnome-42-2204/current/usr/share/alsa" ]; then\\n' +
-          '      cp -r /snap/gnome-42-2204/current/usr/share/alsa/* "$ALSA_DIR/" 2>/dev/null || true\\n' +
-          '    elif [ -d "$SNAP/usr/share/alsa" ]; then\\n' +
-          '      cp -r $SNAP/usr/share/alsa/* "$ALSA_DIR/" 2>/dev/null || true\\n' +
-          '    elif [ -d "/usr/share/alsa" ]; then\\n' +
-          '      cp -r /usr/share/alsa/* "$ALSA_DIR/" 2>/dev/null || true\\n' +
-          '    fi\\n' +
-          '    sed -i "s|/usr/share/alsa|$ALSA_DIR|g" "$ALSA_DIR/alsa.conf" 2>/dev/null || true\\n' +
-          '    sed -i "s|/usr/share/alsa|$ALSA_DIR|g" "$ALSA_DIR/alsa.conf.d/"*.conf 2>/dev/null || true\\n' +
-          '    rm -f "$ALSA_DIR/alsa.conf.d/"*pipewire* 2>/dev/null || true\\n' +
-          '    printf "pcm.!default {\\\\n    type pulse\\\\n}\\\\nctl.!default {\\\\n    type pulse\\\\n}\\\\n" > "$ALSA_DIR/asound.conf" 2>/dev/null || true\\n' +
-          '  fi\\n' +
-          '  export ALSA_CONFIG_DIR="$ALSA_DIR"\\n' +
-          '  export ALSA_CONFIG_PATH="$ALSA_DIR/alsa.conf"\\n' +
+          'export ALSA_PLUGIN_DIR="$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/alsa-lib:/usr/lib/x86_64-linux-gnu/alsa-lib"\\n' +
+          'if [ -f "/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf" ]; then\\n' +
+          '  export ALSA_CONFIG_PATH="/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf"\\n' +
+          'elif [ -f "$SNAP/usr/share/alsa/alsa.conf" ]; then\\n' +
+          '  export ALSA_CONFIG_PATH="$SNAP/usr/share/alsa/alsa.conf"\\n' +
+          'elif [ -f "/usr/share/alsa/alsa.conf" ]; then\\n' +
+          '  export ALSA_CONFIG_PATH="/usr/share/alsa/alsa.conf"\\n' +
           'fi\\n' +
           'if [ -n "$WAYLAND_DISPLAY" ] && [ -e "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then\\n' +
           '  PLATFORM_FLAGS="--ozone-platform-hint=auto"\\n' +
@@ -60,7 +53,7 @@ const templatePatch = `const launcherScript = '#!/bin/bash\\n' +
           '  export GDK_BACKEND="x11"\\n' +
           '  PLATFORM_FLAGS="--ozone-platform=x11"\\n' +
           'fi\\n' +
-          'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --audio-buffer-size=2048 --disable-gpu-vsync --disable-features=AudioServiceSandbox $PLATFORM_FLAGS "$@"\\n';
+          'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-gpu-vsync --disable-features=AudioServiceSandbox --enable-features=PulseaudioLoopbackForCast $PLATFORM_FLAGS "$@"\\n';
         await (0, promises_1.writeFile)(path.join(templateDir, "command.sh"), launcherScript, { mode: 0o755 });
         const fsSync = require('fs');
         const pathSync = require('path');
@@ -130,38 +123,31 @@ if (content.includes(targetFunc)) {
       'export GTK_PATH="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gtk-3.0"\\n' +
       'export GIO_MODULE_DIR="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gio/modules"\\n' +
       'REAL_UID=$(id -u 2>/dev/null || echo 1000)\\n' +
-      'if [ -e "/run/user/$REAL_UID/pulse/native" ]; then\\n' +
-      '  export PULSE_SERVER="unix:/run/user/$REAL_UID/pulse/native"\\n' +
-      'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/pulse/native" ]; then\\n' +
+      'if [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then\\n' +
       '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"\\n' +
-      'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
+      'elif [ -S "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
       '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/../pulse/native"\\n' +
-      'elif [ -e "/var/run/pulse/native" ]; then\\n' +
+      'elif [ -S "/run/user/$REAL_UID/pulse/native" ]; then\\n' +
+      '  export PULSE_SERVER="unix:/run/user/$REAL_UID/pulse/native"\\n' +
+      'elif [ -S "/run/user/$REAL_UID/snap.cutecut-pro/pulse/native" ]; then\\n' +
+      '  export PULSE_SERVER="unix:/run/user/$REAL_UID/snap.cutecut-pro/pulse/native"\\n' +
+      'elif [ -S "/var/run/pulse/native" ]; then\\n' +
       '  export PULSE_SERVER="unix:/var/run/pulse/native"\\n' +
       'fi\\n' +
-      'if [ -e "/run/user/$REAL_UID/pipewire-0" ]; then\\n' +
-      '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"\\n' +
-      'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -e "$XDG_RUNTIME_DIR/pipewire-0" ]; then\\n' +
+      'if [ -S "$XDG_RUNTIME_DIR/pipewire-0" ]; then\\n' +
       '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR"\\n' +
+      'elif [ -S "$XDG_RUNTIME_DIR/../pipewire-0" ]; then\\n' +
+      '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR/.."\\n' +
+      'elif [ -S "/run/user/$REAL_UID/pipewire-0" ]; then\\n' +
+      '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"\\n' +
       'fi\\n' +
-      'if [ -n "$SNAP_USER_DATA" ]; then\\n' +
-      '  ALSA_DIR="$SNAP_USER_DATA/alsa"\\n' +
-      '  if [ ! -f "$ALSA_DIR/alsa.conf" ]; then\\n' +
-      '    mkdir -p "$ALSA_DIR" 2>/dev/null || true\\n' +
-      '    if [ -d "/snap/gnome-42-2204/current/usr/share/alsa" ]; then\\n' +
-      '      cp -r /snap/gnome-42-2204/current/usr/share/alsa/* "$ALSA_DIR/" 2>/dev/null || true\\n' +
-      '    elif [ -d "$SNAP/usr/share/alsa" ]; then\\n' +
-      '      cp -r $SNAP/usr/share/alsa/* "$ALSA_DIR/" 2>/dev/null || true\\n' +
-      '    elif [ -d "/usr/share/alsa" ]; then\\n' +
-      '      cp -r /usr/share/alsa/* "$ALSA_DIR/" 2>/dev/null || true\\n' +
-      '    fi\\n' +
-      '    sed -i "s|/usr/share/alsa|$ALSA_DIR|g" "$ALSA_DIR/alsa.conf" 2>/dev/null || true\\n' +
-      '    sed -i "s|/usr/share/alsa|$ALSA_DIR|g" "$ALSA_DIR/alsa.conf.d/"*.conf 2>/dev/null || true\\n' +
-      '    rm -f "$ALSA_DIR/alsa.conf.d/"*pipewire* 2>/dev/null || true\\n' +
-      '    printf "pcm.!default {\\\\n    type pulse\\\\n}\\\\nctl.!default {\\\\n    type pulse\\\\n}\\\\n" > "$ALSA_DIR/asound.conf" 2>/dev/null || true\\n' +
-      '  fi\\n' +
-      '  export ALSA_CONFIG_DIR="$ALSA_DIR"\\n' +
-      '  export ALSA_CONFIG_PATH="$ALSA_DIR/alsa.conf"\\n' +
+      'export ALSA_PLUGIN_DIR="$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/alsa-lib:/usr/lib/x86_64-linux-gnu/alsa-lib"\\n' +
+      'if [ -f "/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf" ]; then\\n' +
+      '  export ALSA_CONFIG_PATH="/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf"\\n' +
+      'elif [ -f "$SNAP/usr/share/alsa/alsa.conf" ]; then\\n' +
+      '  export ALSA_CONFIG_PATH="$SNAP/usr/share/alsa/alsa.conf"\\n' +
+      'elif [ -f "/usr/share/alsa/alsa.conf" ]; then\\n' +
+      '  export ALSA_CONFIG_PATH="/usr/share/alsa/alsa.conf"\\n' +
       'fi\\n' +
       'if [ -n "$WAYLAND_DISPLAY" ] && [ -e "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then\\n' +
       '  PLATFORM_FLAGS="--ozone-platform-hint=auto"\\n' +
@@ -170,7 +156,7 @@ if (content.includes(targetFunc)) {
       '  export GDK_BACKEND="x11"\\n' +
       '  PLATFORM_FLAGS="--ozone-platform=x11"\\n' +
       'fi\\n' +
-      'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --audio-buffer-size=2048 --disable-gpu-vsync --disable-features=AudioServiceSandbox $PLATFORM_FLAGS "$@"\\n';
+      'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-gpu-vsync --disable-features=AudioServiceSandbox --enable-features=PulseaudioLoopbackForCast $PLATFORM_FLAGS "$@"\\n';
 }
 //# sourceMappingURL=coreLegacy.js.map`;
   content = prefix + newFunc;

@@ -267,10 +267,11 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
   // Add individual stock item to timeline
   const handleAddStockItemToTimeline = (item: any) => {
     const isVid = (item.mediaType || mediaType) === 'video';
-    const videoTrack = tracks.find(t => t.type === 'video');
-    const trackId = videoTrack ? videoTrack.id : 'track-1';
+    const targetTrackType = isVid ? ClipType.VIDEO : ClipType.IMAGE;
+    const targetTrack = tracks.find(t => t.type === targetTrackType);
+    const trackId = targetTrack ? targetTrack.id : `track-${targetTrackType}-1`;
     
-    const trackClips = videoTrack?.clips || [];
+    const trackClips = targetTrack?.clips || [];
     const lastClip = trackClips[trackClips.length - 1];
     const startTime = lastClip ? (lastClip.start + lastClip.duration) : currentTime;
     const clipDuration = item.duration || (isVid ? 10.0 : 5.0);
@@ -732,7 +733,7 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
 
     onAddClip({
       name: `Scene: ${item.verse_key} [${item.theme}]`,
-      type: ClipType.VIDEO,
+      type: isVid ? ClipType.VIDEO : ClipType.IMAGE,
       url: item.selectedUrl || (isVid ? item.videoUrl : item.imageUrl),
       poster: item.imageUrl,
       thumbnailUrl: item.imageUrl,
@@ -892,7 +893,7 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
       return {
         id: `ayah-bg-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
         name: `Scene: ${seg.verse_key} [${item.theme}]`,
-        type: ClipType.VIDEO,
+        type: isVid ? ClipType.VIDEO : ClipType.IMAGE,
         url: item.selectedUrl || (isVid ? item.videoUrl : item.imageUrl),
         poster: item.imageUrl,
         thumbnailUrl: item.imageUrl,

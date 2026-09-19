@@ -397,8 +397,9 @@ export default function Timeline({
         onAddClip?.({
           name: file.name,
           type: ClipType.IMAGE,
+          isImage: true,
           url,
-          start: 0, // start at the beginning for perfect background alignment
+          start: currentTime || 0,
           duration: totalAudioDur > 0 ? totalAudioDur : 5.0,
           sourceDuration: totalAudioDur > 0 ? totalAudioDur : 5.0,
         });
@@ -1594,15 +1595,40 @@ export default function Timeline({
   const getTrackIcon = (type: ClipType) => {
     switch (type) {
       case ClipType.VIDEO:
-        return <span className="text-cyan-400 text-[10px] font-bold uppercase tracking-wider font-mono">VID</span>;
+        return (
+          <span className="flex items-center gap-1 text-cyan-400 text-[10px] font-bold uppercase tracking-wider font-mono">
+            <Film className="w-3 h-3 text-cyan-400 shrink-0" />
+            <span>VID</span>
+          </span>
+        );
       case ClipType.IMAGE:
-        return <span className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider font-mono">IMG</span>;
+        return (
+          <span className="flex items-center gap-1 text-emerald-400 text-[10px] font-bold uppercase tracking-wider font-mono">
+            <ImageIcon className="w-3 h-3 text-emerald-400 shrink-0" />
+            <span>IMG</span>
+          </span>
+        );
       case ClipType.AUDIO:
-        return <span className="text-teal-400 text-[10px] font-bold uppercase tracking-wider font-mono">AUD</span>;
+        return (
+          <span className="flex items-center gap-1 text-teal-400 text-[10px] font-bold uppercase tracking-wider font-mono">
+            <Music className="w-3 h-3 text-teal-400 shrink-0" />
+            <span>AUD</span>
+          </span>
+        );
       case ClipType.TEXT:
-        return <span className="text-purple-400 text-[10px] font-bold uppercase tracking-wider font-mono">TXT</span>;
+        return (
+          <span className="flex items-center gap-1 text-purple-400 text-[10px] font-bold uppercase tracking-wider font-mono">
+            <TypeIcon className="w-3 h-3 text-purple-400 shrink-0" />
+            <span>TXT</span>
+          </span>
+        );
       case ClipType.EFFECT:
-        return <span className="text-amber-400 text-[10px] font-bold uppercase tracking-wider font-mono">FX</span>;
+        return (
+          <span className="flex items-center gap-1 text-amber-400 text-[10px] font-bold uppercase tracking-wider font-mono">
+            <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
+            <span>FX</span>
+          </span>
+        );
     }
   };
 
@@ -2219,19 +2245,29 @@ export default function Timeline({
                   <span>Track</span>
                 </button>
                 {showAddTrackMenu && (
-                  <div className="absolute top-full mt-1 right-0 bg-[#1a1a20] border border-[#2a2a34] rounded-lg shadow-2xl p-1 z-50 flex flex-col w-28">
-                    {[ClipType.VIDEO, ClipType.IMAGE, ClipType.AUDIO, ClipType.TEXT, ClipType.EFFECT].map(t => (
-                      <button
-                        key={t}
-                        onClick={() => {
-                          onAddTrack(t);
-                          setShowAddTrackMenu(false);
-                        }}
-                        className="px-2 py-1 text-left text-[10px] font-semibold hover:bg-cyan-500/20 hover:text-cyan-300 rounded text-gray-300 uppercase"
-                      >
-                        + {t} Track
-                      </button>
-                    ))}
+                  <div className="absolute top-full mt-1 right-0 bg-[#14141c] border border-[#2a2a38] rounded-xl shadow-2xl p-1.5 z-50 flex flex-col w-36 backdrop-blur-md">
+                    {[
+                      { type: ClipType.VIDEO, label: 'Video Track', icon: Film, color: 'text-cyan-400 hover:bg-cyan-500/15' },
+                      { type: ClipType.IMAGE, label: 'Image Track', icon: ImageIcon, color: 'text-emerald-400 hover:bg-emerald-500/15' },
+                      { type: ClipType.AUDIO, label: 'Audio Track', icon: Music, color: 'text-teal-400 hover:bg-teal-500/15' },
+                      { type: ClipType.TEXT, label: 'Text Track', icon: TypeIcon, color: 'text-purple-400 hover:bg-purple-500/15' },
+                      { type: ClipType.EFFECT, label: 'Effect Track', icon: Sparkles, color: 'text-amber-400 hover:bg-amber-500/15' },
+                    ].map(item => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.type}
+                          onClick={() => {
+                            onAddTrack(item.type);
+                            setShowAddTrackMenu(false);
+                          }}
+                          className={`px-2.5 py-1.5 text-left text-[11px] font-semibold rounded-lg flex items-center gap-2 transition ${item.color}`}
+                        >
+                          <Icon className="w-3.5 h-3.5 shrink-0" />
+                          <span>+ {item.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
