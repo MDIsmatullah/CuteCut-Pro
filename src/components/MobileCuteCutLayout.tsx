@@ -5,13 +5,14 @@ import {
   FolderOpen, Sparkles, SlidersHorizontal, Image as ImageIcon,
   Check, Volume2, Split, Trash2, Copy, Zap, ArrowLeft,
   Ratio, Smile, Move, Eye, RotateCw, ZoomIn, Mic, Film,
-  AlignLeft, Sun, MessageSquare, Gauge
+  AlignLeft, Sun, MessageSquare, Gauge, Bell
 } from 'lucide-react';
 import { Clip } from '../types';
 
 export type GlobalMobileTab = 
   | 'media' 
   | 'audio' 
+  | 'sfx'
   | 'text' 
   | 'overlay' 
   | 'effects' 
@@ -103,6 +104,7 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
   const globalNavItems: { id: GlobalMobileTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'media', label: 'Media', icon: Layers },
     { id: 'audio', label: 'Audio', icon: Music },
+    { id: 'sfx', label: 'Sound FX', icon: Bell },
     { id: 'text', label: 'Text', icon: Type },
     { id: 'overlay', label: 'Overlay', icon: ImageIcon },
     { id: 'effects', label: 'Effects', icon: Wand2 },

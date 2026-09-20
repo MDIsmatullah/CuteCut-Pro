@@ -554,7 +554,7 @@ export function normalizeMediaUrl(url: string | undefined): string {
  */
 export function getSafeCrossOrigin(url: string | undefined): 'anonymous' | undefined {
   if (!url) return undefined;
-  // Local blobs, data URIs, local file schemes, Tauri asset schemes, Android content URIs do NOT use crossOrigin
+  // Local blobs, data URIs, local file schemes, Tauri asset schemes, Android content URIs, and same-origin URLs do NOT use crossOrigin
   if (
     url.startsWith('blob:') ||
     url.startsWith('data:') ||
@@ -565,16 +565,22 @@ export function getSafeCrossOrigin(url: string | undefined): 'anonymous' | undef
     url.startsWith('tauri:') ||
     url.startsWith('app:') ||
     url.startsWith('/') ||
+    url.startsWith('./') ||
+    url.startsWith('../') ||
     url.includes('asset.localhost') ||
     /^[a-zA-Z]:[\\/]/.test(url)
   ) {
     return undefined;
   }
-  // All HTTP / HTTPS URLs (including CDNs like mixkit, soundhelix, quranicaudio) MUST use 'anonymous' to prevent canvas tainting
+  // Check same-origin URLs
+  if (typeof window !== 'undefined' && (url.startsWith(window.location.origin) || url.startsWith('http://localhost') || url.startsWith('https://localhost'))) {
+    return undefined;
+  }
+  // External HTTP / HTTPS URLs use 'anonymous' for canvas drawing
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return 'anonymous';
   }
-  return 'anonymous';
+  return undefined;
 }
 
 export function convertToArabicDigits(num: number | string): string {
@@ -2744,8 +2750,8 @@ export function getInterpolatedClipProperties(clip: Clip, currentTime: number) {
 }
 
 /**
- * Calculates transition state multipliers (opacity, position offsets, scale, wipe crop)
- * for a clip at a specific timeline timestamp based on its transition settings.
+ * Calculates transition & animation state multipliers (opacity, position offsets, scale, rotation, wipe crop, glitch)
+ * for a clip at a specific timeline timestamp based on its CapCut transition & animation settings.
  */
 export function computeClipTransitionState(
   clip: Clip,
@@ -2757,73 +2763,192 @@ export function computeClipTransitionState(
   let offsetX = 0;
   let offsetY = 0;
   let scaleMultiplier = 1.0;
+  let rotationOffset = 0;
   let wipeProgress: number | null = null;
+  let isGlitch = false;
+  let brightnessMultiplier = 1.0;
 
   const fxTrans = clip.videoEffects?.transition;
-  const hasFxTrans = clip.videoEffects?.transition || clip.videoEffects?.transitionIn || clip.videoEffects?.transitionOut;
+  const hasFxTrans = clip.videoEffects?.transition || clip.videoEffects?.transitionIn || clip.videoEffects?.transitionOut || clip.videoEffects?.transitionCombo;
 
   if (!clip.transition && !hasFxTrans) {
-    return { alphaMultiplier, offsetX, offsetY, scaleMultiplier, wipeProgress };
+    return { alphaMultiplier, offsetX, offsetY, scaleMultiplier, rotationOffset, wipeProgress, isGlitch, brightnessMultiplier };
   }
 
   const tr: ClipTransition = clip.transition || {
     type: typeof fxTrans === 'string' ? fxTrans : (typeof fxTrans === 'object' ? fxTrans?.type : 'none'),
-    duration: clip.videoEffects?.transitionDuration || (typeof fxTrans === 'object' ? fxTrans?.duration : 1.0),
+    duration: clip.videoEffects?.transitionDuration || (typeof fxTrans === 'object' ? fxTrans?.duration : 0.5),
     inType: clip.videoEffects?.transitionIn || (typeof fxTrans === 'object' ? fxTrans?.inType : (typeof fxTrans === 'string' ? fxTrans : undefined)),
     outType: clip.videoEffects?.transitionOut || (typeof fxTrans === 'object' ? fxTrans?.outType : (typeof fxTrans === 'string' ? fxTrans : undefined)),
+    comboType: clip.videoEffects?.transitionCombo || (typeof fxTrans === 'object' ? fxTrans?.comboType : undefined),
   };
 
-  const inType = tr.inType || (tr.type && tr.type !== 'none' ? tr.type : 'none');
-  const inDuration = tr.inDuration || tr.duration || 1.0;
-  const outType = tr.outType || (tr.type && tr.type !== 'none' ? tr.type : 'none');
-  const outDuration = tr.outDuration || tr.duration || 1.0;
+  const inType = tr.inType || (clip.videoEffects?.transitionIn) || (tr.type && tr.type !== 'none' ? tr.type : 'none');
+  const inDuration = tr.inDuration || tr.duration || clip.videoEffects?.transitionDuration || 0.5;
+  const outType = tr.outType || (clip.videoEffects?.transitionOut) || (tr.type && tr.type !== 'none' ? tr.type : 'none');
+  const outDuration = tr.outDuration || tr.duration || clip.videoEffects?.transitionDuration || 0.5;
+  const comboType = tr.comboType || clip.videoEffects?.transitionCombo;
 
   const elapsed = currentTime - clip.start;
   const remaining = (clip.start + clip.duration) - currentTime;
 
-  // 1. Transition In (start of clip)
+  // Easing helpers
+  const easeOutCubic = (t: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
+  const easeInCubic = (t: number) => Math.pow(Math.max(0, Math.min(1, t)), 3);
+  const easeOutBack = (t: number) => {
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    const clamped = Math.max(0, Math.min(1, t));
+    return 1 + c3 * Math.pow(clamped - 1, 3) + c1 * Math.pow(clamped - 1, 2);
+  };
+  const easeOutElastic = (t: number) => {
+    const clamped = Math.max(0, Math.min(1, t));
+    if (clamped === 0 || clamped === 1) return clamped;
+    return Math.pow(2, -10 * clamped) * Math.sin((clamped - 0.075) * (2 * Math.PI) / 0.3) + 1;
+  };
+
+  // 1. In Animation (start of clip)
   if (inType && inType !== 'none' && elapsed >= 0 && elapsed < inDuration && inDuration > 0) {
     const t = Math.max(0, Math.min(1, elapsed / inDuration));
-    if (inType === 'fade' || inType === 'dissolve' || inType === 'cross-dissolve') {
-      alphaMultiplier *= t;
+    const smoothT = easeOutCubic(t);
+
+    if (inType === 'fade' || inType === 'fade-in' || inType === 'dissolve' || inType === 'cross-dissolve') {
+      alphaMultiplier *= smoothT;
+    } else if (inType === 'zoom' || inType === 'zoom-in-1') {
+      scaleMultiplier *= (0.15 + 0.85 * easeOutBack(t));
+      alphaMultiplier *= smoothT;
+    } else if (inType === 'zoom-in-2') {
+      scaleMultiplier *= (1.8 - 0.8 * smoothT);
+      alphaMultiplier *= smoothT;
+    } else if (inType === 'mini-zoom') {
+      scaleMultiplier *= (0.75 + 0.25 * smoothT);
+      alphaMultiplier *= smoothT;
     } else if (inType === 'slide-left') {
-      offsetX += canvasWidth * (1 - t);
+      offsetX += canvasWidth * (1 - smoothT);
     } else if (inType === 'slide-right') {
-      offsetX -= canvasWidth * (1 - t);
+      offsetX -= canvasWidth * (1 - smoothT);
     } else if (inType === 'slide-up') {
-      offsetY += canvasHeight * (1 - t);
+      offsetY += canvasHeight * (1 - smoothT);
     } else if (inType === 'slide-down') {
-      offsetY -= canvasHeight * (1 - t);
-    } else if (inType === 'zoom') {
-      scaleMultiplier *= (0.1 + 0.9 * t);
-      alphaMultiplier *= t;
+      offsetY -= canvasHeight * (1 - smoothT);
+    } else if (inType === 'spin-in') {
+      rotationOffset -= 360 * (1 - smoothT);
+      scaleMultiplier *= (0.2 + 0.8 * smoothT);
+      alphaMultiplier *= smoothT;
+    } else if (inType === 'bounce-in') {
+      scaleMultiplier *= (0.2 + 0.8 * easeOutElastic(t));
+      alphaMultiplier *= Math.min(1, t * 2.5);
+    } else if (inType === 'shake-in') {
+      offsetX += Math.sin(t * 36) * (1 - t) * 24;
+      alphaMultiplier *= smoothT;
+    } else if (inType === 'pendulum') {
+      rotationOffset += Math.sin(t * Math.PI * 4) * (1 - t) * 22;
+      scaleMultiplier *= (0.8 + 0.2 * smoothT);
+      alphaMultiplier *= smoothT;
+    } else if (inType === 'glitch-in') {
+      if (t < 0.85) {
+        offsetX += ((Math.sin(t * 60) > 0) ? 18 : -18) * (1 - t);
+        isGlitch = true;
+      }
+      alphaMultiplier *= smoothT;
+    } else if (inType === 'pop-up') {
+      offsetY += (1 - easeOutBack(t)) * (canvasHeight * 0.35);
+      scaleMultiplier *= (0.4 + 0.6 * easeOutBack(t));
+      alphaMultiplier *= smoothT;
+    } else if (inType === 'unfold') {
+      scaleMultiplier *= (0.1 + 0.9 * easeOutBack(t));
+      rotationOffset += (1 - smoothT) * -35;
+      alphaMultiplier *= smoothT;
+    } else if (inType === 'swing') {
+      rotationOffset += Math.sin(t * Math.PI * 3.5) * (1 - t) * -35;
+      alphaMultiplier *= smoothT;
     } else if (inType === 'wipe') {
       wipeProgress = t;
     }
   }
 
-  // 2. Transition Out (end of clip)
+  // 2. Out Animation (end of clip)
   if (outType && outType !== 'none' && remaining >= 0 && remaining < outDuration && outDuration > 0) {
     const t = Math.max(0, Math.min(1, remaining / outDuration));
-    if (outType === 'fade' || outType === 'dissolve' || outType === 'cross-dissolve') {
-      alphaMultiplier *= t;
-    } else if (outType === 'slide-left') {
-      offsetX -= canvasWidth * (1 - t);
-    } else if (outType === 'slide-right') {
-      offsetX += canvasWidth * (1 - t);
+    const smoothT = easeInCubic(t);
+
+    if (outType === 'fade' || outType === 'fade-out' || outType === 'dissolve' || outType === 'cross-dissolve') {
+      alphaMultiplier *= smoothT;
+    } else if (outType === 'zoom' || outType === 'zoom-out' || outType === 'zoom-out-1') {
+      scaleMultiplier *= (0.15 + 0.85 * smoothT);
+      alphaMultiplier *= smoothT;
+    } else if (outType === 'zoom-out-2') {
+      scaleMultiplier *= (1.0 + (1 - smoothT) * 1.5);
+      alphaMultiplier *= smoothT;
+    } else if (outType === 'slide-left' || outType === 'slide-out-left') {
+      offsetX -= canvasWidth * (1 - smoothT);
+    } else if (outType === 'slide-right' || outType === 'slide-out-right') {
+      offsetX += canvasWidth * (1 - smoothT);
     } else if (outType === 'slide-up') {
-      offsetY -= canvasHeight * (1 - t);
+      offsetY -= canvasHeight * (1 - smoothT);
     } else if (outType === 'slide-down') {
-      offsetY += canvasHeight * (1 - t);
-    } else if (outType === 'zoom') {
-      scaleMultiplier *= (0.1 + 0.9 * t);
-      alphaMultiplier *= t;
+      offsetY += canvasHeight * (1 - smoothT);
+    } else if (outType === 'spin-out') {
+      rotationOffset += 360 * (1 - smoothT);
+      scaleMultiplier *= (0.2 + 0.8 * smoothT);
+      alphaMultiplier *= smoothT;
+    } else if (outType === 'glitch-out') {
+      if (t > 0.15) {
+        offsetX += ((Math.sin(t * 60) > 0) ? 18 : -18) * (1 - t);
+        isGlitch = true;
+      }
+      alphaMultiplier *= smoothT;
     } else if (outType === 'wipe') {
       wipeProgress = t;
     }
   }
 
-  return { alphaMultiplier, offsetX, offsetY, scaleMultiplier, wipeProgress };
+  // 3. Combo Animation (runs continuously across clip lifespan)
+  if (comboType && comboType !== 'none' && elapsed >= 0 && elapsed <= clip.duration) {
+    if (comboType === 'rock-vert') {
+      offsetY += Math.sin(elapsed * 4.5) * 16;
+    } else if (comboType === 'pendulum') {
+      rotationOffset += Math.sin(elapsed * 3.2) * 8;
+    } else if (comboType === 'flash-white') {
+      const strobe = Math.sin(elapsed * 8);
+      if (strobe > 0.8) {
+        brightnessMultiplier = 1.6;
+      }
+    } else if (comboType === 'wobble') {
+      offsetX += Math.sin(elapsed * 5.2) * 10;
+      rotationOffset += Math.cos(elapsed * 3.8) * 3;
+    } else if (comboType === 'heartbeat') {
+      const cycle = (elapsed % 1.1) / 1.1;
+      let hb = 0;
+      if (cycle < 0.15) {
+        hb = Math.sin((cycle / 0.15) * Math.PI) * 0.12;
+      } else if (cycle > 0.22 && cycle < 0.35) {
+        hb = Math.sin(((cycle - 0.22) / 0.13) * Math.PI) * 0.07;
+      }
+      scaleMultiplier *= (1 + hb);
+    } else if (comboType === 'shake-zoom') {
+      const szPulse = Math.sin(elapsed * 4);
+      scaleMultiplier *= (1.0 + Math.abs(szPulse) * 0.08);
+      offsetX += Math.sin(elapsed * 25) * 4 * Math.abs(szPulse);
+    } else if (comboType === 'kinetic-drift') {
+      const norm = clip.duration > 0 ? elapsed / clip.duration : 0;
+      scaleMultiplier *= (1.0 + norm * 0.12);
+      offsetX += (norm - 0.5) * 40;
+      offsetY += (norm - 0.5) * 25;
+    } else if (comboType === 'wave-warp') {
+      offsetX += Math.sin(elapsed * 3) * 12;
+      offsetY += Math.cos(elapsed * 2.5) * 8;
+    } else if (comboType === 'flip-3d') {
+      const flipCycle = Math.cos(elapsed * 3.5);
+      scaleMultiplier *= (Math.abs(flipCycle) * 0.4 + 0.6);
+    } else if (comboType === 'camera-sway') {
+      offsetX += Math.sin(elapsed * 1.4) * 8 + Math.cos(elapsed * 2.7) * 4;
+      offsetY += Math.cos(elapsed * 1.8) * 6 + Math.sin(elapsed * 3.1) * 3;
+      rotationOffset += Math.sin(elapsed * 1.1) * 1.2;
+    }
+  }
+
+  return { alphaMultiplier, offsetX, offsetY, scaleMultiplier, rotationOffset, wipeProgress, isGlitch, brightnessMultiplier };
 }
 
 /**

@@ -13,6 +13,8 @@ import { GeminiAIIntelligenceModal } from './components/GeminiAIIntelligenceModa
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import AboutSupportModal from './components/AboutSupportModal';
 import ExportModal, { ExportConfig } from './components/ExportModal';
+import { checkWebCodecsSupport, exportWithWebCodecs } from './services/webCodecsExportService';
+import { getClipEffectiveSpeedAtTime } from './utils/speedRampUtils';
 import { PreferencesModal } from './components/PreferencesModal';
 import { Quran100ProtocolsModal } from './components/Quran100ProtocolsModal';
 import { VideoExport } from './components/video/VideoExport';
@@ -2389,21 +2391,43 @@ export default function App() {
 
   // Maintain hidden audio/video elements map matching tracks state
   useEffect(() => {
-    // Create hidden media pool container if not exists to optimize browser rendering
+    // Create hidden media pool container with optimal mobile hardware surface allocation
     let mediaPool = document.getElementById('hidden-media-pool');
     if (!mediaPool) {
       mediaPool = document.createElement('div');
       mediaPool.id = 'hidden-media-pool';
       mediaPool.style.position = 'fixed';
-      mediaPool.style.left = '-9999px';
-      mediaPool.style.top = '-9999px';
-      mediaPool.style.width = '1px';
-      mediaPool.style.height = '1px';
+      mediaPool.style.bottom = '0px';
+      mediaPool.style.right = '0px';
+      mediaPool.style.width = '320px';
+      mediaPool.style.height = '180px';
       mediaPool.style.overflow = 'hidden';
       mediaPool.style.pointerEvents = 'none';
-      mediaPool.style.opacity = '0';
+      mediaPool.style.opacity = '0.001';
+      mediaPool.style.zIndex = '-9999';
+      mediaPool.style.visibility = 'visible';
       document.body.appendChild(mediaPool);
     }
+
+    // Global unlock listener for Android mobile browsers on first touch/click
+    const unlockMobileMedia = () => {
+      try {
+        const { ctx } = getAudioContext();
+        if (ctx && ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+      } catch (e) {}
+      // Pre-wake video elements
+      Object.values(videoElementsRef.current).forEach((el) => {
+        if (el instanceof HTMLVideoElement && el.readyState < 1) {
+          try {
+            el.load();
+          } catch (e) {}
+        }
+      });
+    };
+    window.addEventListener('touchstart', unlockMobileMedia, { once: true });
+    window.addEventListener('click', unlockMobileMedia, { once: true });
 
     tracks.forEach((track) => {
       track.clips.forEach((clip) => {
@@ -2461,19 +2485,25 @@ export default function App() {
               }
               video.setAttribute('data-clip-url', effectiveUrl);
               video.src = effectiveUrl;
-              video.muted = true; // muted to permit background rendering without gesture blocking
+              video.muted = true; // muted to permit reliable background rendering without mobile policy blocking
+              video.defaultMuted = true;
               video.playsInline = true;
               video.preload = 'auto';
               video.loop = true;
               video.setAttribute('webkit-playsinline', 'true');
               video.setAttribute('playsinline', 'true');
+              video.setAttribute('x5-playsinline', 'true');
+              video.setAttribute('x5-video-player-type', 'h5');
+              video.setAttribute('x5-video-player-fullscreen', 'false');
 
               const handleVideoError = () => {
                 if (video.crossOrigin) {
                   console.warn(`CORS load failed for video: ${effectiveUrl}. Retrying without crossOrigin.`);
                   video.removeAttribute('crossorigin');
                   video.src = effectiveUrl;
-                  video.load();
+                  try {
+                    video.load();
+                  } catch (e) {}
                 } else {
                   (video as any).hasError = true;
                   const backup = clip.fallbackUrl || clip.poster || clip.thumbnailUrl;
@@ -2488,29 +2518,22 @@ export default function App() {
               };
               video.addEventListener('error', handleVideoError);
 
-              video.load();
+              try {
+                video.load();
+              } catch (e) {}
               videoElementsRef.current[clip.id] = video;
               mediaPool.appendChild(video);
-
-              try {
-                const { ctx, masterGain } = getAudioContext();
-                if (!audioSourceNodesRef.current[clip.id]) {
-                  const source = ctx.createMediaElementSource(video);
-                  const gainNode = ctx.createGain();
-                  source.connect(gainNode);
-                  gainNode.connect(masterGain);
-                  audioSourceNodesRef.current[clip.id] = { source, gainNode };
-                }
-              } catch (e) {}
             }
           }
         }
         // Build audio caches
         if (clip.type === ClipType.AUDIO && normalizedUrl) {
           if (!audioElementRef.current[clip.id]) {
-            const effectiveCrossOrigin = safeCrossOrigin || 'anonymous';
+            const effectiveCrossOrigin = safeCrossOrigin;
             const audio = document.createElement('audio');
-            audio.crossOrigin = effectiveCrossOrigin;
+            if (effectiveCrossOrigin) {
+              audio.crossOrigin = effectiveCrossOrigin;
+            }
             audio.src = normalizedUrl;
             audio.preload = 'auto';
 
@@ -2519,18 +2542,22 @@ export default function App() {
                 console.warn(`CORS load failed for audio: ${normalizedUrl}. Retrying without crossOrigin.`);
                 audio.removeAttribute('crossorigin');
                 audio.src = normalizedUrl;
-                audio.load();
+                try {
+                  audio.load();
+                } catch (e) {}
               }
             };
             audio.addEventListener('error', handleAudioError);
 
-            audio.load();
+            try {
+              audio.load();
+            } catch (e) {}
             audioElementRef.current[clip.id] = audio;
             mediaPool.appendChild(audio);
 
             try {
               const { ctx, masterGain } = getAudioContext();
-              if (!audioSourceNodesRef.current[clip.id]) {
+              if (ctx.state !== 'suspended' && !audioSourceNodesRef.current[clip.id]) {
                 const source = ctx.createMediaElementSource(audio);
                 const gainNode = ctx.createGain();
                 source.connect(gainNode);
@@ -2602,7 +2629,7 @@ export default function App() {
       track.clips.forEach((clip) => {
         const isActive = currentTime >= clip.start && currentTime <= clip.start + clip.duration;
         const elapsed = currentTime - clip.start;
-        const targetSrcTime = clip.sourceStart + elapsed * clip.playbackRate;
+        const { currentSpeed, sourceTime: targetSrcTime } = getClipEffectiveSpeedAtTime(clip, elapsed);
 
         // Normalize volume (clip.volume is 0..100, HTML5 media expects 0.0..1.0)
         const rawVol = clip.volume !== undefined ? clip.volume : 80;
@@ -2619,7 +2646,7 @@ export default function App() {
           const media = videoElementsRef.current[clip.id];
           if (media && media instanceof HTMLVideoElement) {
             const video = media;
-            video.playbackRate = clip.playbackRate || 1.0;
+            video.playbackRate = Math.max(0.1, Math.min(16, currentSpeed || clip.playbackRate || 1.0));
             video.volume = safeVolume;
             video.muted = isMuted || track.muted || safeVolume === 0;
 
@@ -6158,6 +6185,110 @@ export default function App() {
 
     if (canvas) {
       log(`Acquired active PreviewPlayer canvas (${canvas.width}x${canvas.height})...`);
+
+      const webCodecsSupport = checkWebCodecsSupport();
+      const useWebCodecs = exportConf.engine !== 'mediarecorder' && webCodecsSupport.supported;
+
+      if (useWebCodecs) {
+        log(`[WebCodecs Engine] Activating GPU Hardware Accelerated Encoder pipeline...`);
+        try {
+          let targetVideoBps = 6_000_000;
+          if (exportConf.resolution === '4K') targetVideoBps = 18_000_000;
+          else if (exportConf.resolution === '2K') targetVideoBps = 12_000_000;
+          else if (exportConf.resolution === '1080p') targetVideoBps = 8_000_000;
+          else if (exportConf.resolution === '720p') targetVideoBps = 4_500_000;
+          else if (exportConf.resolution === '480p') targetVideoBps = 2_000_000;
+
+          if (exportConf.bitrateProfile === 'higher') targetVideoBps = Math.round(targetVideoBps * 1.5);
+          if (exportConf.bitrateProfile === 'lower') targetVideoBps = Math.round(targetVideoBps * 0.6);
+
+          const totalDuration = Math.max(duration, 1);
+          const fps = exportConf.frameRate || 30;
+
+          const { speakerGain } = getAudioContext();
+          speakerGain.gain.value = 0;
+
+          const mp4Blob = await exportWithWebCodecs({
+            canvas,
+            tracks,
+            duration: totalDuration,
+            fps,
+            width,
+            height,
+            bitrate: targetVideoBps,
+            onProgress: (pct, frame, total, actualFps) => {
+              setExportProgress(pct);
+              if (frame % 30 === 0 || frame === total) {
+                log(`GPU Encoding Frame ${frame}/${total} (${pct}%) @ ${actualFps} FPS`);
+              }
+            },
+            onLog: (msg) => log(msg),
+            renderFrameAtTime: async (t: number) => {
+              setCurrentTime(t);
+              tracks.forEach(track => {
+                track.clips.forEach(clip => {
+                  if (clip.type === ClipType.VIDEO) {
+                    const el = videoElementsRef.current[clip.id];
+                    if (el instanceof HTMLVideoElement) {
+                      const isActive = t >= clip.start && t <= clip.start + clip.duration;
+                      if (isActive) {
+                        const clipElapsed = t - clip.start;
+                        const { sourceTime: targetSrcTime } = getClipEffectiveSpeedAtTime(clip, clipElapsed);
+                        const dur = el.duration || 999999;
+                        const clamped = Math.max(0, Math.min(dur, targetSrcTime));
+                        if (Math.abs(el.currentTime - clamped) > 0.04) {
+                          el.currentTime = clamped;
+                        }
+                      }
+                    }
+                  }
+                });
+              });
+              await new Promise(r => requestAnimationFrame(r));
+            },
+            checkCancelled: () => isCancelledExportRef.current
+          });
+
+          if (speakerGainRef.current) {
+            speakerGainRef.current.gain.value = isMuted ? 0 : 1;
+          }
+
+          if (isCancelledExportRef.current) {
+            isCancelledExportRef.current = false;
+            setExporting(false);
+            setExportProgress(0);
+            return;
+          }
+
+          setExportProgress(100);
+
+          let ext = 'mp4';
+          let filename = exportConf.filename?.trim() || `export_${exportConf.resolution}_${Date.now()}`;
+          if (!filename.toLowerCase().endsWith(`.${ext}`)) {
+            filename = filename.replace(/\.[a-zA-Z0-9]+$/, '') + `.${ext}`;
+          }
+
+          log(`Full video (${totalDuration.toFixed(1)}s) encoded in MP4 via GPU: ${filename} (${(mp4Blob.size / (1024 * 1024)).toFixed(2)} MB). Saving output...`);
+
+          const objectUrl = URL.createObjectURL(mp4Blob);
+          setDownloadUrl(objectUrl);
+          setExporting(false);
+
+          AdMobService.showInterstitial();
+
+          await handleExportToNativeStorage(mp4Blob, filename);
+          return;
+        } catch (gpuErr: any) {
+          if (gpuErr?.message === 'Export cancelled' || isCancelledExportRef.current) {
+            isCancelledExportRef.current = false;
+            setExporting(false);
+            setExportProgress(0);
+            return;
+          }
+          log(`WebCodecs GPU engine notice: ${gpuErr?.message || gpuErr}. Switching to MediaRecorder fallback...`);
+        }
+      }
+
       let canvasStream: MediaStream | null = null;
       try {
         if (typeof (canvas as any).captureStream === 'function') {
@@ -6303,7 +6434,7 @@ export default function App() {
                 track.clips.forEach(clip => {
                   const isActive = nextTime >= clip.start && nextTime <= clip.start + clip.duration;
                   const clipElapsed = nextTime - clip.start;
-                  const targetSrcTime = clip.sourceStart + clipElapsed * clip.playbackRate;
+                  const { currentSpeed, sourceTime: targetSrcTime } = getClipEffectiveSpeedAtTime(clip, clipElapsed);
                   const rawVol = clip.volume !== undefined ? clip.volume : 80;
                   const safeVolume = Math.max(0, Math.min(1, rawVol > 1 ? rawVol / 100 : rawVol));
                   const effectiveGain = (track.muted || isMuted || !isActive) ? 0 : safeVolume;
@@ -6330,6 +6461,7 @@ export default function App() {
                     const el = videoElementsRef.current[clip.id];
                     if (el instanceof HTMLVideoElement) {
                       if (isActive) {
+                        el.playbackRate = Math.max(0.1, Math.min(16, currentSpeed || clip.playbackRate || 1.0));
                         if (el.paused) el.play().catch(() => {});
                         const dur = el.duration || 999999;
                         const clamped = Math.max(0, Math.min(dur, targetSrcTime));

@@ -240,13 +240,23 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
 
   // Free API Key states & persistence
   const [pexelsApiKey, setPexelsApiKey] = useState<string>(() => {
-    return localStorage.getItem('cutecut_pexels_api_key') || '';
+    return localStorage.getItem('cutecut_pexels_api_key') || 'zQcA6fA1V1ErZ5UOPLM6HY5YbqFLBoaGrxzg583UlE5tDUzSAda0umZU';
   });
   const [pixabayApiKey, setPixabayApiKey] = useState<string>(() => {
-    return localStorage.getItem('cutecut_pixabay_api_key') || '';
+    return localStorage.getItem('cutecut_pixabay_api_key') || '51611607-2bddfcd1e87cf3230c2436755';
   });
   const [showApiKeysSection, setShowApiKeysSection] = useState<boolean>(false);
   const [smartKeywordDistribution, setSmartKeywordDistribution] = useState<boolean>(true);
+
+  // Sync keys to local storage if not already stored
+  useEffect(() => {
+    if (!localStorage.getItem('cutecut_pexels_api_key')) {
+      localStorage.setItem('cutecut_pexels_api_key', 'zQcA6fA1V1ErZ5UOPLM6HY5YbqFLBoaGrxzg583UlE5tDUzSAda0umZU');
+    }
+    if (!localStorage.getItem('cutecut_pixabay_api_key')) {
+      localStorage.setItem('cutecut_pixabay_api_key', '51611607-2bddfcd1e87cf3230c2436755');
+    }
+  }, []);
 
   // Live Stock Media Fetcher from Pexels / Pixabay (Acts just like searching on Pexels / Pixabay)
   const fetchLiveStockMedia = async (

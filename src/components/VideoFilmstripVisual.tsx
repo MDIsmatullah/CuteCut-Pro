@@ -17,11 +17,121 @@ interface QueueItem {
   url: string;
   targetTime: number;
   crossOrigin: string | undefined;
+  fallbackUrl: string | null;
   onExtracted: (timeKey: string, dataUrl: string) => void;
 }
 
 const extractionQueue: QueueItem[] = [];
 let isProcessingQueue = false;
+
+// Reusable single video element per active video URL to avoid destroying & recreating video pipelines 20+ times
+let activeVideoEl: HTMLVideoElement | null = null;
+let activeVideoUrl: string = '';
+let activeVideoReady: Promise<boolean> | null = null;
+let sharedCanvas: HTMLCanvasElement | null = null;
+
+function getSharedCanvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null } {
+  if (!sharedCanvas) {
+    sharedCanvas = document.createElement('canvas');
+    sharedCanvas.width = 160; // Lightweight but razor sharp timeline frame
+    sharedCanvas.height = 90;
+  }
+  return { canvas: sharedCanvas, ctx: sharedCanvas.getContext('2d', { willReadFrequently: false }) };
+}
+
+async function prepareVideoForExtraction(url: string, crossOrigin: string | undefined): Promise<boolean> {
+  if (activeVideoEl && activeVideoUrl === url && activeVideoReady) {
+    return activeVideoReady;
+  }
+
+  // Clean up previous video element if URL changed
+  if (activeVideoEl) {
+    try {
+      activeVideoEl.pause();
+      activeVideoEl.removeAttribute('src');
+      activeVideoEl.load();
+    } catch {
+      // ignore
+    }
+    activeVideoEl = null;
+  }
+
+  activeVideoUrl = url;
+  const video = document.createElement('video');
+  activeVideoEl = video;
+
+  if (crossOrigin) {
+    video.crossOrigin = crossOrigin;
+  }
+  video.muted = true;
+  video.defaultMuted = true;
+  video.playsInline = true;
+  video.preload = 'auto';
+  video.setAttribute('webkit-playsinline', 'true');
+  video.setAttribute('playsinline', 'true');
+
+  activeVideoReady = new Promise<boolean>((resolve) => {
+    let resolved = false;
+    let timer: any = null;
+
+    const cleanup = () => {
+      if (timer) clearTimeout(timer);
+      video.removeEventListener('loadeddata', onReady);
+      video.removeEventListener('canplay', onReady);
+      video.removeEventListener('error', onError);
+    };
+
+    const onReady = () => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      resolve(true);
+    };
+
+    const onError = () => {
+      if (resolved) return;
+      // If failed with crossOrigin, try once without crossOrigin
+      if (video.crossOrigin) {
+        video.removeAttribute('crossorigin');
+        try {
+          video.load();
+        } catch {
+          resolved = true;
+          cleanup();
+          resolve(false);
+        }
+      } else {
+        resolved = true;
+        cleanup();
+        resolve(false);
+      }
+    };
+
+    video.addEventListener('loadeddata', onReady);
+    video.addEventListener('canplay', onReady);
+    video.addEventListener('error', onError);
+
+    // 4 second timeout for network stream metadata/buffer
+    timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        resolve(video.readyState >= 1);
+      }
+    }, 4000);
+
+    video.src = url;
+    try {
+      video.load();
+    } catch {
+      resolved = true;
+      cleanup();
+      resolve(false);
+    }
+  });
+
+  return activeVideoReady;
+}
 
 async function processNextQueueItem() {
   if (isProcessingQueue || extractionQueue.length === 0) return;
@@ -29,132 +139,150 @@ async function processNextQueueItem() {
 
   const item = extractionQueue.shift()!;
   
-  await new Promise<void>((resolveItem) => {
+  await new Promise<void>(async (resolveItem) => {
     const roundedTime = Math.round(item.targetTime * 10) / 10;
     const cacheKey = `${item.url}_${roundedTime}`;
     const posterKey = `${item.url}_poster`;
 
-    if (globalThumbnailCache.has(cacheKey)) {
-      item.onExtracted(cacheKey, globalThumbnailCache.get(cacheKey)!);
+    const existingCached = globalThumbnailCache.get(cacheKey);
+    if (existingCached && existingCached !== 'failed_cors') {
+      item.onExtracted(cacheKey, existingCached);
       isProcessingQueue = false;
       resolveItem();
       setTimeout(processNextQueueItem, 0);
       return;
     }
 
-    const stockFallback = getFallbackImageForVideoUrl(item.url);
-    if (stockFallback) {
-      globalThumbnailCache.set(cacheKey, stockFallback);
+    const stockFallback = item.fallbackUrl || getFallbackImageForVideoUrl(item.url);
+    if (stockFallback && stockFallback !== 'failed_cors') {
+      // Pre-seed poster key so timeline shows it immediately
       if (!globalThumbnailCache.has(posterKey)) {
         globalThumbnailCache.set(posterKey, stockFallback);
       }
-      item.onExtracted(cacheKey, stockFallback);
-      isProcessingQueue = false;
-      resolveItem();
-      setTimeout(processNextQueueItem, 0);
-      return;
     }
 
-    const video = document.createElement('video');
-    const canvas = document.createElement('canvas');
-    canvas.width = 160; // Lightweight but razor sharp timeline frame
-    canvas.height = 90;
-    const ctx = canvas.getContext('2d', { willReadFrequently: false });
-
-    if (item.crossOrigin) {
-      video.crossOrigin = item.crossOrigin;
-    }
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = 'auto';
-
-    let isDone = false;
-    let timeoutId: any = null;
-
-    const finish = (resultUrl: string) => {
-      if (isDone) return;
-      isDone = true;
-      if (timeoutId) clearTimeout(timeoutId);
-
-      globalThumbnailCache.set(cacheKey, resultUrl);
-      if (!globalThumbnailCache.has(posterKey)) {
-        globalThumbnailCache.set(posterKey, resultUrl);
-      }
-      item.onExtracted(cacheKey, resultUrl);
-
-      video.pause();
-      video.removeAttribute('src');
-      try {
-        video.load();
-      } catch {
-        // ignore
+    const finish = (resultUrl: string | null) => {
+      const validResult = (resultUrl && resultUrl !== 'failed_cors') ? resultUrl : stockFallback;
+      if (validResult && validResult !== 'failed_cors') {
+        globalThumbnailCache.set(cacheKey, validResult);
+        if (!globalThumbnailCache.has(posterKey)) {
+          globalThumbnailCache.set(posterKey, validResult);
+        }
+        item.onExtracted(cacheKey, validResult);
       }
       resolveItem();
     };
 
-    video.addEventListener('loadeddata', () => {
-      try {
-        video.currentTime = Math.max(0.05, item.targetTime);
-      } catch {
-        finish(getFallbackImageForVideoUrl(item.url) || 'failed_cors');
-      }
-    });
+    try {
+      const isReady = await prepareVideoForExtraction(item.url, item.crossOrigin);
+      const video = activeVideoEl;
 
-    video.addEventListener('seeked', () => {
-      if (!ctx) {
-        finish(getFallbackImageForVideoUrl(item.url) || 'failed_cors');
+      if (!isReady || !video || video.readyState < 1) {
+        finish(null);
+        isProcessingQueue = false;
+        setTimeout(processNextQueueItem, 0);
         return;
       }
-      try {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        finish(dataUrl);
-      } catch {
-        finish(getFallbackImageForVideoUrl(item.url) || 'failed_cors');
-      }
-    });
 
-    video.addEventListener('error', () => {
-      if (video.crossOrigin) {
-        // Retry once without crossorigin for some local configurations
-        video.removeAttribute('crossorigin');
+      const { canvas, ctx } = getSharedCanvas();
+      if (!ctx) {
+        finish(null);
+        isProcessingQueue = false;
+        setTimeout(processNextQueueItem, 0);
+        return;
+      }
+
+      const videoDur = (video.duration && isFinite(video.duration) && video.duration > 0) ? video.duration : 999999;
+      const clampedTargetTime = Math.max(0.05, Math.min(Math.max(0.05, videoDur - 0.1), item.targetTime));
+
+      // If already at or very near this time, draw immediately
+      if (Math.abs(video.currentTime - clampedTargetTime) < 0.15) {
         try {
-          video.load();
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          finish(dataUrl);
         } catch {
-          finish(getFallbackImageForVideoUrl(item.url) || 'failed_cors');
+          finish(null);
         }
-      } else {
-        finish(getFallbackImageForVideoUrl(item.url) || 'failed_cors');
+        isProcessingQueue = false;
+        setTimeout(processNextQueueItem, 0);
+        return;
       }
-    });
 
-    timeoutId = setTimeout(() => {
-      finish(getFallbackImageForVideoUrl(item.url) || 'failed_cors');
-    }, 1800); // 1.8s maximum wait per frame
+      let isDone = false;
+      let seekTimeout: any = null;
 
-    video.src = item.url;
-    try {
-      video.load();
+      const onSeeked = () => {
+        if (isDone) return;
+        isDone = true;
+        if (seekTimeout) clearTimeout(seekTimeout);
+        video.removeEventListener('seeked', onSeeked);
+
+        try {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          finish(dataUrl);
+        } catch {
+          finish(null);
+        }
+        isProcessingQueue = false;
+        setTimeout(processNextQueueItem, 0);
+      };
+
+      video.addEventListener('seeked', onSeeked, { once: true });
+      seekTimeout = setTimeout(() => {
+        if (!isDone) {
+          isDone = true;
+          video.removeEventListener('seeked', onSeeked);
+          // Attempt drawing whatever frame video has right now
+          try {
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+              finish(dataUrl);
+            } else {
+              finish(null);
+            }
+          } catch {
+            finish(null);
+          }
+          isProcessingQueue = false;
+          setTimeout(processNextQueueItem, 0);
+        }
+      }, 2500);
+
+      try {
+        video.currentTime = clampedTargetTime;
+      } catch {
+        if (!isDone) {
+          isDone = true;
+          clearTimeout(seekTimeout);
+          finish(null);
+          isProcessingQueue = false;
+          setTimeout(processNextQueueItem, 0);
+        }
+      }
     } catch {
-      finish(getFallbackImageForVideoUrl(item.url) || 'failed_cors');
+      finish(null);
+      isProcessingQueue = false;
+      setTimeout(processNextQueueItem, 0);
     }
   });
-
-  isProcessingQueue = false;
-  setTimeout(processNextQueueItem, 0);
 }
 
 function queueFrameExtraction(
   url: string,
   targetTime: number,
   crossOrigin: string | undefined,
+  fallbackUrl: string | null,
   onExtracted: (timeKey: string, dataUrl: string) => void
 ) {
   const roundedTime = Math.round(targetTime * 10) / 10;
   const cacheKey = `${url}_${roundedTime}`;
   
-  if (globalThumbnailCache.has(cacheKey)) {
-    onExtracted(cacheKey, globalThumbnailCache.get(cacheKey)!);
+  const existing = globalThumbnailCache.get(cacheKey);
+  if (existing && existing !== 'failed_cors') {
+    onExtracted(cacheKey, existing);
     return;
   }
 
@@ -164,21 +292,69 @@ function queueFrameExtraction(
   );
   if (isDuplicate) return;
 
+  // Prevent queue from growing indefinitely
+  if (extractionQueue.length > 50) {
+    extractionQueue.splice(20, 15);
+  }
+
   extractionQueue.push({
     url,
     targetTime,
     crossOrigin,
+    fallbackUrl,
     onExtracted
   });
 
   processNextQueueItem();
 }
 
-// Curated Unsplash fallback images for standard stock & thematic videos
+// Curated high-resolution fallback posters for local stock & thematic videos
 export const getFallbackImageForVideoUrl = (url: string | undefined): string | null => {
   if (!url) return null;
   const lowerUrl = url.toLowerCase();
 
+  // Stock Islamic & Holy Videos
+  if (lowerUrl.includes('makkah_tawaf') || lowerUrl.includes('tawaf')) {
+    return 'https://images.unsplash.com/photo-1591604466107-ec97de577aff?auto=format&fit=crop&w=800&q=80';
+  }
+  if (lowerUrl.includes('makkah_night')) {
+    return 'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=800&q=80';
+  }
+  if (lowerUrl.includes('makkah_ramadan')) {
+    return 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80';
+  }
+
+  // Stock Nature & Landscapes
+  if (lowerUrl.includes('golden_sunrise') || lowerUrl.includes('dawn')) {
+    return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';
+  }
+  if (lowerUrl.includes('floating_clouds') || lowerUrl.includes('clouds')) {
+    return 'https://images.unsplash.com/photo-1499346030926-9a72daac6c63?auto=format&fit=crop&w=800&q=80';
+  }
+  if (lowerUrl.includes('mountain_clouds') || lowerUrl.includes('alpine')) {
+    return 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80';
+  }
+
+  // Stock Rain & Water
+  if (lowerUrl.includes('rain_water') || lowerUrl.includes('rain')) {
+    return 'https://images.unsplash.com/photo-1519692933481-e162a57d6721?auto=format&fit=crop&w=800&q=80';
+  }
+  if (lowerUrl.includes('forest_waterfall') || lowerUrl.includes('waterfall')) {
+    return 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=800&q=80';
+  }
+  if (lowerUrl.includes('ocean_sunset') || lowerUrl.includes('ocean')) {
+    return 'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?auto=format&fit=crop&w=800&q=80';
+  }
+
+  // Stock Cosmic & Stars
+  if (lowerUrl.includes('milkyway_galaxy') || lowerUrl.includes('galaxy') || lowerUrl.includes('cosmic')) {
+    return 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=800&q=80';
+  }
+  if (lowerUrl.includes('night_stars') || lowerUrl.includes('stars')) {
+    return 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=800&q=80';
+  }
+
+  // Mixkit legacy & external CDNs
   if (lowerUrl.includes('mixkit-clouds-and-blue-sky') || lowerUrl.includes('2408')) {
     return 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=600&auto=format&fit=crop&q=80';
   }
@@ -246,13 +422,34 @@ export const VideoFilmstripVisual = React.memo<VideoFilmstripVisualProps>(({
     );
   }, [clip.url, clip.type, clip.isImage]);
 
-  const fallbackImg = clip.poster || clip.thumbnailUrl || clip.fallbackUrl || getFallbackImageForVideoUrl(clip.url);
+  // Guaranteed fallback thumbnail image
+  const validFallback = useMemo(() => {
+    const raw = clip.thumbnailUrl || clip.poster || clip.fallbackUrl || getFallbackImageForVideoUrl(clip.url);
+    if (!raw || raw === 'failed_cors') return null;
+    return raw;
+  }, [clip.thumbnailUrl, clip.poster, clip.fallbackUrl, clip.url]);
+
   const posterKey = normalizedUrl ? `${normalizedUrl}_poster` : '';
-  const initialPoster = posterKey ? globalThumbnailCache.get(posterKey) : null;
-  const [posterThumb, setPosterThumb] = useState<string | null>(initialPoster || fallbackImg || null);
+  const initialPoster = useMemo(() => {
+    if (!posterKey) return validFallback;
+    const cached = globalThumbnailCache.get(posterKey);
+    return (cached && cached !== 'failed_cors') ? cached : validFallback;
+  }, [posterKey, validFallback]);
+
+  const [posterThumb, setPosterThumb] = useState<string | null>(initialPoster);
   const [thumbnails, setThumbnails] = useState<Record<number, string>>({});
 
   const crossOrigin = useMemo(() => getSafeCrossOrigin(clip.url), [clip.url]);
+
+  // Pre-seed global cache with fallback image so it's instantly available everywhere
+  useEffect(() => {
+    if (validFallback && posterKey && !globalThumbnailCache.has(posterKey)) {
+      globalThumbnailCache.set(posterKey, validFallback);
+    }
+    if (validFallback && !posterThumb) {
+      setPosterThumb(validFallback);
+    }
+  }, [validFallback, posterKey, posterThumb]);
 
   const frames = useMemo(() => {
     const list = [];
@@ -277,7 +474,8 @@ export const VideoFilmstripVisual = React.memo<VideoFilmstripVisualProps>(({
     let isMounted = true;
 
     if (isImage) {
-      if (globalThumbnailCache.has(posterKey)) {
+      const existing = globalThumbnailCache.get(posterKey);
+      if (existing && existing !== 'failed_cors') {
         return;
       }
       const img = new Image();
@@ -285,7 +483,7 @@ export const VideoFilmstripVisual = React.memo<VideoFilmstripVisualProps>(({
       img.onload = () => {
         if (isMounted) {
           globalThumbnailCache.set(posterKey, normalizedUrl);
-          setPosterThumb((prev) => (prev === normalizedUrl ? prev : normalizedUrl));
+          setPosterThumb(normalizedUrl);
         }
       };
       return () => {
@@ -293,12 +491,13 @@ export const VideoFilmstripVisual = React.memo<VideoFilmstripVisualProps>(({
       };
     }
 
-    // Video extraction: Get poster frame sequentially if not already cached
+    // Video extraction: Get poster frame if not already cached
     const initialTime = (clip.sourceStart || 0) + 0.1;
-    if (!globalThumbnailCache.has(posterKey)) {
-      queueFrameExtraction(normalizedUrl, initialTime, crossOrigin, (_key, dataUrl) => {
-        if (isMounted) {
-          setPosterThumb((prev) => (prev === dataUrl ? prev : dataUrl));
+    const cachedPoster = globalThumbnailCache.get(posterKey);
+    if (!cachedPoster || cachedPoster === 'failed_cors') {
+      queueFrameExtraction(normalizedUrl, initialTime, crossOrigin, validFallback, (_key, dataUrl) => {
+        if (isMounted && dataUrl && dataUrl !== 'failed_cors') {
+          setPosterThumb(dataUrl);
         }
       });
     }
@@ -307,10 +506,11 @@ export const VideoFilmstripVisual = React.memo<VideoFilmstripVisualProps>(({
     frames.forEach((frame) => {
       const roundedTime = Math.round(frame.mediaTime * 10) / 10;
       const cacheKey = `${normalizedUrl}_${roundedTime}`;
+      const cached = globalThumbnailCache.get(cacheKey);
       
-      if (!globalThumbnailCache.has(cacheKey)) {
-        queueFrameExtraction(normalizedUrl, frame.mediaTime, crossOrigin, (_key, dataUrl) => {
-          if (isMounted) {
+      if (!cached || cached === 'failed_cors') {
+        queueFrameExtraction(normalizedUrl, frame.mediaTime, crossOrigin, validFallback, (_key, dataUrl) => {
+          if (isMounted && dataUrl && dataUrl !== 'failed_cors') {
             setThumbnails((prev) => {
               if (prev[frame.index] === dataUrl) return prev;
               return { ...prev, [frame.index]: dataUrl };
@@ -323,7 +523,7 @@ export const VideoFilmstripVisual = React.memo<VideoFilmstripVisualProps>(({
     return () => {
       isMounted = false;
     };
-  }, [normalizedUrl, isImage, frames, crossOrigin, posterKey, clip.sourceStart]);
+  }, [normalizedUrl, isImage, frames, crossOrigin, posterKey, clip.sourceStart, validFallback]);
 
   return (
     <div className="absolute inset-0 flex items-stretch overflow-hidden pointer-events-none select-none rounded-md bg-[#10171d]">
@@ -357,7 +557,22 @@ export const VideoFilmstripVisual = React.memo<VideoFilmstripVisualProps>(({
           frames.map((frame) => {
             const roundedTime = Math.round(frame.mediaTime * 10) / 10;
             const cacheKey = `${normalizedUrl}_${roundedTime}`;
-            const thumb = thumbnails[frame.index] || globalThumbnailCache.get(cacheKey) || posterThumb || globalThumbnailCache.get(posterKey);
+
+            // Priority:
+            // 1. Frame-specific extracted snapshot
+            // 2. Cached frame snapshot
+            // 3. Extracted or state poster
+            // 4. Cached poster
+            // 5. Guaranteed clip fallback (thumbnailUrl, poster, fallbackUrl)
+            const extractedThumb = thumbnails[frame.index];
+            const cachedFrame = globalThumbnailCache.get(cacheKey);
+            const cachedPoster = globalThumbnailCache.get(posterKey);
+
+            const thumb = (extractedThumb && extractedThumb !== 'failed_cors' ? extractedThumb : null)
+              || (cachedFrame && cachedFrame !== 'failed_cors' ? cachedFrame : null)
+              || (posterThumb && posterThumb !== 'failed_cors' ? posterThumb : null)
+              || (cachedPoster && cachedPoster !== 'failed_cors' ? cachedPoster : null)
+              || validFallback;
 
             return (
               <div
@@ -367,11 +582,19 @@ export const VideoFilmstripVisual = React.memo<VideoFilmstripVisualProps>(({
                 }`}
                 style={{ width: `${frameWidth}px`, minWidth: `${frameWidth}px` }}
               >
-                {thumb && thumb !== 'failed_cors' ? (
+                {thumb ? (
                   <img
                     src={thumb}
                     alt={`frame-${frame.index}`}
                     className="absolute inset-0 w-full h-full object-cover opacity-95 transition-opacity duration-200"
+                    loading="lazy"
+                    onError={(e) => {
+                      // Fall back to clip fallback if individual data URL or cached frame fails
+                      const target = e.currentTarget;
+                      if (validFallback && target.src !== validFallback) {
+                        target.src = validFallback;
+                      }
+                    }}
                   />
                 ) : (
                   <div className="absolute inset-0 bg-gradient-to-br from-[#0c1a24] via-[#102433] to-[#0a121a] opacity-90 flex flex-col items-center justify-center p-1">
@@ -404,7 +627,10 @@ export const VideoFilmstripVisual = React.memo<VideoFilmstripVisualProps>(({
          prevProps.clip.duration === nextProps.clip.duration &&
          prevProps.clip.start === nextProps.clip.start &&
          prevProps.clip.sourceStart === nextProps.clip.sourceStart &&
-         prevProps.clip.playbackRate === nextProps.clip.playbackRate;
+         prevProps.clip.playbackRate === nextProps.clip.playbackRate &&
+         prevProps.clip.thumbnailUrl === nextProps.clip.thumbnailUrl &&
+         prevProps.clip.poster === nextProps.clip.poster &&
+         prevProps.clip.url === nextProps.clip.url;
 });
 
 export default VideoFilmstripVisual;

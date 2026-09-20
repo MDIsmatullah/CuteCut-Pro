@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sliders, Volume2, Sparkles, Wand2, Type, Gauge, Palette, Play, Plus, RefreshCw, RotateCcw, FileText, Move, CircleDot, Trash2, Clock, Target, ChevronLeft, ChevronRight, Blend, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Layers, Zap, Check, Merge } from 'lucide-react';
+import { Sliders, Volume2, Sparkles, Wand2, Type, Gauge, Palette, Play, Plus, RefreshCw, RotateCcw, FileText, Move, CircleDot, Trash2, Clock, Target, ChevronLeft, ChevronRight, Blend, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Layers, Zap, Check, Merge, Activity } from 'lucide-react';
 import { Clip, ClipType, VideoFilters, Keyframe, Track, TransitionType, ClipTransition, ColorGrading } from '../types';
 import { PRESET_LUTS, ColorGradingPreset } from '../data/presetAssets';
 import { ColorGradingSection } from './ColorGradingSection';
@@ -7,6 +7,7 @@ import { DEFAULT_COLOR_GRADING } from '../utils/editorUtils';
 import { CuteCutAudioInspector } from './CuteCutAudioInspector';
 import { CuteCutVideoInspector } from './CuteCutVideoInspector';
 import { CuteCutTextInspector } from './CuteCutTextInspector';
+import { SpeedCurveEditor } from './SpeedCurveEditor';
 
 interface InspectorProps {
   selectedClip: Clip | null;
@@ -36,6 +37,7 @@ export default function Inspector({
   onMergeClips,
 }: InspectorProps) {
   const [activeSubTab, setActiveSubTab] = useState<'capcut' | 'transform' | 'adjust' | 'speed' | 'chroma' | 'effects' | 'transitions' | 'ai' | 'keyframes'>('capcut');
+  const [inspectorSpeedMode, setInspectorSpeedMode] = useState<'normal' | 'curve'>('normal');
   const [savedPresets, setSavedPresets] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem('quran_text_presets');
@@ -1337,49 +1339,86 @@ export default function Inspector({
             {/* Speed Tab */}
             {activeSubTab === 'speed' && (
               <div className="space-y-4">
-                <div className="space-y-3 bg-[#202026] p-3 rounded-lg border border-gray-800">
-                  <div className="flex items-center justify-between text-xs text-gray-300 font-semibold">
-                    <div className="flex items-center gap-1.5">
-                      <Gauge className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Speed Multiplier</span>
+                {/* Normal vs Curve Mode Switcher */}
+                <div className="flex bg-[#121217] p-1 rounded-lg border border-[#272738] gap-1">
+                  <button
+                    onClick={() => setInspectorSpeedMode('normal')}
+                    className={`flex-1 py-1.5 rounded text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
+                      inspectorSpeedMode === 'normal'
+                        ? 'bg-cyan-500 text-black shadow-md'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <Gauge className="w-3.5 h-3.5" />
+                    <span>Normal Speed</span>
+                  </button>
+                  <button
+                    onClick={() => setInspectorSpeedMode('curve')}
+                    className={`flex-1 py-1.5 rounded text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
+                      inspectorSpeedMode === 'curve'
+                        ? 'bg-cyan-500 text-black shadow-md'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <Activity className="w-3.5 h-3.5" />
+                    <span>Curve (Speed Ramping)</span>
+                  </button>
+                </div>
+
+                {inspectorSpeedMode === 'normal' ? (
+                  <div className="space-y-4">
+                    <div className="space-y-3 bg-[#202026] p-3 rounded-lg border border-gray-800">
+                      <div className="flex items-center justify-between text-xs text-gray-300 font-semibold">
+                        <div className="flex items-center gap-1.5">
+                          <Gauge className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Speed Multiplier</span>
+                        </div>
+                        <span className="font-mono text-cyan-400 font-bold">{selectedClip.playbackRate.toFixed(2)}x</span>
+                      </div>
+
+                      <input
+                        id="speed-slider"
+                        type="range"
+                        min="0.1"
+                        max="10.0"
+                        step="0.1"
+                        value={selectedClip.playbackRate}
+                        onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
+                        className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                      />
+
+                      {/* Preset curves or fast speeds */}
+                      <div className="grid grid-cols-4 gap-1.5 pt-2">
+                        {[0.5, 1.0, 2.0, 5.0].map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => handleSpeedChange(s)}
+                            className={`py-1 text-[10px] font-mono font-bold rounded transition ${selectedClip.playbackRate === s ? 'bg-cyan-500 text-black' : 'bg-[#18181c] text-gray-400 hover:text-white'}`}
+                          >
+                            {s}x
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <span className="font-mono text-cyan-400 font-bold">{selectedClip.playbackRate.toFixed(2)}x</span>
-                  </div>
 
-                  <input
-                    id="speed-slider"
-                    type="range"
-                    min="0.1"
-                    max="10.0"
-                    step="0.1"
-                    value={selectedClip.playbackRate}
-                    onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
-                    className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                    <div className="bg-cyan-950/20 border border-cyan-800/20 rounded-lg p-3">
+                      <h5 className="text-[11px] font-bold text-cyan-400 flex items-center gap-1.5 uppercase">
+                        <Wand2 className="w-3.5 h-3.5" />
+                        <span>Dynamic Pitch Lock</span>
+                      </h5>
+                      <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">
+                        Automatically preserves audio pitch using Web Audio API frequency-shifting. Modifying clip speeds from 0.1x (Slow-mo) to 10.0x (Fast-forward) won't cause annoying "chipmunk" pitch vocal distortions.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <SpeedCurveEditor
+                    clip={selectedClip}
+                    onUpdateClip={onUpdateClip}
+                    currentTime={currentTime}
+                    onSeek={onSeek}
                   />
-
-                  {/* Preset curves or fast speeds */}
-                  <div className="grid grid-cols-4 gap-1.5 pt-2">
-                    {[0.5, 1.0, 2.0, 5.0].map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => handleSpeedChange(s)}
-                        className={`py-1 text-[10px] font-mono font-bold rounded transition ${selectedClip.playbackRate === s ? 'bg-cyan-500 text-black' : 'bg-[#18181c] text-gray-400 hover:text-white'}`}
-                      >
-                        {s}x
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-cyan-950/20 border border-cyan-800/20 rounded-lg p-3">
-                  <h5 className="text-[11px] font-bold text-cyan-400 flex items-center gap-1.5 uppercase">
-                    <Wand2 className="w-3.5 h-3.5" />
-                    <span>Dynamic Pitch Lock</span>
-                  </h5>
-                  <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">
-                    Automatically preserves audio pitch using Web Audio API frequency-shifting. Modifying clip speeds from 0.1x (Slow-mo) to 10.0x (Fast-forward) won't cause annoying "chipmunk" pitch vocal distortions.
-                  </p>
-                </div>
+                )}
               </div>
             )}
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, Film, Music, Type, Sliders, Play, Pause, Plus, Trash2, BookOpen, Sparkles, Globe, ExternalLink, Search, Download, Shield, Image as ImageIcon, Brain, Wand2, Zap, CheckCircle2, Layers, Volume2, Mic, RefreshCw, Languages, Check, Square, LayoutGrid, List, Smile, Blend, Palette, Timer } from 'lucide-react';
+import { Upload, Film, Music, Type, Sliders, Play, Pause, Plus, Trash2, BookOpen, Sparkles, Globe, ExternalLink, Search, Download, Shield, Image as ImageIcon, Brain, Wand2, Zap, CheckCircle2, Layers, Volume2, Mic, RefreshCw, Languages, Check, Square, LayoutGrid, List, Smile, Blend, Palette, Timer, Bell } from 'lucide-react';
 import { Clip, ClipType, Track, WatermarkSettings, QuranTranslationOption } from '../types';
 import { STOCK_VIDEOS, STOCK_AUDIOS, STOCK_IMAGES, TEXT_PRESETS, PRESET_LUTS } from '../data/presetAssets';
 import {
@@ -10,11 +10,12 @@ import {
   CAPCUT_FILTERS,
   CapCutAudioItem,
 } from '../data/cutecutAssets';
-import { AyahSymbolStyle, AyahDigitType, AyahSymbolPosition, formatAyahSymbol } from '../utils/editorUtils';
+import { AyahSymbolStyle, AyahDigitType, AyahSymbolPosition, formatAyahSymbol, getSafeCrossOrigin } from '../utils/editorUtils';
 import { QURAN_TRANSLATION_OPTIONS, getTranslationOptionById, SUPPORTED_TRANSLATION_FONTS, getSuggestedFontsForLanguage } from '../utils/quranTranslations';
 import { FAMOUS_MIX_COLLECTIONS } from '../utils/quranSurahData';
 import OrnateAyahMedallion from './OrnateAyahMedallion';
 import { QuranVisualsPanel } from './QuranVisualsPanel';
+import { SoundEffectsPanel } from './SoundEffectsPanel';
 
 /**
  * Asset URL Resolver Helper using Tauri's convertFileSrc API.
@@ -389,7 +390,7 @@ interface MediaPanelProps {
   quranKaraokeSyncOffsetMs?: number;
   setQuranKaraokeSyncOffsetMs?: (offsetMs: number) => void;
   // Controlled tab selection
-  initialTab?: 'upload' | 'video' | 'audio' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark';
+  initialTab?: 'upload' | 'video' | 'audio' | 'sfx' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark';
 }
 
 export default function MediaPanel({
@@ -565,7 +566,7 @@ export default function MediaPanel({
   onAddBismillahCard,
   onAddSadaqallahCard,
 }: MediaPanelProps) {
-  const [activeTab, setActiveTab] = useState<'upload' | 'video' | 'audio' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark'>(initialTab || 'upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'video' | 'audio' | 'sfx' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark'>(initialTab || 'upload');
 
   useEffect(() => {
     if (initialTab) {
@@ -1117,9 +1118,15 @@ export default function MediaPanel({
   const generateVideoThumbnail = (videoUrl: string): Promise<string> => {
     return new Promise((resolve) => {
       const video = document.createElement('video');
-      video.crossOrigin = 'anonymous';
+      const safeCrossOrigin = getSafeCrossOrigin(videoUrl);
+      if (safeCrossOrigin) {
+        video.crossOrigin = safeCrossOrigin;
+      }
       video.muted = true;
+      video.defaultMuted = true;
       video.playsInline = true;
+      video.setAttribute('webkit-playsinline', 'true');
+      video.setAttribute('playsinline', 'true');
       video.preload = 'auto';
       video.src = videoUrl;
 
@@ -1211,9 +1218,15 @@ export default function MediaPanel({
       } else if (isVideo) {
         // Probe duration and capture video thumbnail
         const element = document.createElement('video');
-        element.crossOrigin = 'anonymous';
+        const safeCrossOrigin = getSafeCrossOrigin(url);
+        if (safeCrossOrigin) {
+          element.crossOrigin = safeCrossOrigin;
+        }
         element.muted = true;
+        element.defaultMuted = true;
         element.playsInline = true;
+        element.setAttribute('webkit-playsinline', 'true');
+        element.setAttribute('playsinline', 'true');
         element.src = url;
 
         let resolved = false;
@@ -1607,6 +1620,7 @@ export default function MediaPanel({
           { id: 'upload', label: 'Media', icon: Upload, isAmber: false, isEmerald: false },
           { id: 'video', label: 'Stock', icon: Film, isAmber: false, isEmerald: false },
           { id: 'audio', label: 'Audio', icon: Music, isAmber: false, isEmerald: false },
+          { id: 'sfx', label: 'Sound FX', icon: Bell, isAmber: false, isEmerald: false },
           { id: 'text', label: 'Text', icon: Type, isAmber: false, isEmerald: false },
           { id: 'stickers', label: 'Stickers', icon: Smile, isAmber: false, isEmerald: false },
           { id: 'effects', label: 'Effects', icon: Wand2, isAmber: false, isEmerald: false },
@@ -1647,7 +1661,7 @@ export default function MediaPanel({
       </div>
 
       {/* Content Area */}
-      <div className={`flex-1 min-h-0 flex flex-col ${['video', 'audio', 'text', 'stickers', 'effects', 'transitions', 'filters', 'adjustment', 'upload'].includes(activeTab) ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 custom-scrollbar'}`}>
+      <div className={`flex-1 min-h-0 flex flex-col ${['video', 'audio', 'sfx', 'text', 'stickers', 'effects', 'transitions', 'filters', 'adjustment', 'upload'].includes(activeTab) ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 custom-scrollbar'}`}>
         {activeTab === 'video' && (
           <div className="flex flex-row h-full overflow-hidden">
             {/* CapCut Left Sidebar for Stock Categories */}
@@ -1811,7 +1825,11 @@ export default function MediaPanel({
             {/* Right Audio Content */}
             <div className="flex-1 flex flex-col h-full overflow-hidden p-3 space-y-3">
 
-            {audioSubTab === 'record' ? (
+            {audioSubTab === 'sfx' ? (
+              <div className="flex-1 h-full overflow-hidden -m-3">
+                <SoundEffectsPanel onAddClip={onAddClip} showAddedToast={showAddedToast} />
+              </div>
+            ) : audioSubTab === 'record' ? (
               <div className="space-y-4 p-3 bg-[#1c1c24] rounded-lg border border-gray-800 text-center">
                 <div className="w-12 h-12 mx-auto rounded-full bg-red-950/40 text-red-400 border border-red-800/40 flex items-center justify-center">
                   <Mic className="w-6 h-6 animate-pulse" />
@@ -1919,6 +1937,12 @@ export default function MediaPanel({
               </>
             )}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'sfx' && (
+          <div className="flex-1 h-full overflow-hidden">
+            <SoundEffectsPanel onAddClip={onAddClip} showAddedToast={showAddedToast} />
           </div>
         )}
 

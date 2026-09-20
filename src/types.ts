@@ -179,6 +179,7 @@ export interface Clip {
     transition?: TransitionType | ClipTransition;
     transitionIn?: TransitionType;
     transitionOut?: TransitionType;
+    transitionCombo?: TransitionType;
     transitionDuration?: number;
   };
   text3D?: {
@@ -188,8 +189,12 @@ export interface Clip {
     neonGlowColor?: string;
   };
   speedRamp?: {
-    preset: 'none' | 'hero' | 'bullet' | 'montage' | 'custom';
+    enabled?: boolean;
+    preset: 'none' | 'hero' | 'bullet' | 'montage' | 'custom' | 'jump-cut' | 'flash-in' | 'flash-out';
     curve: number[]; // e.g., [1, 2.5, 0.5, 1]
+    points?: { x: number; y: number }[]; // Normalized keyframe points: x (0 to 1), y (0.1 to 10.0x)
+    smoothSlowMo?: boolean;
+    maintainPitch?: boolean;
   };
   subtitleTranslation?: {
     enabled: boolean;
@@ -259,14 +264,43 @@ export interface Clip {
 export type TransitionType =
   | 'none'
   | 'fade'
+  | 'fade-in'
+  | 'fade-out'
   | 'slide-left'
   | 'slide-right'
   | 'slide-up'
   | 'slide-down'
+  | 'slide-out-left'
+  | 'slide-out-right'
   | 'dissolve'
   | 'cross-dissolve'
   | 'zoom'
-  | 'wipe';
+  | 'zoom-in-1'
+  | 'zoom-in-2'
+  | 'zoom-out'
+  | 'zoom-out-1'
+  | 'zoom-out-2'
+  | 'mini-zoom'
+  | 'wipe'
+  | 'spin-in'
+  | 'spin-out'
+  | 'bounce-in'
+  | 'shake-in'
+  | 'pendulum'
+  | 'glitch-in'
+  | 'glitch-out'
+  | 'pop-up'
+  | 'unfold'
+  | 'swing'
+  | 'rock-vert'
+  | 'flash-white'
+  | 'wobble'
+  | 'heartbeat'
+  | 'shake-zoom'
+  | 'kinetic-drift'
+  | 'wave-warp'
+  | 'flip-3d'
+  | 'camera-sway';
 
 export interface ClipTransition {
   type?: TransitionType;
@@ -275,6 +309,8 @@ export interface ClipTransition {
   inDuration?: number;
   outType?: TransitionType;
   outDuration?: number;
+  comboType?: TransitionType;
+  comboSpeed?: number;
 }
 
 export interface Track {

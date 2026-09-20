@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sliders, Move, RotateCcw, Sparkles, Blend, Palette, Wand2, Eye, Sun, Droplet, Layers, Scissors, Heart, Square, Circle, Shield, FlipHorizontal, FlipVertical, Moon, Flame, ZoomIn, Gauge, CircleDot, Activity, Camera, Film, SunMedium, Compass, Wind, Play, Zap } from 'lucide-react';
 import { Clip, VideoFilters, ColorGrading } from '../types';
 import { ColorGradingSection } from './ColorGradingSection';
+import { SpeedCurveEditor } from './SpeedCurveEditor';
 import { PRESET_LUTS } from '../data/presetAssets';
 
 interface CuteCutVideoInspectorProps {
@@ -1132,132 +1133,14 @@ export const CuteCutVideoInspector: React.FC<CuteCutVideoInspectorProps> = ({
               </div>
             )}
 
-            {/* CURVE SPEED RAMPING */}
+            {/* CURVE SPEED RAMPING (CapCut Style Interactive Bezier Editor) */}
             {speedMode === 'curve' && (
-              <div className="space-y-4">
-                {/* Presets Grid */}
-                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-2.5">
-                  <span className="text-gray-200 font-semibold">Speed Ramp Presets</span>
-                  <div className="grid grid-cols-3 gap-2">
-                    {SPEED_PRESETS.map((preset) => {
-                      const isCurrent = clip.speedRamp?.preset === preset.id;
-                      return (
-                        <button
-                          key={preset.id}
-                          onClick={() =>
-                            onUpdateClip(clip.id, {
-                              speedRamp: {
-                                preset: preset.id as any,
-                                curve: preset.curve,
-                              },
-                              playbackRate: preset.curve[Math.floor(preset.curve.length / 2)] || 1.0,
-                            })
-                          }
-                          className={`p-2 rounded text-left border transition flex flex-col justify-between ${
-                            isCurrent
-                              ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
-                              : 'bg-[#121217] border-gray-800 text-gray-300 hover:border-gray-700'
-                          }`}
-                        >
-                          <span className="font-bold text-xs">{preset.name}</span>
-                          <span className="text-[9px] text-gray-400 line-clamp-1 mt-0.5">{preset.desc}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Interactive Curve Graph Visualizer */}
-                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-200 font-semibold">Velocity Curve Visualizer</span>
-                    <span className="text-[10px] font-mono text-cyan-400">Bezier Points</span>
-                  </div>
-
-                  {/* SVG Graph */}
-                  <div className="relative h-28 bg-[#121217] rounded-lg border border-gray-800 p-2 overflow-hidden flex items-end">
-                    {/* Grid lines */}
-                    <div className="absolute inset-0 grid grid-rows-3 opacity-10 pointer-events-none">
-                      <div className="border-b border-cyan-400" />
-                      <div className="border-b border-cyan-400" />
-                    </div>
-
-                    {/* Curve Polyline */}
-                    <svg className="w-full h-full overflow-visible">
-                      {(() => {
-                        const curve = clip.speedRamp?.curve || [1, 1, 1, 1, 1];
-                        const maxVal = 5.0;
-                        const points = curve
-                          .map((val, idx) => {
-                            const x = (idx / (curve.length - 1)) * 100;
-                            const y = 100 - (Math.min(val, maxVal) / maxVal) * 85;
-                            return `${x},${y}`;
-                          })
-                          .join(' ');
-
-                        return (
-                          <>
-                            <polyline
-                              fill="none"
-                              stroke="#06b6d4"
-                              strokeWidth="3"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              points={points}
-                            />
-                            {curve.map((val, idx) => {
-                              const cx = `${(idx / (curve.length - 1)) * 100}%`;
-                              const cy = `${100 - (Math.min(val, maxVal) / maxVal) * 85}%`;
-                              return (
-                                <circle
-                                  key={idx}
-                                  cx={cx}
-                                  cy={cy}
-                                  r="5"
-                                  fill="#22d3ee"
-                                  stroke="#0f172a"
-                                  strokeWidth="2"
-                                  className="cursor-pointer hover:r-6 transition-all"
-                                />
-                              );
-                            })}
-                          </>
-                        );
-                      })()}
-                    </svg>
-                  </div>
-
-                  {/* Node Fine-tuning sliders */}
-                  <div className="space-y-1.5 pt-1">
-                    <div className="text-[10px] text-gray-400">Fine-tune Curve Velocity Nodes (0.2x to 5.0x):</div>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {(clip.speedRamp?.curve || [1, 1, 1, 1, 1]).map((val, idx) => (
-                        <div key={idx} className="flex flex-col items-center gap-1 bg-[#121217] p-1.5 rounded border border-gray-800">
-                          <span className="text-[9px] font-mono text-cyan-400 font-bold">{val.toFixed(1)}x</span>
-                          <input
-                            type="range"
-                            min="0.2"
-                            max="5.0"
-                            step="0.1"
-                            value={val}
-                            onChange={(e) => {
-                              const newCurve = [...(clip.speedRamp?.curve || [1, 1, 1, 1, 1])];
-                              newCurve[idx] = parseFloat(e.target.value);
-                              onUpdateClip(clip.id, {
-                                speedRamp: {
-                                  preset: 'custom',
-                                  curve: newCurve,
-                                },
-                              });
-                            }}
-                            className="w-full h-1 bg-gray-700 rounded appearance-none cursor-pointer accent-cyan-400"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <SpeedCurveEditor
+                clip={clip}
+                onUpdateClip={onUpdateClip}
+                currentTime={currentTime}
+                onSeek={onSeek}
+              />
             )}
           </div>
         )}

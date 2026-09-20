@@ -23,6 +23,7 @@ import {
   isQuranArabicClip,
 } from '../utils/editorUtils';
 import { getSurahMeta, formatSurahHeader } from '../utils/quranSurahData';
+import { getClipEffectiveSpeedAtTime } from '../utils/speedRampUtils';
 
 /**
  * Extracts the Surah number from clip metadata
@@ -872,6 +873,8 @@ export default function PreviewPlayer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showRatioMenu, setShowRatioMenu] = useState(false);
   const [showPlayerMenu, setShowPlayerMenu] = useState(false);
+  const [isStreamBuffering, setIsStreamBuffering] = useState(false);
+  const lastBufferingCheck = useRef<number>(0);
 
   // Interactive Text & Group Drag & Scale State
   const textBoundsRef = useRef<Record<string, TextBound>>({});
@@ -962,11 +965,33 @@ export default function PreviewPlayer({
     });
   };
 
-  // Pre-trigger video element initialization on track changes
+  // Pre-trigger video element initialization and poster pre-caching on track changes
   useEffect(() => {
     tracks.forEach((track) => {
       track.clips.forEach((clip) => {
         if ((clip.type === ClipType.VIDEO || clip.type === ClipType.IMAGE) && clip.url) {
+          // Immediately pre-cache poster image so fallback/instant frame is ready without delay
+          const posterUrl = clip.poster || clip.thumbnailUrl || clip.fallbackUrl;
+          if (posterUrl) {
+            const fbKey = `${clip.id}_fb_poster`;
+            if (!fallbackMediaRef.current[fbKey]) {
+              const fbImg = document.createElement('img');
+              const safeCrossOrigin = getSafeCrossOrigin(posterUrl);
+              if (safeCrossOrigin) fbImg.crossOrigin = safeCrossOrigin;
+              fbImg.src = normalizeMediaUrl(posterUrl);
+              fbImg.addEventListener('error', () => {
+                if (fbImg.crossOrigin) {
+                  fbImg.removeAttribute('crossorigin');
+                  fbImg.src = normalizeMediaUrl(posterUrl);
+                }
+              });
+              if (typeof fbImg.decode === 'function') {
+                fbImg.decode().catch(() => {});
+              }
+              fallbackMediaRef.current[fbKey] = fbImg;
+            }
+          }
+
           const media = videoNodes[clip.id] || fallbackMediaRef.current[clip.id];
           if (media && media instanceof HTMLVideoElement) {
             const video = media as HTMLVideoElement;
@@ -1047,9 +1072,17 @@ export default function PreviewPlayer({
       });
 
       // ------------------ VIDEO & IMAGE LAYERS ------------------
+      let hasBufferingStream = false;
       activeFrameClips.forEach((clip) => {
         if (clip.type === ClipType.VIDEO || clip.type === ClipType.IMAGE) {
           let media = videoNodes[clip.id] || fallbackMediaRef.current[clip.id];
+
+          if (clip.type === ClipType.VIDEO && !clip.isImage) {
+            const vEl = (media instanceof HTMLVideoElement) ? media : null;
+            if (vEl && (vEl.readyState < 2 || vEl.seeking)) {
+              hasBufferingStream = true;
+            }
+          }
 
           // Fallback: create safe HTML5 video/image element dynamically if missing
           if (!media && clip.url) {
@@ -1084,17 +1117,24 @@ export default function PreviewPlayer({
                 video.crossOrigin = safeCrossOrigin;
               }
               video.src = normUrl;
-              video.muted = isMuted;
+              video.muted = true;
+              video.defaultMuted = true;
               video.playsInline = true;
               video.preload = 'auto';
               video.loop = true;
               video.setAttribute('webkit-playsinline', 'true');
+              video.setAttribute('playsinline', 'true');
+              video.setAttribute('x5-playsinline', 'true');
+              video.setAttribute('x5-video-player-type', 'h5');
+              video.setAttribute('x5-video-player-fullscreen', 'false');
 
               const handleVideoErr = () => {
                 if (video.crossOrigin) {
                   video.removeAttribute('crossorigin');
                   video.src = normUrl;
-                  video.load();
+                  try {
+                    video.load();
+                  } catch (e) {}
                 } else {
                   (video as any).hasError = true;
                 }
@@ -1125,11 +1165,16 @@ export default function PreviewPlayer({
             if (isVideoReady) {
               drawTarget = videoEl;
               const elapsed = currentTime - clip.start;
-              const rawSrcTime = clip.sourceStart + elapsed * clip.playbackRate;
+              const { currentSpeed, sourceTime: rawSrcTime } = getClipEffectiveSpeedAtTime(clip, elapsed);
               const vidDur = (videoEl.duration && !isNaN(videoEl.duration) && isFinite(videoEl.duration) && videoEl.duration > 0) ? videoEl.duration : (clip.duration || 999999);
               const clampedSrcTime = vidDur > 0 ? (rawSrcTime % vidDur) : 0;
               
               if (isPlaying) {
+                if (Math.abs((videoEl.playbackRate || 1.0) - currentSpeed) > 0.05) {
+                  try {
+                    videoEl.playbackRate = Math.max(0.1, Math.min(16, currentSpeed));
+                  } catch {}
+                }
                 if (videoEl.paused) {
                   videoEl.play().catch(() => {});
                 }
@@ -1198,7 +1243,7 @@ export default function PreviewPlayer({
             const scale = (interpolated.scale / 100) * transState.scaleMultiplier * motionScale;
             const posX = interpolated.posX + transState.offsetX;
             const posY = interpolated.posY + transState.offsetY + motionPosY;
-            const rotationDeg = interpolated.rotation;
+            const rotationDeg = interpolated.rotation + (transState.rotationOffset || 0);
             const rad = (rotationDeg * Math.PI) / 180;
 
             // Render video/image onto canvas with safe matrix transforms
@@ -1309,8 +1354,19 @@ export default function PreviewPlayer({
             try {
               ctx.drawImage(drawTarget, -dimensions.width / 2, -dimensions.height / 2, dimensions.width, dimensions.height);
             } catch {
-              ctx.fillStyle = '#0f172a';
-              ctx.fillRect(-dimensions.width / 2, -dimensions.height / 2, dimensions.width, dimensions.height);
+              const fbKey = `${clip.id}_fb_poster`;
+              const backupImg = fallbackMediaRef.current[fbKey];
+              if (backupImg && backupImg instanceof HTMLImageElement && backupImg.complete && backupImg.naturalWidth > 0) {
+                try {
+                  ctx.drawImage(backupImg, -dimensions.width / 2, -dimensions.height / 2, dimensions.width, dimensions.height);
+                } catch {
+                  ctx.fillStyle = '#0f172a';
+                  ctx.fillRect(-dimensions.width / 2, -dimensions.height / 2, dimensions.width, dimensions.height);
+                }
+              } else {
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(-dimensions.width / 2, -dimensions.height / 2, dimensions.width, dimensions.height);
+              }
             }
             
             ctx.filter = 'none';
@@ -1605,6 +1661,13 @@ export default function PreviewPlayer({
             }
           }
         });
+
+      // Throttled stream buffering check
+      const nowCheck = performance.now();
+      if (nowCheck - lastBufferingCheck.current > 300) {
+        lastBufferingCheck.current = nowCheck;
+        setIsStreamBuffering((prev) => (prev !== hasBufferingStream ? hasBufferingStream : prev));
+      }
 
       // ------------------ PRE-CALCULATE TEXT LAYERS & CINEMA OVERLAYS ------------------
       interface PreparedTextLayer {
@@ -3572,6 +3635,14 @@ export default function PreviewPlayer({
           )}
 
 
+
+          {/* Subtle Buffering Indicator for Live Streams */}
+          {isStreamBuffering && totalTimelineClipsCount > 0 && !isExporting && (
+            <div className="absolute top-3 right-3 z-30 pointer-events-none flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-cyan-500/40 text-[11px] text-cyan-300 shadow-xl animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping shrink-0" />
+              <span className="font-medium">Buffering Stream...</span>
+            </div>
+          )}
 
           {isExporting && (
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/90 border border-cyan-400/80 px-4 py-2 rounded-full shadow-2xl flex items-center gap-2.5 z-40 animate-pulse backdrop-blur-md">

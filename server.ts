@@ -11,7 +11,7 @@ import { LayoutEngine } from './src/services/video/layoutEngine';
 import { RenderTimeline, RenderManifest } from './src/types/video';
 import { getStockAssetsForAyahs, searchPexelsApi, searchPixabayApi, CURATED_STOCK_CATALOG } from './src/services/stockMediaService';
 
-dotenv.config();
+dotenv.config({ override: true });
 
 // Initialize the Gemini SDK if the API key is present
 function getAiClient(req?: express.Request): GoogleGenAI | null {
@@ -847,8 +847,10 @@ async function startServer() {
       const mediaType = ((req.query.mediaType as string) === 'image' ? 'image' : 'video') as 'video' | 'image';
       const count = parseInt(req.query.count as string, 10) || 5;
       const source = (req.query.source as 'pexels' | 'pixabay' | 'auto') || 'auto';
-      const pexelsApiKey = (req.headers['x-pexels-api-key'] as string) || (req.query.pexelsApiKey as string) || process.env.PEXELS_API_KEY;
-      const pixabayApiKey = (req.headers['x-pixabay-api-key'] as string) || (req.query.pixabayApiKey as string) || process.env.PIXABAY_API_KEY;
+      const rawPexels = (req.headers['x-pexels-api-key'] as string) || (req.query.pexelsApiKey as string) || process.env.PEXELS_API_KEY;
+      const rawPixabay = (req.headers['x-pixabay-api-key'] as string) || (req.query.pixabayApiKey as string) || process.env.PIXABAY_API_KEY;
+      const pexelsApiKey = (rawPexels && rawPexels.trim().toLowerCase() !== 'pexels.com') ? rawPexels.trim() : undefined;
+      const pixabayApiKey = (rawPixabay && rawPixabay.trim().toLowerCase() !== 'pixabay.com') ? rawPixabay.trim() : undefined;
 
       const result = await getStockAssetsForAyahs({
         categoryOrQuery: query,

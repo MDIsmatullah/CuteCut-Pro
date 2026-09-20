@@ -33,7 +33,7 @@ export async function searchPexelsApi(options: {
   page?: number;
   apiKey?: string;
 }): Promise<StockItem[]> {
-  const key = options.apiKey || process.env.PEXELS_API_KEY;
+  const key = options.apiKey?.trim() || process.env.PEXELS_API_KEY?.trim();
   if (!key) return [];
 
   const perPage = options.perPage || 15;
@@ -49,24 +49,26 @@ export async function searchPexelsApi(options: {
       const data = await res.json();
       const videos: any[] = data.videos || [];
       return videos.map((v: any) => {
-        // Find best HD mp4 file
+        // Find best fast-streaming HD mp4 file (priority: 720p or 1080p mp4 for near-instant web buffering)
         const videoFiles: any[] = v.video_files || [];
-        const hdFile = videoFiles.find((f: any) => f.quality === 'hd' && f.file_type === 'video/mp4') ||
-                       videoFiles.find((f: any) => f.width >= 1280 && f.file_type === 'video/mp4') ||
-                       videoFiles[0];
+        const mp4Files = videoFiles.filter((f: any) => f.file_type === 'video/mp4');
+        const fast720pFile = mp4Files.find((f: any) => f.width === 1280 || f.height === 720);
+        const fast1080pFile = mp4Files.find((f: any) => (f.width === 1920 || f.height === 1080) && (!f.fps || f.fps <= 30));
+        const anyHdMp4 = mp4Files.find((f: any) => f.quality === 'hd') || mp4Files[0];
+        const chosenFile = fast720pFile || fast1080pFile || anyHdMp4 || videoFiles[0];
 
         return {
           id: `pexels-v-${v.id}`,
           title: `Pexels Video #${v.id} (${v.user?.name || 'Contributor'})`,
-          url: hdFile?.link || v.url,
-          downloadUrl: hdFile?.link || v.url,
+          url: chosenFile?.link || v.url,
+          downloadUrl: (fast1080pFile || chosenFile)?.link || v.url,
           thumbnail: v.image || (v.video_pictures && v.video_pictures[0]?.picture) || '',
           duration: v.duration || 15,
           mediaType: 'video',
           source: 'pexels',
           author: v.user?.name || 'Pexels Contributor',
-          width: hdFile?.width || v.width,
-          height: hdFile?.height || v.height,
+          width: chosenFile?.width || v.width,
+          height: chosenFile?.height || v.height,
           category: options.query
         };
       });
@@ -108,7 +110,7 @@ export async function searchPixabayApi(options: {
   page?: number;
   apiKey?: string;
 }): Promise<StockItem[]> {
-  const key = options.apiKey || process.env.PIXABAY_API_KEY;
+  const key = options.apiKey?.trim() || process.env.PIXABAY_API_KEY?.trim();
   if (!key) return [];
 
   const perPage = options.perPage || 15;
@@ -122,12 +124,15 @@ export async function searchPixabayApi(options: {
       const data = await res.json();
       const hits: any[] = data.hits || [];
       return hits.map((h: any) => {
-        const vUrl = h.videos?.large?.url || h.videos?.medium?.url || h.videos?.small?.url;
+        // In Pixabay, 'large' is often 4K (200MB+), which causes long player buffering latency.
+        // 'medium' (1080p, ~12MB) or 'small' (720p, ~5MB) buffers 10x-20x faster.
+        const vUrl = h.videos?.medium?.url || h.videos?.small?.url || h.videos?.large?.url || h.videos?.tiny?.url;
+        const downloadUrl = h.videos?.large?.url || h.videos?.medium?.url || vUrl;
         return {
           id: `pixabay-v-${h.id}`,
           title: h.tags || `Pixabay Video #${h.id}`,
           url: vUrl,
-          downloadUrl: vUrl,
+          downloadUrl: downloadUrl,
           thumbnail: h.userImageURL || `https://i.vimeocdn.com/video/${h.picture_id}_640x360.jpg`,
           duration: h.duration || 15,
           mediaType: 'video',
@@ -355,13 +360,16 @@ export async function getStockAssetsForAyahs(options: {
   let liveResults: StockItem[] = [];
   let sourceUsed = 'catalog-curated-150-library';
 
+  const effectivePexelsKey = options.pexelsApiKey?.trim() || process.env.PEXELS_API_KEY?.trim();
+  const effectivePixabayKey = options.pixabayApiKey?.trim() || process.env.PIXABAY_API_KEY?.trim();
+
   // 1. Try live Pexels API if key available
-  if (reqSource !== 'pixabay' && (options.pexelsApiKey || process.env.PEXELS_API_KEY)) {
+  if (reqSource !== 'pixabay' && effectivePexelsKey) {
     const pexelsItems = await searchPexelsApi({
       query: categoryOrQuery,
       mediaType,
       perPage: Math.max(15, targetCount),
-      apiKey: options.pexelsApiKey
+      apiKey: effectivePexelsKey
     });
     if (pexelsItems.length > 0) {
       liveResults = pexelsItems;
@@ -370,12 +378,12 @@ export async function getStockAssetsForAyahs(options: {
   }
 
   // 2. Try live Pixabay API if key available and needed
-  if (liveResults.length < targetCount && reqSource !== 'pexels' && (options.pixabayApiKey || process.env.PIXABAY_API_KEY)) {
+  if (liveResults.length < targetCount && reqSource !== 'pexels' && effectivePixabayKey) {
     const pixabayItems = await searchPixabayApi({
       query: categoryOrQuery,
       mediaType,
       perPage: Math.max(15, targetCount),
-      apiKey: options.pixabayApiKey
+      apiKey: effectivePixabayKey
     });
     if (pixabayItems.length > 0) {
       liveResults = [...liveResults, ...pixabayItems];

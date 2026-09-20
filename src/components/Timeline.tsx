@@ -8,7 +8,7 @@ import {
   Zap, Split, ChevronDown, ChevronUp, GripVertical, ArrowUpDown, ArrowUp, ArrowDown,
   Flag, UserCheck, Mic, Link, Link2, Crosshair, Repeat, Grid,
   Image as ImageIcon, Type as TypeIcon, BoxSelect, CheckCheck, X, Merge,
-  GripHorizontal, Move, AlertTriangle, CheckCircle2, Wand2, FileText, BookOpen
+  GripHorizontal, Move, AlertTriangle, CheckCircle2, Wand2, FileText, BookOpen, Activity
 } from 'lucide-react';
 import { Track, Clip, ClipType, TransitionType } from '../types';
 import { formatTimeCode, extractAyahNumberFromClip, globalBreathMarkersRegistry, QURAN_CHAPTER_AYAH_COUNTS } from '../utils/editorUtils';
@@ -2641,6 +2641,12 @@ export default function Timeline({
                                 {clip.transition && (clip.transition.inType !== 'none' || clip.transition.outType !== 'none' || clip.transition.type !== 'none') && (
                                   <span className="px-1 py-0.1 rounded text-[6.5px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/60 shrink-0 uppercase">
                                     ✨ {clip.transition.type || 'Trans'}
+                                  </span>
+                                )}
+                                {/* Speed Curve Ramp Badge */}
+                                {clip.speedRamp && clip.speedRamp.enabled !== false && clip.speedRamp.preset !== 'none' && (
+                                  <span className="px-1 py-0.1 rounded text-[6.5px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-400/60 shrink-0 uppercase flex items-center gap-0.5" title={`Speed Curve Ramp: ${clip.speedRamp.preset}`}>
+                                    <Activity className="w-2 h-2 text-cyan-400" /> Curve ({clip.speedRamp.preset})
                                   </span>
                                 )}
                               </div>
