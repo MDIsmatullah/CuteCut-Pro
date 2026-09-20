@@ -11,6 +11,7 @@ import UpdateCheckerModal from './components/UpdateCheckerModal';
 import VoiceAssistantModal from './components/VoiceAssistantModal';
 import { GeminiAIIntelligenceModal } from './components/GeminiAIIntelligenceModal';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+import AboutSupportModal from './components/AboutSupportModal';
 import ExportModal, { ExportConfig } from './components/ExportModal';
 import { PreferencesModal } from './components/PreferencesModal';
 import { Quran100ProtocolsModal } from './components/Quran100ProtocolsModal';
@@ -356,6 +357,7 @@ export default function App() {
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [showGeminiIntelligenceModal, setShowGeminiIntelligenceModal] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [showAboutSupportModal, setShowAboutSupportModal] = useState(false);
   const [showAISegmentationModal, setShowAISegmentationModal] = useState(false);
   const [show100ProtocolsModal, setShow100ProtocolsModal] = useState(false);
   const [latestProtocolsEvaluation, setLatestProtocolsEvaluation] = useState<any>(undefined);
@@ -6538,6 +6540,7 @@ export default function App() {
               quranWaveformColor={quranWaveformColor}
               quranWaveformY={quranWaveformY}
               quranKaraokeSyncOffsetMs={quranKaraokeSyncOffsetMs}
+              onOpenSupportModal={() => setShowAboutSupportModal(true)}
             />
           )}
           renderTimeline={() => (
@@ -7407,6 +7410,7 @@ export default function App() {
               quranWaveformColor={quranWaveformColor}
               quranWaveformY={quranWaveformY}
               quranKaraokeSyncOffsetMs={quranKaraokeSyncOffsetMs}
+              onOpenSupportModal={() => setShowAboutSupportModal(true)}
             />
           </div>
 
@@ -7578,6 +7582,14 @@ export default function App() {
       <KeyboardShortcutsModal
         isOpen={showShortcutsModal}
         onClose={() => setShowShortcutsModal(false)}
+      />
+
+      {/* About CuteCut Pro & Support / Donation Modal */}
+      <AboutSupportModal
+        isOpen={showAboutSupportModal}
+        onClose={() => setShowAboutSupportModal(false)}
+        onSupportClick={handleSupportProjectClick}
+        donationUrl={DONATION_SUPPORT_URL}
       />
 
       {/* 100 Master Quran Alignment Protocols Diagnostic Inspector Modal */}

@@ -3,7 +3,7 @@ import {
   Play, Pause, ChevronLeft, ChevronRight, Maximize2, Minimize2, Layers,
   Grid, ShieldCheck, Volume2, VolumeX, Monitor, Smartphone, Square,
   Film, Menu, Scan, Search, ChevronDown, Activity, SlidersHorizontal,
-  Sparkles, Check
+  Sparkles, Check, Heart, Coffee, ExternalLink
 } from 'lucide-react';
 import { Track, Clip, ClipType, WatermarkSettings } from '../types';
 import {
@@ -775,6 +775,9 @@ interface PreviewPlayerProps {
 
   // Audio-Video Word-by-Word / Karaoke Sync Offset Calibration in ms (e.g. +150ms)
   quranKaraokeSyncOffsetMs?: number;
+
+  // Dedicated Support & About App Modal Trigger
+  onOpenSupportModal?: () => void;
 }
 
 interface TextBound {
@@ -838,6 +841,9 @@ export default function PreviewPlayer({
 
   // Audio Sync Offset in ms (default: +150ms lead to match audio output buffer)
   quranKaraokeSyncOffsetMs = 150,
+
+  // Dedicated Support & About App Modal Trigger
+  onOpenSupportModal,
 }: PreviewPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -902,6 +908,7 @@ export default function PreviewPlayer({
   }, [aspectRatio, isExporting, exportResolution, previewQuality]);
 
   // Find active video clip for adjustment controls
+  const totalTimelineClipsCount = tracks.reduce((acc, t) => acc + t.clips.length, 0);
   const activeClips: Clip[] = [];
   tracks.forEach((track) => {
     if (track.hidden) return;
@@ -3463,6 +3470,106 @@ export default function PreviewPlayer({
             onMouseUp={handleCanvasMouseUp}
             onMouseLeave={handleCanvasMouseUp}
           />
+
+          {/* Empty Timeline Stage: Beautiful Background Image, App Info, and Support / Donation Card */}
+          {totalTimelineClipsCount === 0 && !isExporting && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-between p-4 sm:p-6 select-none overflow-hidden group/welcome pointer-events-auto">
+              {/* High-Resolution Islamic Scenic Wallpaper Background */}
+              <img
+                src="https://images.unsplash.com/photo-1542816417-0983c9c9ad53?w=1600&auto=format&fit=crop&q=80"
+                alt="CuteCut Pro Background"
+                referrerPolicy="no-referrer"
+                className="absolute inset-0 w-full h-full object-cover object-center filter brightness-[0.45] contrast-105 transform scale-100 group-hover/welcome:scale-105 transition-transform duration-1000 ease-out pointer-events-none"
+              />
+              {/* Elegant Radial & Multi-Stop Dark Vignette Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/60 pointer-events-none" />
+              <div className="absolute inset-0 bg-radial-vignette pointer-events-none opacity-80" />
+
+              {/* Top Bar: App Badge & About Action */}
+              <div className="relative z-10 w-full flex items-center justify-between">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-lg text-gray-200">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                  <span className="text-[11px] font-bold tracking-wide">CuteCut Pro Studio</span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30">
+                    Ready
+                  </span>
+                </div>
+
+                {onOpenSupportModal && (
+                  <button
+                    onClick={onOpenSupportModal}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md border border-pink-500/40 hover:border-pink-400 text-pink-300 hover:text-white text-[11px] font-semibold transition shadow-md active:scale-95 cursor-pointer"
+                    title="About CuteCut Pro & Support Project"
+                  >
+                    <Heart className="w-3 h-3 text-pink-400 fill-pink-400/30" />
+                    <span>About & Support</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Center Hero: App Info & Title */}
+              <div className="relative z-10 text-center max-w-xl px-4 py-2 my-auto flex flex-col items-center">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight drop-shadow-lg flex items-center justify-center gap-2 flex-wrap">
+                  <span>Welcome to</span>
+                  <span className="bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent">
+                    CuteCut Pro
+                  </span>
+                </h1>
+
+                <p className="mt-2 text-xs sm:text-sm text-gray-200/90 leading-relaxed drop-shadow-md max-w-lg">
+                  Professional Video Editor & Quran Recitation Studio. Drag & drop videos, audios, or images into the timeline below to begin editing.
+                </p>
+
+                {/* Micro Features Badges */}
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[10px] text-gray-300">
+                  <span className="px-2 py-0.5 rounded-md bg-white/10 backdrop-blur-md border border-white/15">
+                    🎬 4 Designated Tracks
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white/10 backdrop-blur-md border border-white/15">
+                    📖 Auto Quran Ayah Sync
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white/10 backdrop-blur-md border border-white/15">
+                    ⚡ 4K Ultra-HD Export
+                  </span>
+                </div>
+              </div>
+
+              {/* Bottom Card: Donation & Buy Me a Coffee Support Banner */}
+              <div className="relative z-10 w-full max-w-md bg-black/70 hover:bg-black/80 backdrop-blur-md border border-pink-500/40 hover:border-pink-400/70 rounded-xl p-3 sm:p-3.5 shadow-2xl transition flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 shrink-0">
+                    <Heart className="w-4 h-4 fill-pink-400/40" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11px] sm:text-xs font-bold text-white flex items-center gap-1.5 truncate">
+                      <span>Support & Donation</span>
+                      <span className="text-[9px] text-pink-300 bg-pink-500/20 px-1.5 py-0.2 rounded font-normal">
+                        Sadqa-e-Jariyah
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-300 truncate">
+                      Help us upgrade & enhance CuteCut Pro for everyone
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <a
+                    href="https://buymeacoffee.com/asdevolper"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FFDD00] hover:bg-[#FFE338] text-black font-extrabold text-[11px] shadow-md shadow-yellow-500/20 active:scale-95 transition cursor-pointer"
+                    title="Support via Buy Me a Coffee"
+                  >
+                    <Coffee className="w-3.5 h-3.5 fill-black stroke-[2]" />
+                    <span className="hidden sm:inline">Buy Me a Coffee</span>
+                    <span className="sm:hidden">Support</span>
+                    <ExternalLink className="w-3 h-3 ml-0.5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
 
 
 
