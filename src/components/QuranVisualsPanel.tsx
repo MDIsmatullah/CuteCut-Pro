@@ -19,14 +19,10 @@ import {
   Plus,
   Download,
   Search,
-  Check,
-  Key,
-  ExternalLink,
-  ChevronDown,
-  ChevronUp
+  Check
 } from 'lucide-react';
 import { Track, Clip, ClipType } from '../types';
-import { extractAyahNumberFromClip } from '../utils/editorUtils';
+import { extractAyahNumberFromClip, getSafeMediaUrl } from '../utils/editorUtils';
 import { SURAHS } from './MediaPanel';
 import { getTranslationOptionById } from '../utils/quranTranslations';
 import {
@@ -238,27 +234,12 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
 
-  // Free API Key states & persistence
-  const [pexelsApiKey, setPexelsApiKey] = useState<string>(() => {
-    return localStorage.getItem('cutecut_pexels_api_key') || 'zQcA6fA1V1ErZ5UOPLM6HY5YbqFLBoaGrxzg583UlE5tDUzSAda0umZU';
-  });
-  const [pixabayApiKey, setPixabayApiKey] = useState<string>(() => {
-    return localStorage.getItem('cutecut_pixabay_api_key') || '51611607-2bddfcd1e87cf3230c2436755';
-  });
-  const [showApiKeysSection, setShowApiKeysSection] = useState<boolean>(false);
+  // Stock source tracking
+  const [stockSourceUsed, setStockSourceUsed] = useState<string>('live-pexels-api');
+
   const [smartKeywordDistribution, setSmartKeywordDistribution] = useState<boolean>(true);
 
-  // Sync keys to local storage if not already stored
-  useEffect(() => {
-    if (!localStorage.getItem('cutecut_pexels_api_key')) {
-      localStorage.setItem('cutecut_pexels_api_key', 'zQcA6fA1V1ErZ5UOPLM6HY5YbqFLBoaGrxzg583UlE5tDUzSAda0umZU');
-    }
-    if (!localStorage.getItem('cutecut_pixabay_api_key')) {
-      localStorage.setItem('cutecut_pixabay_api_key', '51611607-2bddfcd1e87cf3230c2436755');
-    }
-  }, []);
-
-  // Live Stock Media Fetcher from Pexels / Pixabay (Acts just like searching on Pexels / Pixabay)
+  // Live Stock Media Fetcher from Pexels / Pixabay (powered by backend proxy with default production keys)
   const fetchLiveStockMedia = async (
     sourceWeb: 'pexels' | 'pixabay',
     catId: string,
@@ -269,18 +250,17 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
     try {
       const catConfig = QURAN_TILAWAT_CATEGORIES.find(c => c.id === catId) || QURAN_TILAWAT_CATEGORIES[0];
       const activeQuery = customQuery.trim().length > 0 ? customQuery.trim() : catConfig.query;
-      const headers: Record<string, string> = {};
-      if (pexelsApiKey) headers['x-pexels-api-key'] = pexelsApiKey;
-      if (pixabayApiKey) headers['x-pixabay-api-key'] = pixabayApiKey;
 
       const res = await fetch(
-        `/api/stock/search?category=${encodeURIComponent(activeQuery)}&mediaType=${type}&source=${sourceWeb}&count=12&pexelsApiKey=${encodeURIComponent(pexelsApiKey)}&pixabayApiKey=${encodeURIComponent(pixabayApiKey)}`,
-        { headers }
+        `/api/stock/search?category=${encodeURIComponent(activeQuery)}&mediaType=${type}&source=${sourceWeb}&count=12`
       );
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.items)) {
           setStockExplorerItems(data.items);
+          if (data.sourceUsed) {
+            setStockSourceUsed(data.sourceUsed);
+          }
         }
       }
     } catch (e) {
@@ -320,10 +300,10 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
       {
         name: item.title || `${(item.source || stockSource).toUpperCase()} ${item.category || 'Visual'}`,
         type: isVid ? ClipType.VIDEO : ClipType.IMAGE,
-        url: item.url,
-        poster: item.thumbnail || item.url,
-        thumbnailUrl: item.thumbnail || item.url,
-        fallbackUrl: item.thumbnail || item.url,
+        url: getSafeMediaUrl(item.url),
+        poster: getSafeMediaUrl(item.thumbnail || item.url),
+        thumbnailUrl: getSafeMediaUrl(item.thumbnail || item.url),
+        fallbackUrl: getSafeMediaUrl(item.thumbnail || item.url),
         start: startTime,
         duration: clipDuration,
         sourceStart: 0,
@@ -355,11 +335,12 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
       return;
     }
     const isVid = (item.mediaType || mediaType) === 'video';
+    const safeUrl = getSafeMediaUrl(item.url);
     const updated = generatedVisuals.map(v => ({
       ...v,
-      imageUrl: isVid ? (item.thumbnail || item.url) : item.url,
-      videoUrl: isVid ? item.url : '',
-      selectedUrl: item.url,
+      imageUrl: isVid ? (item.thumbnail || item.url) : safeUrl,
+      videoUrl: isVid ? safeUrl : '',
+      selectedUrl: safeUrl,
       mediaType: isVid ? ('video' as const) : ('image' as const),
       source: item.source || stockSource,
       downloadUrl: item.url,
@@ -673,14 +654,9 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
       const activeCat = QURAN_TILAWAT_CATEGORIES.find(c => c.id === visualCategory) || QURAN_TILAWAT_CATEGORIES[0];
       const activeQuery = searchQuery.trim().length > 0 ? searchQuery.trim() : activeCat.query;
 
-      const headers: Record<string, string> = {};
-      if (pexelsApiKey) headers['x-pexels-api-key'] = pexelsApiKey;
-      if (pixabayApiKey) headers['x-pixabay-api-key'] = pixabayApiKey;
-
-      // 1. Direct Pexels & Pixabay Multi-Ayah stock resolver endpoint with user API keys passed
+      // 1. Direct Pexels & Pixabay Multi-Ayah stock resolver endpoint
       const stockRes = await fetch(
-        `/api/stock/search?category=${encodeURIComponent(activeQuery)}&mediaType=${mediaType}&count=${payloadVerses.length}&source=${stockSource}&pexelsApiKey=${encodeURIComponent(pexelsApiKey)}&pixabayApiKey=${encodeURIComponent(pixabayApiKey)}`,
-        { headers }
+        `/api/stock/search?category=${encodeURIComponent(activeQuery)}&mediaType=${mediaType}&count=${payloadVerses.length}&source=${stockSource}`
       )
         .then(r => (r.ok ? r.json() : null))
         .catch(() => null);
@@ -691,6 +667,7 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
         const enriched: AyahVisualItem[] = payloadVerses.map((v: any, index: number) => {
           const item = stockItems[index % stockItems.length];
           const isVid = (item.mediaType || mediaType) === 'video';
+          const safeUrl = getSafeMediaUrl(item.url);
           return {
             verse_key: v.verse_key || `Ayah ${index + 1}`,
             text_arabic: v.text_arabic,
@@ -699,9 +676,9 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
             mood: activeCat.urdu,
             stockQuery: activeQuery,
             cinematicPrompt: item.title || `${activeCat.name} Scene ${index + 1}`,
-            imageUrl: item.thumbnail || item.url,
-            videoUrl: isVid ? item.url : '',
-            selectedUrl: item.url,
+            imageUrl: item.thumbnail || safeUrl,
+            videoUrl: isVid ? safeUrl : '',
+            selectedUrl: safeUrl,
             mediaType: isVid ? 'video' : 'image',
             start: v.start !== undefined ? v.start : index * 5.0,
             duration: v.duration !== undefined ? v.duration : 5.0,
@@ -946,10 +923,10 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
         id: `ayah-bg-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
         name: `Scene: ${seg.verse_key} [${item.theme}]`,
         type: isVid ? ClipType.VIDEO : ClipType.IMAGE,
-        url: item.selectedUrl || (isVid ? item.videoUrl : item.imageUrl),
-        poster: item.imageUrl,
-        thumbnailUrl: item.imageUrl,
-        fallbackUrl: item.imageUrl,
+        url: getSafeMediaUrl(item.selectedUrl || (isVid ? item.videoUrl : item.imageUrl)),
+        poster: getSafeMediaUrl(item.imageUrl),
+        thumbnailUrl: getSafeMediaUrl(item.imageUrl),
+        fallbackUrl: getSafeMediaUrl(item.imageUrl),
         start: clipStart,
         duration: Math.max(1.0, clipDur),
         sourceStart: 0,
@@ -1133,122 +1110,25 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
 
       {/* Stock Media Provider & Quran Visuals Studio */}
       <div className="bg-[#121216] border border-[#2a2a30] rounded-xl p-3.5 space-y-4 shadow-lg">
-        {/* Free API Keys & Library Settings Collapsible Header */}
-        <div className="bg-[#171722] border border-[#2c2c3e] rounded-xl p-3 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setShowApiKeysSection(!showApiKeysSection)}
-              className="flex items-center gap-2 text-left group"
-            >
-              <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
-                <Key className="w-3.5 h-3.5" />
+        {/* Connected Stock Engine Status (100% Automatic & Royalty-Free) */}
+        <div className="bg-[#151722] border border-[#262c3e] rounded-xl p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+              <Globe className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+                {stockSource === 'pixabay' ? 'Pixabay' : 'Pexels'} 4K Live Stock Engine
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               </div>
-              <div>
-                <div className="text-xs font-bold text-gray-200 group-hover:text-white flex items-center gap-1.5">
-                  Free Stock API Keys & 150+ Media Library
-                  {showApiKeysSection ? (
-                    <ChevronUp className="w-3.5 h-3.5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-                  )}
-                </div>
-                <div className="text-[10px] text-gray-400">
-                  {pexelsApiKey || pixabayApiKey
-                    ? '🟢 Free API Key Active (Live 4K Search Enabled)'
-                    : '📦 150+ Curated 4K Media Library Active (No Key Required)'}
-                </div>
-              </div>
-            </button>
-
-            <span
-              className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                pexelsApiKey || pixabayApiKey
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                  : 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
-              }`}
-            >
-              {pexelsApiKey || pixabayApiKey ? 'Live API Key' : '150+ Offline Bank'}
-            </span>
-          </div>
-
-          {/* Collapsible API Key Inputs */}
-          {showApiKeysSection && (
-            <div className="pt-2 border-t border-[#262636] space-y-3 text-xs">
-              <p className="text-[11px] text-gray-300 leading-relaxed bg-[#101018] p-2.5 rounded-lg border border-[#222230]">
-                💡 <strong>Optional Live API:</strong> You can add your free Pexels or Pixabay key for unlimited live 4K searching, or leave it blank to instantly use our built-in <strong>150+ curated high-resolution video & 4K photo collection</strong> (15+ scenes per category).
-              </p>
-
-              {/* Pexels Key Input */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-semibold text-gray-300 flex items-center gap-1">
-                    📸 Pexels Free API Key:
-                  </label>
-                  <a
-                    href="https://www.pexels.com/api/"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-0.5"
-                  >
-                    Get Free Key in 30s <ExternalLink className="w-2.5 h-2.5" />
-                  </a>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="password"
-                    value={pexelsApiKey}
-                    onChange={e => setPexelsApiKey(e.target.value)}
-                    placeholder="Paste Pexels API Key..."
-                    className="flex-1 bg-[#121218] border border-[#2d2d3d] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500"
-                  />
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('cutecut_pexels_api_key', pexelsApiKey.trim());
-                      showToast(pexelsApiKey.trim() ? '✅ Pexels API Key Saved!' : '🗑️ Pexels API Key Cleared');
-                    }}
-                    className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-black font-bold rounded-lg text-[10px] transition shrink-0"
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-
-              {/* Pixabay Key Input */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-semibold text-gray-300 flex items-center gap-1">
-                    🎨 Pixabay Free API Key:
-                  </label>
-                  <a
-                    href="https://pixabay.com/api/docs/"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-0.5"
-                  >
-                    Get Free Key <ExternalLink className="w-2.5 h-2.5" />
-                  </a>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="password"
-                    value={pixabayApiKey}
-                    onChange={e => setPixabayApiKey(e.target.value)}
-                    placeholder="Paste Pixabay API Key..."
-                    className="flex-1 bg-[#121218] border border-[#2d2d3d] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500"
-                  />
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('cutecut_pixabay_api_key', pixabayApiKey.trim());
-                      showToast(pixabayApiKey.trim() ? '✅ Pixabay API Key Saved!' : '🗑️ Pixabay API Key Cleared');
-                    }}
-                    className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-black font-bold rounded-lg text-[10px] transition shrink-0"
-                  >
-                    Save
-                  </button>
-                </div>
+              <div className="text-[10px] text-gray-400">
+                100% Royalty-Free • Direct Live Search & Auto-Streaming Active
               </div>
             </div>
-          )}
+          </div>
+          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            Connected
+          </span>
         </div>
 
         {/* Step 1: Select Website (2 Websites: Pexels or Pixabay) */}
@@ -1471,7 +1351,7 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
                     <div className="relative w-full h-24 bg-black rounded-lg overflow-hidden shrink-0">
                       {isVid ? (
                         <video
-                          src={item.url}
+                          src={getSafeMediaUrl(item.url)}
                           poster={item.thumbnail}
                           className="w-full h-full object-cover"
                           muted

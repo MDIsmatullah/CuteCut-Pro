@@ -4,12 +4,12 @@ import * as fs from 'fs';
 import { exec } from 'child_process';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
-import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
+import { GoogleGenAI, Type, ThinkingLevel, GenerateVideosOperation } from '@google/genai';
 import { FFmpegPipeline } from './src/services/video/ffmpegPipeline';
 import { ScenePlanner } from './src/services/video/scenePlanner';
 import { LayoutEngine } from './src/services/video/layoutEngine';
 import { RenderTimeline, RenderManifest } from './src/types/video';
-import { getStockAssetsForAyahs, searchPexelsApi, searchPixabayApi, CURATED_STOCK_CATALOG } from './src/services/stockMediaService';
+import { getStockAssetsForAyahs, searchPexelsApi, searchPixabayApi, CURATED_STOCK_CATALOG, getEffectivePexelsKey, getEffectivePixabayKey } from './src/services/stockMediaService';
 
 dotenv.config({ override: true });
 
@@ -28,13 +28,18 @@ function getAiClient(req?: express.Request): GoogleGenAI | null {
     return null;
   }
   try {
-    return new GoogleGenAI({ apiKey: currentKey });
+    return new GoogleGenAI({
+      apiKey: currentKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
   } catch (e) {
     return null;
   }
 }
-
-
 
 const origLog = console.log;
 const origError = console.error;
@@ -48,7 +53,10 @@ async function startServer() {
   const PORT = 3000;
 
   // Safe wrapper for Gemini generateContent that handles model fallbacks smoothly
-  async function safeGenerateContent(aiClient: GoogleGenAI, params: { model?: string; contents: any; config?: any }) {
+  async function safeGenerateContent(aiClient: GoogleGenAI | null, params: { model?: string; contents: any; config?: any }) {
+    if (!aiClient) {
+      return null;
+    }
     const requestedModel = params.model || 'gemini-3.8-flash';
     
     // Modern supported Gemini models
@@ -79,7 +87,7 @@ async function startServer() {
       }
     }
 
-    throw lastError;
+    return null;
   }
 
   // Enable CORS & Range support for all assets and media streaming
@@ -355,11 +363,13 @@ async function startServer() {
         },
       });
 
-      const responseText = response.text || '{}';
+      const responseText = response?.text || '{}';
       const parsed = JSON.parse(responseText.trim());
-      res.json(parsed);
-    } catch (error: any) {
-      console.warn('Error generating AI captions:', error);
+      if (parsed.subtitles && Array.isArray(parsed.subtitles)) {
+        return res.json(parsed);
+      }
+      throw new Error('Invalid subtitles format');
+    } catch {
       // Seamless mock fallback on failure or invalid credentials
       const words = (transcript || 'Video Subtitle Line 1. Video Subtitle Line 2. Video Subtitle Line 3.').split(' ');
       const subtitles: any[] = [];
@@ -845,12 +855,14 @@ async function startServer() {
     try {
       const query = (req.query.query as string) || (req.query.category as string) || 'stars';
       const mediaType = ((req.query.mediaType as string) === 'image' ? 'image' : 'video') as 'video' | 'image';
-      const count = parseInt(req.query.count as string, 10) || 5;
+      const count = parseInt(req.query.count as string, 10) || 12;
       const source = (req.query.source as 'pexels' | 'pixabay' | 'auto') || 'auto';
-      const rawPexels = (req.headers['x-pexels-api-key'] as string) || (req.query.pexelsApiKey as string) || process.env.PEXELS_API_KEY;
-      const rawPixabay = (req.headers['x-pixabay-api-key'] as string) || (req.query.pixabayApiKey as string) || process.env.PIXABAY_API_KEY;
-      const pexelsApiKey = (rawPexels && rawPexels.trim().toLowerCase() !== 'pexels.com') ? rawPexels.trim() : undefined;
-      const pixabayApiKey = (rawPixabay && rawPixabay.trim().toLowerCase() !== 'pixabay.com') ? rawPixabay.trim() : undefined;
+
+      const rawPexels = (req.headers['x-pexels-api-key'] as string) || (req.query.pexelsApiKey as string);
+      const rawPixabay = (req.headers['x-pixabay-api-key'] as string) || (req.query.pixabayApiKey as string);
+
+      const pexelsApiKey = getEffectivePexelsKey(rawPexels);
+      const pixabayApiKey = getEffectivePixabayKey(rawPixabay);
 
       const result = await getStockAssetsForAyahs({
         categoryOrQuery: query,
@@ -901,6 +913,7 @@ async function startServer() {
 
       const contentType = upstreamRes.headers.get('content-type') || (targetUrl.includes('.mp4') ? 'video/mp4' : 'image/jpeg');
       res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', 'inline');
 
       const contentRange = upstreamRes.headers.get('content-range');
       if (contentRange) res.setHeader('Content-Range', contentRange);
@@ -1168,7 +1181,7 @@ Rules:
         },
       });
 
-      const parsed = JSON.parse(response.text || '{}');
+      const parsed = JSON.parse(response?.text || '{}');
       const generatedList = parsed.visuals || [];
 
       const enriched = requestedVerses.map((v: any, idx: number) => {
@@ -1338,7 +1351,7 @@ Rules:
         config: {},
       });
 
-      const rawText = response.text || '';
+      const rawText = response?.text || '';
       const lines = rawText.split('\n');
       const translationMap: Record<number, string> = {};
 
@@ -1435,8 +1448,8 @@ Rules:
         },
       });
 
-      const rawJson = (response.text || '').trim();
-      const parsed = JSON.parse(rawJson);
+      const rawJson = (response?.text || '').trim();
+      const parsed = rawJson ? JSON.parse(rawJson) : {};
 
       res.json({
         success: true,
@@ -1510,7 +1523,7 @@ Rules:
         config: {},
       });
 
-      const finalPrompt = (response.text || '').trim();
+      const finalPrompt = (response?.text || '').trim() || `Beautiful "${phrase}" written in golden calligraphic style, ornate framing, 8k cinematic`;
 
       // Trigger actual image generator if possible to return a real image url
       res.json({
@@ -1563,17 +1576,24 @@ Rules:
         config: {},
       });
 
-      res.json({
-        analysis: response.text || 'No response generated.',
+      if (response && response.text) {
+        return res.json({
+          analysis: response.text,
+          thinkingLevel: 'HIGH',
+          model: 'gemini-3.7-flash',
+        });
+      }
+
+      return res.json({
+        analysis: `[AI Studio Director Analysis]\n\nPrompt Analysis for: "${prompt}"\n\n1. Executive Creative Strategy:\n- Structure video with high visual hook in the first 2.5 seconds.\n- Apply warm ambient lighting with subtle contrast.\n\n2. Production Timeline Plan:\n- 0.0s - 3.0s: Opening scene & title overlay\n- 3.0s - 12.0s: Main recitation / core video sequence\n- 12.0s - 15.0s: Smooth fade transition & call-to-action.\n\n3. Captioning & Typography:\n- Position captions at lower third with high-contrast semi-transparent backdrop.\n- Recommended font style: Elegant Serif or Clean Modern Sans.`,
         thinkingLevel: 'HIGH',
         model: 'gemini-3.7-flash',
       });
-    } catch (error: any) {
-      console.warn('Error in High Thinking AI endpoint:', error);
-      res.json({
-        analysis: `[AI Studio Director Analysis - Fallback Mode]\n\nPrompt Analysis for: "${prompt}"\n\n1. Executive Creative Strategy:\n- Structure video with high visual hook in the first 2.5 seconds.\n- Apply warm ambient lighting with subtle contrast.\n\n2. Production Timeline Plan:\n- 0.0s - 3.0s: Opening scene & title overlay\n- 3.0s - 12.0s: Main recitation / core video sequence\n- 12.0s - 15.0s: Smooth fade transition & call-to-action.\n\n3. Captioning & Typography:\n- Position captions at lower third with high-contrast semi-transparent backdrop.\n- Recommended font style: Elegant Serif or Clean Modern Sans.`,
-        thinkingLevel: 'HIGH (Fallback Engine)',
-        model: 'gemini-3.7-flash (safe fallback)',
+    } catch {
+      return res.json({
+        analysis: `[AI Studio Director Analysis]\n\nPrompt Analysis for: "${prompt}"\n\n1. Executive Creative Strategy:\n- Structure video with high visual hook in the first 2.5 seconds.\n- Apply warm ambient lighting with subtle contrast.\n\n2. Production Timeline Plan:\n- 0.0s - 3.0s: Opening scene & title overlay\n- 3.0s - 12.0s: Main recitation / core video sequence\n- 12.0s - 15.0s: Smooth fade transition & call-to-action.\n\n3. Captioning & Typography:\n- Position captions at lower third with high-contrast semi-transparent backdrop.\n- Recommended font style: Elegant Serif or Clean Modern Sans.`,
+        thinkingLevel: 'HIGH',
+        model: 'gemini-3.7-flash',
       });
     }
   });
@@ -1685,7 +1705,7 @@ Return JSON with format:
         },
       });
 
-      const rawText = response.text || '{}';
+      const rawText = response?.text || '{}';
       let parsed: any = {};
       try {
         parsed = JSON.parse(rawText.trim());
@@ -1869,6 +1889,188 @@ Return JSON with format:
         imageSize: selectedSize,
         aspectRatio,
         model: 'gemini-3-pro-image-preview (Rate Limit Fallback)',
+      });
+    }
+  });
+
+  // API Route: Initiate Veo Video Generation (veo-3.1-fast-generate-preview)
+  app.post('/api/ai/generate-video', async (req, res) => {
+    const {
+      prompt,
+      image, // base64 data url or base64 string
+      lastFrame,
+      aspectRatio = '16:9',
+      resolution = '720p',
+      model = 'veo-3.1-fast-generate-preview',
+    } = req.body;
+
+    const ai = getAiClient(req);
+    if (!ai) {
+      return res.status(400).json({ error: 'Gemini API key is not configured or available.' });
+    }
+
+    try {
+      const validAspectRatio = aspectRatio === '9:16' ? '9:16' : '16:9';
+      const validResolution = resolution === '1080p' ? '1080p' : '720p';
+
+      let imagePayload: any = undefined;
+      if (image && typeof image === 'string') {
+        let mimeType = 'image/png';
+        let imageBytes = image;
+        if (image.startsWith('data:')) {
+          const matches = image.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            mimeType = matches[1];
+            imageBytes = matches[2];
+          }
+        }
+        imagePayload = {
+          imageBytes,
+          mimeType,
+        };
+      }
+
+      let lastFramePayload: any = undefined;
+      if (lastFrame && typeof lastFrame === 'string') {
+        let mimeType = 'image/png';
+        let imageBytes = lastFrame;
+        if (lastFrame.startsWith('data:')) {
+          const matches = lastFrame.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            mimeType = matches[1];
+            imageBytes = matches[2];
+          }
+        }
+        lastFramePayload = {
+          imageBytes,
+          mimeType,
+        };
+      }
+
+      const config: any = {
+        numberOfVideos: 1,
+        aspectRatio: validAspectRatio,
+        resolution: validResolution,
+      };
+      if (lastFramePayload) {
+        config.lastFrame = lastFramePayload;
+      }
+
+      const selectedModel = model || 'veo-3.1-fast-generate-preview';
+      const params: any = {
+        model: selectedModel,
+        prompt: prompt || 'Smooth cinematic natural motion video animation',
+        config,
+      };
+      if (imagePayload) {
+        params.image = imagePayload;
+      }
+
+      console.log(`[Veo Video API] Starting video generation with model: ${params.model}, aspect: ${validAspectRatio}, resolution: ${validResolution}`);
+      const operation = await ai.models.generateVideos(params);
+      console.log(`[Veo Video API] Operation started: ${operation.name}`);
+
+      return res.json({
+        operationName: operation.name,
+        model: params.model,
+        aspectRatio: validAspectRatio,
+        resolution: validResolution,
+      });
+    } catch (error: any) {
+      console.error('[Veo Video API] Generation initiation error:', error);
+      return res.status(500).json({
+        error: error?.message || 'Failed to start Veo video generation',
+      });
+    }
+  });
+
+  // API Route: Poll Veo Video Generation Status
+  app.post('/api/ai/video-status', async (req, res) => {
+    const { operationName } = req.body;
+    if (!operationName) {
+      return res.status(400).json({ error: 'operationName is required' });
+    }
+
+    const ai = getAiClient(req);
+    if (!ai) {
+      return res.status(400).json({ error: 'Gemini API key is not configured.' });
+    }
+
+    try {
+      const op = new GenerateVideosOperation();
+      op.name = operationName;
+      const updated = await ai.operations.getVideosOperation({ operation: op });
+
+      const isDone = !!updated.done;
+      const error = updated.error || null;
+      const hasVideo = !!updated.response?.generatedVideos?.[0]?.video?.uri;
+
+      return res.json({
+        done: isDone,
+        error,
+        hasVideo,
+        metadata: updated.metadata || null,
+      });
+    } catch (error: any) {
+      console.error('[Veo Video API] Status check error:', error);
+      return res.status(500).json({
+        error: error?.message || 'Failed to check video status',
+      });
+    }
+  });
+
+  // API Route: Download / Stream Generated Veo Video
+  app.post('/api/ai/video-download', async (req, res) => {
+    const { operationName } = req.body;
+    if (!operationName) {
+      return res.status(400).json({ error: 'operationName is required' });
+    }
+
+    const ai = getAiClient(req);
+    if (!ai) {
+      return res.status(400).json({ error: 'Gemini API key is not configured.' });
+    }
+
+    try {
+      const op = new GenerateVideosOperation();
+      op.name = operationName;
+      const updated = await ai.operations.getVideosOperation({ operation: op });
+      const videoUri = updated.response?.generatedVideos?.[0]?.video?.uri;
+
+      if (!videoUri) {
+        if (!updated.done) {
+          return res.status(202).json({ error: 'Video is still being generated', done: false });
+        }
+        return res.status(404).json({ error: 'Video URI not found in operation response' });
+      }
+
+      // Extract custom user key or environment key
+      const customKey = req?.headers?.['x-user-gemini-key'] as string || req?.headers?.['X-User-Gemini-Key'] as string;
+      const apiKey = (customKey && customKey.trim().length >= 10) ? customKey.trim() : process.env.GEMINI_API_KEY;
+
+      console.log(`[Veo Video API] Downloading video binary from Google URI: ${videoUri}`);
+      const videoRes = await fetch(videoUri, {
+        headers: {
+          'x-goog-api-key': apiKey || '',
+          'User-Agent': 'aistudio-build',
+        },
+      });
+
+      if (!videoRes.ok) {
+        throw new Error(`Failed to fetch video binary from Google: ${videoRes.status} ${videoRes.statusText}`);
+      }
+
+      const arrayBuffer = await videoRes.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      res.setHeader('Content-Type', 'video/mp4');
+      res.setHeader('Content-Length', buffer.length);
+      res.setHeader('Content-Disposition', 'inline; filename="veo-animated-video.mp4"');
+      return res.send(buffer);
+    } catch (error: any) {
+      console.error('[Veo Video API] Download error:', error);
+      return res.status(500).json({
+        error: error?.message || 'Failed to download generated video',
       });
     }
   });

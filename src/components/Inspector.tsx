@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sliders, Volume2, Sparkles, Wand2, Type, Gauge, Palette, Play, Plus, RefreshCw, RotateCcw, FileText, Move, CircleDot, Trash2, Clock, Target, ChevronLeft, ChevronRight, Blend, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Layers, Zap, Check, Merge, Activity } from 'lucide-react';
-import { Clip, ClipType, VideoFilters, Keyframe, Track, TransitionType, ClipTransition, ColorGrading } from '../types';
+import { Clip, ClipType, VideoFilters, Keyframe, KeyframeEasing, Track, TransitionType, ClipTransition, ColorGrading } from '../types';
 import { PRESET_LUTS, ColorGradingPreset } from '../data/presetAssets';
 import { ColorGradingSection } from './ColorGradingSection';
 import { DEFAULT_COLOR_GRADING } from '../utils/editorUtils';
@@ -8,6 +8,7 @@ import { CuteCutAudioInspector } from './CuteCutAudioInspector';
 import { CuteCutVideoInspector } from './CuteCutVideoInspector';
 import { CuteCutTextInspector } from './CuteCutTextInspector';
 import { SpeedCurveEditor } from './SpeedCurveEditor';
+import { KeyframeEasingGraph } from './KeyframeEasingGraph';
 
 interface InspectorProps {
   selectedClip: Clip | null;
@@ -122,6 +123,7 @@ export default function Inspector({
   const [kfScale, setKfScale] = useState<number>(100);
   const [kfRotation, setKfRotation] = useState<number>(0);
   const [kfVolume, setKfVolume] = useState<number>(100);
+  const [kfEasing, setKfEasing] = useState<KeyframeEasing>('linear');
 
   useEffect(() => {
     if (selectedClip) {
@@ -210,7 +212,8 @@ export default function Inspector({
       posY: kfPosY,
       scale: kfScale,
       rotation: kfRotation,
-      volume: Number((kfVolume / 100).toFixed(2))
+      volume: Number((kfVolume / 100).toFixed(2)),
+      easing: kfEasing,
     };
 
     const existingIdx = existingKeyframes.findIndex(k => Math.abs(k.timestamp - newKf.timestamp) < 0.05);
@@ -238,6 +241,8 @@ export default function Inspector({
     setKfScale(kf.scale ?? (selectedClip.transform?.scale ?? 100));
     setKfRotation(kf.rotation ?? (selectedClip.transform?.rotation ?? 0));
     setKfVolume(Math.round((kf.volume ?? selectedClip.volume) * 100));
+    if (kf.easing) setKfEasing(kf.easing);
+    else setKfEasing('linear');
   };
 
   const handleJumpToKeyframe = (kf: Keyframe) => {
@@ -825,6 +830,14 @@ export default function Inspector({
                 </div>
               </div>
 
+              {/* CapCut Keyframe Easing Graph */}
+              <div className="pt-1">
+                <KeyframeEasingGraph
+                  currentEasing={kfEasing}
+                  onChangeEasing={setKfEasing}
+                />
+              </div>
+
               {/* Primary Save Keyframe Button */}
               <button
                 id="btn-confirm-keyframe"
@@ -870,6 +883,9 @@ export default function Inspector({
                             <Target className="w-3 h-3 text-cyan-400" />
                             <span>@ {kf.timestamp.toFixed(2)}s</span>
                           </button>
+                          <span className="text-[9px] font-mono bg-purple-950 text-purple-300 border border-purple-800/50 px-1.5 py-0.2 rounded">
+                            {kf.easing || 'linear'}
+                          </span>
                           <button
                             onClick={() => handleLoadKeyframeValues(kf)}
                             className="text-[9px] text-cyan-400 hover:underline font-bold cursor-pointer"

@@ -5,7 +5,7 @@
 
 #define MyAppName "CuteCut Pro"
 #define MyAppShortName "CuteCutPro"
-#define MyAppVersion "2.4.2"
+#define MyAppVersion "2.4.3"
 #define MyAppPublisher "Asmatullah Developer"
 #define MyAppURL "https://github.com/MDIsmatullah/CuteCut-Pro"
 #define MyAppExeName "cutecut-pro.exe"

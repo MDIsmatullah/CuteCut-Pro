@@ -24,8 +24,10 @@ if (process.platform === 'linux') {
   app.commandLine.appendSwitch('enable-gpu-rasterization');
   
   // Safe Audio Configuration for Linux (.deb, Snap, AppImage, PulseAudio & PipeWire)
-  app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox');
+  app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox,AudioServiceOutOfProcess');
   app.commandLine.appendSwitch('enable-features', 'PulseaudioLoopbackForCast');
+  app.commandLine.appendSwitch('try-supported-channel-layouts');
+  app.commandLine.appendSwitch('alsa-output-device', 'default');
 
   // Fix ALSA configuration path if running in Snap or constrained environment
   const possibleAlsaPaths = [
@@ -46,12 +48,14 @@ if (process.platform === 'linux') {
 
   const xdgRuntime = process.env.XDG_RUNTIME_DIR;
   const realUid = typeof process.getuid === 'function' ? process.getuid() : 1000;
+  const snapName = process.env.SNAP_NAME || 'cutecut-pro';
   if (!process.env.PULSE_SERVER) {
     const pulsePaths = [
       xdgRuntime ? path.join(xdgRuntime, 'pulse/native') : '',
       xdgRuntime ? path.join(xdgRuntime, '../pulse/native') : '',
-      `/run/user/${realUid}/pulse/native`,
+      `/run/user/${realUid}/snap.${snapName}/pulse/native`,
       `/run/user/${realUid}/snap.cutecut-pro/pulse/native`,
+      `/run/user/${realUid}/pulse/native`,
       '/var/run/pulse/native'
     ].filter(Boolean);
     for (const p of pulsePaths) {
@@ -65,6 +69,8 @@ if (process.platform === 'linux') {
   if (!process.env.PIPEWIRE_RUNTIME_DIR) {
     const pipewirePaths = [
       xdgRuntime && fs.existsSync(path.join(xdgRuntime, 'pipewire-0')) ? xdgRuntime : '',
+      fs.existsSync(`/run/user/${realUid}/snap.${snapName}/pipewire-0`) ? `/run/user/${realUid}/snap.${snapName}` : '',
+      fs.existsSync(`/run/user/${realUid}/snap.cutecut-pro/pipewire-0`) ? `/run/user/${realUid}/snap.cutecut-pro` : '',
       xdgRuntime && fs.existsSync(path.join(xdgRuntime, '../pipewire-0')) ? path.join(xdgRuntime, '..') : '',
       fs.existsSync(`/run/user/${realUid}/pipewire-0`) ? `/run/user/${realUid}` : ''
     ].filter(Boolean);

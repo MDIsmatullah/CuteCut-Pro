@@ -39,7 +39,11 @@ export interface VideoFilters {
     smoothness: number; // 0 to 100
   };
   colorGrading?: ColorGrading;
+  lutPreset?: 'none' | 'teal-orange' | 'moody-dark' | 'golden-hour' | 'retro-90s' | 'bw-noir' | 'cyberpunk' | 'vintage-warm' | 'clean-bright';
+  lutIntensity?: number; // 0 to 100, default 100
 }
+
+export type KeyframeEasing = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce' | 'elastic';
 
 export interface Keyframe {
   id: string;
@@ -50,6 +54,7 @@ export interface Keyframe {
   scale?: number;    // 10 to 200 %
   rotation?: number; // 0 to 360 deg
   volume?: number;   // 0.0 to 2.0
+  easing?: KeyframeEasing; // Smooth motion easing curve
 }
 
 export interface Clip {
@@ -159,6 +164,11 @@ export interface Clip {
       rotateZ: number;
     };
     filmGrain?: boolean;
+    filmGrainIntensity?: number; // 0 to 100
+    vintageDust?: boolean;
+    vintageDustIntensity?: number; // 0 to 100
+    vhsOverlay?: boolean;
+    lensFlares?: boolean;
     glitch?: boolean;
     shake?: boolean;
     rgbSplit?: boolean;
@@ -190,9 +200,15 @@ export interface Clip {
   };
   speedRamp?: {
     enabled?: boolean;
-    preset: 'none' | 'hero' | 'bullet' | 'montage' | 'custom' | 'jump-cut' | 'flash-in' | 'flash-out';
+    preset: 'none' | 'hero' | 'bullet' | 'montage' | 'custom' | 'jump-cut' | 'flash-in' | 'flash-out' | string;
     curve: number[]; // e.g., [1, 2.5, 0.5, 1]
-    points?: { x: number; y: number }[]; // Normalized keyframe points: x (0 to 1), y (0.1 to 10.0x)
+    points?: {
+      x: number;
+      y: number;
+      cpIn?: { x: number; y: number };
+      cpOut?: { x: number; y: number };
+      handleType?: 'smooth' | 'free' | 'linear';
+    }[]; // Normalized keyframe points: x (0 to 1), y (0.1 to 10.0x) with optional Bezier handles
     smoothSlowMo?: boolean;
     maintainPitch?: boolean;
   };
@@ -228,7 +244,7 @@ export interface Clip {
   };
   blendMode?: string;
   mask?: {
-    type: 'none' | 'split' | 'filmstrip' | 'circle' | 'rectangle' | 'heart' | 'star';
+    type: 'none' | 'split' | 'filmstrip' | 'circle' | 'rectangle' | 'heart' | 'star' | 'mirror';
     feather?: number;
     roundness?: number;
     inverted?: boolean;
@@ -323,6 +339,14 @@ export interface Track {
   hidden?: boolean;
 }
 
+export interface BeatMarker {
+  id: string;
+  time: number; // In seconds on timeline
+  type: 'beat' | 'drop';
+  label?: string;
+  bpm?: number;
+}
+
 export interface TimelineState {
   tracks: Track[];
   currentTime: number;
@@ -331,6 +355,7 @@ export interface TimelineState {
   selectedClipId: string | null;
   isPlaying: boolean;
   aspectRatio: '16:9' | '9:16' | '1:1';
+  beatMarkers?: BeatMarker[];
 }
 
 export interface PresetMedia {

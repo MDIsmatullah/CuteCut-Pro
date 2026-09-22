@@ -32,6 +32,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="2.4.3" date="2026-09-21">
+      <description>
+        <p>Introduced Bézier Speed Curve inspector with interactive tangent handles, custom velocity ramping presets, Snap/Debian cross-platform audio pipeline hardening, and real-time motion curve interpolation.</p>
+      </description>
+    </release>
     <release version="2.4.2" date="2026-09-18">
       <description>
         <p>Production parity release with optimized installer packaging for Microsoft WinGet, Homebrew Cask, AppImage, Debian, Snap, and enhanced Quranic timeline synchronization.</p>

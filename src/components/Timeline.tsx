@@ -10,11 +10,12 @@ import {
   Image as ImageIcon, Type as TypeIcon, BoxSelect, CheckCheck, X, Merge,
   GripHorizontal, Move, AlertTriangle, CheckCircle2, Wand2, FileText, BookOpen, Activity
 } from 'lucide-react';
-import { Track, Clip, ClipType, TransitionType } from '../types';
+import { Track, Clip, ClipType, TransitionType, BeatMarker } from '../types';
 import { formatTimeCode, extractAyahNumberFromClip, globalBreathMarkersRegistry, QURAN_CHAPTER_AYAH_COUNTS } from '../utils/editorUtils';
 import AudioWaveformGraph from './AudioWaveformGraph';
 import VideoFilmstripVisual from './VideoFilmstripVisual';
 import { SmartPauseConfigModal } from './SmartPauseConfigModal';
+import { AutoBeatDetectionModal } from './AutoBeatDetectionModal';
 
 interface DraggingClipItem {
   id: string;
@@ -465,8 +466,14 @@ export default function Timeline({
   const [timelineSnapInfo, setTimelineSnapInfo] = useState<{
     time: number;
     label: string;
-    type: 'playhead' | 'clip-edge' | 'zero';
+    type: 'playhead' | 'clip-edge' | 'zero' | 'beat' | 'drop' | 'breath';
   } | null>(null);
+
+  // CapCut Auto Beat Detection State
+  const [beatMarkers, setBeatMarkers] = useState<BeatMarker[]>([]);
+  const [showBeatModal, setShowBeatModal] = useState<boolean>(false);
+  const beatMarkersRef = useRef<BeatMarker[]>(beatMarkers);
+  beatMarkersRef.current = beatMarkers;
 
   // Right-Click Context Menu State
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -928,12 +935,12 @@ export default function Timeline({
         // Time Matrix Magnetism Snap Calculator
         const calculateTimeSnap = (
           candidateTime: number
-        ): { snappedTime: number; snapInfo: { time: number; label: string; type: 'playhead' | 'clip-edge' | 'zero' } | null } => {
+        ): { snappedTime: number; snapInfo: { time: number; label: string; type: 'playhead' | 'clip-edge' | 'zero' | 'beat' | 'drop' | 'breath' } | null } => {
           // Threshold of 0.1s or 8px
           const threshold = Math.max(0.1, 8 / currentZoom);
           let bestDist = threshold;
           let bestTime = candidateTime;
-          let bestSnapInfo: { time: number; label: string; type: 'playhead' | 'clip-edge' | 'zero' } | null = null;
+          let bestSnapInfo: { time: number; label: string; type: 'playhead' | 'clip-edge' | 'zero' | 'beat' | 'drop' | 'breath' } | null = null;
 
           // 1. Playhead Snap
           const playheadDist = Math.abs(candidateTime - currentTimeRef.current);
@@ -1028,6 +1035,22 @@ export default function Timeline({
                   time: midTime,
                   label: `Pause Center (${midTime.toFixed(2)}s)`,
                   type: 'breath' as any,
+                };
+              }
+            }
+          }
+
+          // 5. CapCut Auto Beat & Drop Markers Snapping
+          if (isSnapping && beatMarkersRef.current && beatMarkersRef.current.length > 0) {
+            for (const bm of beatMarkersRef.current) {
+              const bDist = Math.abs(candidateTime - bm.time);
+              if (bDist <= bestDist) {
+                bestDist = bDist;
+                bestTime = bm.time;
+                bestSnapInfo = {
+                  time: bm.time,
+                  label: bm.type === 'drop' ? `⚡ Beat Drop (${bm.time.toFixed(2)}s)` : `🎵 Beat (${bm.time.toFixed(2)}s)`,
+                  type: bm.type === 'drop' ? 'drop' : 'beat',
                 };
               }
             }
@@ -2171,6 +2194,26 @@ export default function Timeline({
             <Magnet className="w-3.5 h-3.5" />
           </button>
 
+          {/* CapCut Auto Beat Detection Button */}
+          <button
+            id="btn-auto-beat-detect"
+            onClick={() => setShowBeatModal(true)}
+            className={`px-2 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition ${
+              beatMarkers.length > 0
+                ? 'bg-amber-950/80 text-amber-400 border border-amber-500/50 shadow-xs'
+                : 'bg-[#181822] text-gray-300 hover:text-amber-300 border border-[#2a2a34]'
+            }`}
+            title="CapCut Auto Beat Detection & Snapping"
+          >
+            <Zap className={`w-3.5 h-3.5 ${beatMarkers.length > 0 ? 'text-amber-400 fill-amber-400' : 'text-amber-400'}`} />
+            <span className="hidden sm:inline text-[11px]">Auto Beats</span>
+            {beatMarkers.length > 0 && (
+              <span className="bg-amber-500 text-black text-[9px] px-1 rounded-full font-bold">
+                {beatMarkers.length}
+              </span>
+            )}
+          </button>
+
           <div className="h-4 w-px bg-[#2a2a35] mx-0.5" />
 
           {/* Zoom Controls */}
@@ -2456,7 +2499,32 @@ export default function Timeline({
               className="h-5 bg-[#18181d] border-b border-[#2a2a30] relative cursor-ew-resize select-none overflow-hidden"
             >
               {renderRulerTicks()}
-              {/* Clean Ruler without top overlays */}
+
+              {/* CapCut Beat Markers on Ruler */}
+              {beatMarkers.map((bm) => {
+                const bLeft = bm.time * zoom;
+                const isDrop = bm.type === 'drop';
+                return (
+                  <div
+                    key={bm.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSeek(bm.time);
+                    }}
+                    className="absolute top-1 z-30 -translate-x-1/2 cursor-pointer group/beat"
+                    style={{ left: `${bLeft}px` }}
+                    title={`${isDrop ? '⚡ Beat Drop' : '🎵 Beat Marker'} (${bm.time.toFixed(2)}s) - Click to Seek`}
+                  >
+                    <div
+                      className={`w-2.5 h-2.5 rotate-45 border transition-transform duration-100 group-hover/beat:scale-125 ${
+                        isDrop
+                          ? 'bg-pink-500 border-white shadow-[0_0_6px_#ec4899]'
+                          : 'bg-amber-400 border-amber-950 shadow-[0_0_4px_#f59e0b]'
+                      }`}
+                    />
+                  </div>
+                );
+              })}
             </div>
 
             {/* Visual Breath Mapping Overlay Guidelines across the entire tracks background */}
@@ -2841,7 +2909,9 @@ export default function Timeline({
               <div
                 id="timeline-vertical-time-guide"
                 className={`absolute top-0 bottom-0 w-[2px] z-40 pointer-events-none transition-all duration-75 ${
-                  timelineSnapInfo.type === ('breath' as any)
+                  timelineSnapInfo.type === 'drop'
+                    ? 'bg-pink-500 shadow-[0_0_14px_rgba(236,72,153,1)] animate-pulse'
+                    : timelineSnapInfo.type === 'beat' || timelineSnapInfo.type === ('breath' as any)
                     ? 'bg-amber-400 shadow-[0_0_12px_rgba(245,158,11,1)] animate-pulse'
                     : 'bg-cyan-400 shadow-[0_0_12px_rgba(34,211,238,1),0_0_4px_rgba(251,191,36,0.9)]'
                 }`}
@@ -2849,24 +2919,38 @@ export default function Timeline({
               >
                 {/* Top Arrow Cap */}
                 <div className={`absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-[6px] ${
-                  timelineSnapInfo.type === ('breath' as any) ? 'border-t-amber-400' : 'border-t-cyan-400'
+                  timelineSnapInfo.type === 'drop'
+                    ? 'border-t-pink-500'
+                    : timelineSnapInfo.type === 'beat' || timelineSnapInfo.type === ('breath' as any)
+                    ? 'border-t-amber-400'
+                    : 'border-t-cyan-400'
                 }`} />
                 
                 {/* Synchronized Time Badge Pill at Top */}
                 <div className={`absolute top-1 -left-16 bg-[#091520]/95 border text-[9px] px-2.5 py-0.5 rounded-full font-mono font-bold shadow-2xl flex items-center gap-1.5 backdrop-blur-md whitespace-nowrap z-50 ${
-                  timelineSnapInfo.type === ('breath' as any)
+                  timelineSnapInfo.type === 'drop'
+                    ? 'border-pink-500 text-pink-200'
+                    : timelineSnapInfo.type === 'beat' || timelineSnapInfo.type === ('breath' as any)
                     ? 'border-amber-400 text-amber-200'
                     : 'border-cyan-400 text-cyan-200'
                 }`}>
                   <div className={`w-1.5 h-1.5 rounded-full animate-ping ${
-                    timelineSnapInfo.type === ('breath' as any) ? 'bg-amber-400' : 'bg-cyan-400'
+                    timelineSnapInfo.type === 'drop'
+                      ? 'bg-pink-400'
+                      : timelineSnapInfo.type === 'beat' || timelineSnapInfo.type === ('breath' as any)
+                      ? 'bg-amber-400'
+                      : 'bg-cyan-400'
                   }`} />
                   <span>{timelineSnapInfo.label}</span>
                 </div>
 
                 {/* Bottom Arrow Cap */}
                 <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-b-[6px] ${
-                  timelineSnapInfo.type === ('breath' as any) ? 'border-b-amber-400' : 'border-b-cyan-400'
+                  timelineSnapInfo.type === 'drop'
+                    ? 'border-b-pink-500'
+                    : timelineSnapInfo.type === 'beat' || timelineSnapInfo.type === ('breath' as any)
+                    ? 'border-b-amber-400'
+                    : 'border-b-cyan-400'
                 }`} />
               </div>
             )}
@@ -3365,6 +3449,28 @@ export default function Timeline({
               paddingMs: options.paddingMs,
             });
           }
+        }}
+      />
+
+      {/* ========================================================================= */}
+      {/* CAPCUT AUTO BEAT DETECTION & MARKER GENERATOR MODAL */}
+      {/* ========================================================================= */}
+      <AutoBeatDetectionModal
+        isOpen={showBeatModal}
+        onClose={() => setShowBeatModal(false)}
+        timelineDuration={duration}
+        audioClips={tracks
+          .flatMap((t) => t.clips)
+          .filter((c) => (c.type === ClipType.AUDIO || c.type === ClipType.VIDEO) && Boolean(c.url))
+          .map((c) => ({
+            id: c.id,
+            name: c.name,
+            url: c.url || '',
+            start: c.start,
+            duration: c.duration,
+          }))}
+        onApplyBeats={(newBeats) => {
+          setBeatMarkers(newBeats);
         }}
       />
     </div>

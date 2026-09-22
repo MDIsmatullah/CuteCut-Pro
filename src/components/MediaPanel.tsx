@@ -389,6 +389,8 @@ interface MediaPanelProps {
   // Audio Synchronization Calibration Offset Props
   quranKaraokeSyncOffsetMs?: number;
   setQuranKaraokeSyncOffsetMs?: (offsetMs: number) => void;
+  // Veo AI Video Generation Callback
+  onOpenVeoAnimateModal?: () => void;
   // Controlled tab selection
   initialTab?: 'upload' | 'video' | 'audio' | 'sfx' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark';
 }
@@ -398,6 +400,7 @@ export default function MediaPanel({
   selectedAspectRatio,
   tracks,
   initialTab,
+  onOpenVeoAnimateModal,
   onAlignQuran,
   aligningStatus,
   quranArabicFont,
@@ -1711,6 +1714,22 @@ export default function MediaPanel({
                 )}
               </div>
 
+              {/* Veo AI Video Generation Quick Action */}
+              {onOpenVeoAnimateModal && (
+                <div
+                  onClick={onOpenVeoAnimateModal}
+                  className="bg-gradient-to-r from-cyan-950/40 via-[#141e2e] to-[#101018] border border-cyan-500/30 hover:border-cyan-400/80 rounded-xl p-2.5 flex items-center justify-between cursor-pointer transition shrink-0 group"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition" />
+                    <span className="text-[11px] font-bold text-cyan-200">Generate Video with Veo AI (From Photo)</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[9px] font-mono font-bold">
+                    VEO 3.1
+                  </span>
+                </div>
+              )}
+
               {/* Video Cards Grid */}
               <div className="grid grid-cols-2 gap-2.5 flex-1 overflow-y-auto pr-1 custom-scrollbar content-start">
                 {STOCK_VIDEOS.filter((v) => {
@@ -2551,7 +2570,35 @@ export default function MediaPanel({
             </div>
 
             {/* Right Images Grid */}
-            <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-3">
+              {/* Veo AI Image Animation Banner */}
+              {onOpenVeoAnimateModal && (
+                <div
+                  onClick={onOpenVeoAnimateModal}
+                  className="bg-gradient-to-r from-cyan-950/60 via-[#132034] to-blue-950/60 border border-cyan-500/40 hover:border-cyan-400 rounded-xl p-3 flex items-center justify-between cursor-pointer transition shadow-lg group hover:shadow-cyan-950/40"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center group-hover:scale-105 transition">
+                      <Sparkles className="w-4 h-4 text-cyan-300 animate-pulse" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-white">Animate Photo to Video</span>
+                        <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 text-[9px] font-mono font-bold border border-cyan-500/40">
+                          VEO 3.1 AI
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-400">
+                        Turn any still image into a cinematic 16:9 or 9:16 video clip
+                      </p>
+                    </div>
+                  </div>
+                  <button className="px-2.5 py-1 rounded-lg bg-cyan-500 text-black font-bold text-[10px] group-hover:bg-cyan-400 transition shadow">
+                    Animate Now
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2.5">
                 {STOCK_IMAGES.filter(img => imageCategory === 'All' || img.category === imageCategory).map((img) => (
                   <div

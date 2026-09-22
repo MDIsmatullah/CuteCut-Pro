@@ -1259,22 +1259,59 @@ export default function PreviewPlayer({
               ctx.clip();
             }
 
-            // CapCut Shape Mask
+            // CapCut Shape Mask & Feathering
             if (clip.mask && clip.mask.type && clip.mask.type !== 'none') {
               const mSize = (clip.mask.size || 100) / 100;
               const mw = dimensions.width * mSize;
               const mh = dimensions.height * mSize;
+              const cx = dimensions.width / 2 + posX + (clip.mask.posX || 0);
+              const cy = dimensions.height / 2 + posY + (clip.mask.posY || 0);
+              const isInverted = !!clip.mask.inverted;
+
               ctx.beginPath();
-              if (clip.mask.type === 'circle') {
-                ctx.arc(dimensions.width / 2 + posX, dimensions.height / 2 + posY, Math.min(mw, mh) * 0.35, 0, Math.PI * 2);
-              } else if (clip.mask.type === 'rectangle') {
-                ctx.roundRect(dimensions.width / 2 + posX - mw * 0.35, dimensions.height / 2 + posY - mh * 0.35, mw * 0.7, mh * 0.7, clip.mask.roundness || 0);
-              } else if (clip.mask.type === 'split') {
-                ctx.rect(dimensions.width / 2 + posX - mw / 2, dimensions.height / 2 + posY - mh / 2, mw / 2, mh);
-              } else if (clip.mask.type === 'filmstrip') {
-                ctx.rect(dimensions.width / 2 + posX - mw / 2, dimensions.height / 2 + posY - mh * 0.3, mw, mh * 0.6);
+              if (isInverted) {
+                // Outer frame boundary for evenodd invert masking
+                ctx.rect(0, 0, dimensions.width, dimensions.height);
               }
-              ctx.clip();
+
+              if (clip.mask.type === 'circle') {
+                ctx.arc(cx, cy, Math.min(mw, mh) * 0.38, 0, Math.PI * 2);
+              } else if (clip.mask.type === 'rectangle') {
+                ctx.roundRect(cx - mw * 0.35, cy - mh * 0.35, mw * 0.7, mh * 0.7, clip.mask.roundness || 0);
+              } else if (clip.mask.type === 'split') {
+                ctx.rect(cx - mw / 2, cy - mh / 2, mw / 2, mh);
+              } else if (clip.mask.type === 'filmstrip') {
+                ctx.rect(cx - mw / 2, cy - mh * 0.28, mw, mh * 0.56);
+              } else if (clip.mask.type === 'mirror') {
+                // Symmetrical mirror bars
+                ctx.rect(cx - mw / 2, cy - mh * 0.42, mw, mh * 0.28);
+                ctx.rect(cx - mw / 2, cy + mh * 0.14, mw, mh * 0.28);
+              } else if (clip.mask.type === 'heart') {
+                const hw = mw * 0.32;
+                const hh = mh * 0.32;
+                ctx.moveTo(cx, cy + hh * 0.5);
+                ctx.bezierCurveTo(cx - hw * 1.3, cy - hh * 0.2, cx - hw * 0.8, cy - hh * 0.9, cx, cy - hh * 0.3);
+                ctx.bezierCurveTo(cx + hw * 0.8, cy - hh * 0.9, cx + hw * 1.3, cy - hh * 0.2, cx, cy + hh * 0.5);
+                ctx.closePath();
+              } else if (clip.mask.type === 'star') {
+                const outerR = Math.min(mw, mh) * 0.38;
+                const innerR = outerR * 0.45;
+                for (let s = 0; s < 10; s++) {
+                  const angle = (s * Math.PI) / 5 - Math.PI / 2;
+                  const r = s % 2 === 0 ? outerR : innerR;
+                  const sx = cx + r * Math.cos(angle);
+                  const sy = cy + r * Math.sin(angle);
+                  if (s === 0) ctx.moveTo(sx, sy);
+                  else ctx.lineTo(sx, sy);
+                }
+                ctx.closePath();
+              }
+
+              if (isInverted) {
+                ctx.clip('evenodd');
+              } else {
+                ctx.clip();
+              }
             }
 
             // Apply GPU-level filters (Hardware-accelerated)
@@ -1303,6 +1340,45 @@ export default function PreviewPlayer({
               }
               if (clip.filters.hueRotate && clip.filters.hueRotate !== 0) {
                 filterParts.push(`hue-rotate(${clip.filters.hueRotate}deg)`);
+              }
+
+              // CapCut Trending Filters & Film LUTs
+              if (clip.filters.lutPreset && clip.filters.lutPreset !== 'none') {
+                const intensity = (clip.filters.lutIntensity ?? 100) / 100;
+                const preset = clip.filters.lutPreset;
+                if (preset === 'teal-orange') {
+                  filterParts.push(`saturate(${100 + 35 * intensity}%)`);
+                  filterParts.push(`contrast(${100 + 20 * intensity}%)`);
+                  filterParts.push(`hue-rotate(${-10 * intensity}deg)`);
+                } else if (preset === 'moody-dark') {
+                  filterParts.push(`contrast(${100 + 35 * intensity}%)`);
+                  filterParts.push(`brightness(${100 - 15 * intensity}%)`);
+                  filterParts.push(`saturate(${100 - 25 * intensity}%)`);
+                } else if (preset === 'golden-hour') {
+                  filterParts.push(`sepia(${35 * intensity}%)`);
+                  filterParts.push(`saturate(${100 + 20 * intensity}%)`);
+                  filterParts.push(`brightness(${100 + 6 * intensity}%)`);
+                } else if (preset === 'retro-90s') {
+                  filterParts.push(`sepia(${25 * intensity}%)`);
+                  filterParts.push(`contrast(${100 - 10 * intensity}%)`);
+                  filterParts.push(`saturate(${100 - 15 * intensity}%)`);
+                } else if (preset === 'bw-noir') {
+                  filterParts.push(`grayscale(${100 * intensity}%)`);
+                  filterParts.push(`contrast(${100 + 50 * intensity}%)`);
+                  filterParts.push(`brightness(${100 - 8 * intensity}%)`);
+                } else if (preset === 'cyberpunk') {
+                  filterParts.push(`saturate(${100 + 60 * intensity}%)`);
+                  filterParts.push(`contrast(${100 + 28 * intensity}%)`);
+                  filterParts.push(`hue-rotate(${325 * intensity}deg)`);
+                } else if (preset === 'vintage-warm') {
+                  filterParts.push(`sepia(${40 * intensity}%)`);
+                  filterParts.push(`saturate(${100 + 15 * intensity}%)`);
+                  filterParts.push(`contrast(${100 + 10 * intensity}%)`);
+                } else if (preset === 'clean-bright') {
+                  filterParts.push(`brightness(${100 + 12 * intensity}%)`);
+                  filterParts.push(`contrast(${100 + 8 * intensity}%)`);
+                  filterParts.push(`saturate(${100 + 15 * intensity}%)`);
+                }
               }
             }
 
@@ -1585,6 +1661,102 @@ export default function PreviewPlayer({
                 bloomGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
                 ctx.fillStyle = bloomGrad;
                 ctx.fillRect(-dimensions.width / 2, -dimensions.height / 2, dimensions.width, dimensions.height);
+                ctx.restore();
+              }
+
+              // CapCut Vintage Dust & Film Scratches Overlay
+              if (clip.videoEffects?.vintageDust) {
+                ctx.save();
+                const dustIntensity = (clip.videoEffects.vintageDustIntensity ?? 70) / 100;
+                ctx.globalCompositeOperation = 'screen';
+                
+                // Procedural jittering film dust specs
+                const dustSeed = Math.floor(currentTime * 12);
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.45 * dustIntensity})`;
+                for (let d = 0; d < 35; d++) {
+                  const dx = ((Math.sin(d * 17.3 + dustSeed) * 0.5 + 0.5) - 0.5) * dimensions.width;
+                  const dy = ((Math.cos(d * 23.7 + dustSeed) * 0.5 + 0.5) - 0.5) * dimensions.height;
+                  const dRadius = (d % 3 === 0 ? 1.8 : 0.9) * (dimensions.width / 800);
+                  ctx.beginPath();
+                  ctx.arc(dx, dy, dRadius, 0, Math.PI * 2);
+                  ctx.fill();
+                }
+
+                // Vertical Film Scratches
+                if ((dustSeed % 3) === 0) {
+                  ctx.strokeStyle = `rgba(255, 255, 255, ${0.35 * dustIntensity})`;
+                  ctx.lineWidth = 1;
+                  const scratchX = ((Math.sin(dustSeed * 4.2) * 0.5 + 0.5) - 0.5) * dimensions.width * 0.8;
+                  ctx.beginPath();
+                  ctx.moveTo(scratchX, -dimensions.height / 2);
+                  ctx.lineTo(scratchX + (Math.random() * 4 - 2), dimensions.height / 2);
+                  ctx.stroke();
+                }
+                ctx.restore();
+              }
+
+              // CapCut VHS Date Stamp & Camcorder OSD
+              if (clip.videoEffects?.vhsOverlay) {
+                ctx.save();
+                const vhsTime = Math.max(0, currentTime - clip.start);
+                const hrs = Math.floor(vhsTime / 3600).toString().padStart(2, '0');
+                const mins = Math.floor((vhsTime % 3600) / 60).toString().padStart(2, '0');
+                const secs = Math.floor(vhsTime % 60).toString().padStart(2, '0');
+                const frames = Math.floor((vhsTime % 1) * 30).toString().padStart(2, '0');
+                
+                ctx.font = `bold ${Math.max(12, Math.round(dimensions.width * 0.024))}px "Courier New", monospace`;
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+                ctx.shadowBlur = 4;
+                
+                // Top Left: PLAY ▶ SP
+                ctx.fillStyle = '#4ade80';
+                ctx.fillText('PLAY ▶ SP', -dimensions.width / 2 + dimensions.width * 0.05, -dimensions.height / 2 + dimensions.height * 0.09);
+                
+                // Bottom Left: MAR. 21 1998
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText('MAR. 21 1998', -dimensions.width / 2 + dimensions.width * 0.05, dimensions.height / 2 - dimensions.height * 0.08);
+
+                // Bottom Right: Timecode SP 00:00:00:00
+                const tcText = `SP ${hrs}:${mins}:${secs}:${frames}`;
+                const tcWidth = ctx.measureText(tcText).width;
+                ctx.fillText(tcText, dimensions.width / 2 - tcWidth - dimensions.width * 0.05, dimensions.height / 2 - dimensions.height * 0.08);
+
+                // Subtle CRT Scanlines
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+                for (let y = -dimensions.height / 2; y < dimensions.height / 2; y += 4) {
+                  ctx.fillRect(-dimensions.width / 2, y, dimensions.width, 1.5);
+                }
+                ctx.restore();
+              }
+
+              // CapCut Anamorphic Lens Flare
+              if (clip.videoEffects?.lensFlares) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'screen';
+                const flareY = -dimensions.height * 0.15;
+                const flareW = dimensions.width * 0.85;
+                const flareH = Math.max(16, dimensions.height * 0.05);
+
+                // Horizontal anamorphic streak
+                const streakGrad = ctx.createLinearGradient(-flareW / 2, flareY, flareW / 2, flareY);
+                streakGrad.addColorStop(0, 'rgba(6, 182, 212, 0)');
+                streakGrad.addColorStop(0.3, 'rgba(56, 189, 248, 0.35)');
+                streakGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.85)');
+                streakGrad.addColorStop(0.7, 'rgba(56, 189, 248, 0.35)');
+                streakGrad.addColorStop(1, 'rgba(6, 182, 212, 0)');
+                ctx.fillStyle = streakGrad;
+                ctx.fillRect(-flareW / 2, flareY - flareH / 2, flareW, flareH);
+
+                // Central glowing orb
+                const orbGrad = ctx.createRadialGradient(0, flareY, 2, 0, flareY, dimensions.width * 0.18);
+                orbGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+                orbGrad.addColorStop(0.4, 'rgba(6, 182, 212, 0.4)');
+                orbGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = orbGrad;
+                ctx.beginPath();
+                ctx.arc(0, flareY, dimensions.width * 0.18, 0, Math.PI * 2);
+                ctx.fill();
+
                 ctx.restore();
               }
 

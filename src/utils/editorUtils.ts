@@ -468,6 +468,17 @@ export function normalizeMediaUrl(url: string | undefined): string {
   if (!url) return '';
   const isTauri = typeof window !== 'undefined' && (!!(window as any).__TAURI__ || !!(window as any).__TAURI_INTERNALS__ || !!(window as any).__TAURI_IPC__);
 
+  // Automatically proxy external stock CDN resources (Pexels, Pixabay) to enable fast byte-range streaming and prevent CORS player blocks
+  if (
+    url.includes('pexels.com') ||
+    url.includes('pixabay.com')
+  ) {
+    if (!url.startsWith('/api/stock/proxy')) {
+      return `/api/stock/proxy?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  }
+
   // Standard web protocol & Android Content URIs
   if (url.startsWith('blob:') || url.startsWith('data:') || url.startsWith('content:')) {
     return url;
@@ -538,15 +549,20 @@ export function normalizeMediaUrl(url: string | undefined): string {
 
   // Automatically proxy external stock CDN resources (Pexels, Pixabay) to enable fast byte-range streaming and prevent CORS player blocks
   if (
-    url.startsWith('https://videos.pexels.com/') ||
-    url.startsWith('https://images.pexels.com/') ||
-    url.startsWith('https://cdn.pixabay.com/') ||
-    url.startsWith('https://pixabay.com/')
+    url.includes('pexels.com') ||
+    url.includes('pixabay.com')
   ) {
     return `/api/stock/proxy?url=${encodeURIComponent(url)}`;
   }
 
   return url;
+}
+
+/**
+ * Ensures safe media URL for player and previews (with proxying for stock CDNs)
+ */
+export function getSafeMediaUrl(url: string | undefined): string {
+  return normalizeMediaUrl(url);
 }
 
 /**
@@ -2657,6 +2673,48 @@ export function calculateFrequencySpectrumAtOffset(
 }
 
 /**
+ * Calculates smooth motion easing curves for keyframe transitions
+ */
+export function applyKeyframeEasing(t: number, easing?: string): number {
+  if (!easing || easing === 'linear') return t;
+  const clampedT = Math.max(0, Math.min(1, t));
+  switch (easing) {
+    case 'ease-in':
+      return clampedT * clampedT * clampedT; // Cubic Ease In
+    case 'ease-out':
+      return 1 - Math.pow(1 - clampedT, 3); // Cubic Ease Out
+    case 'ease-in-out':
+      return clampedT < 0.5
+        ? 4 * clampedT * clampedT * clampedT
+        : 1 - Math.pow(-2 * clampedT + 2, 3) / 2; // Cubic Ease In-Out
+    case 'bounce': {
+      const n1 = 7.5625;
+      const d1 = 2.75;
+      let x = clampedT;
+      if (x < 1 / d1) {
+        return n1 * x * x;
+      } else if (x < 2 / d1) {
+        return n1 * (x -= 1.5 / d1) * x + 0.75;
+      } else if (x < 2.5 / d1) {
+        return n1 * (x -= 2.25 / d1) * x + 0.9375;
+      } else {
+        return n1 * (x -= 2.625 / d1) * x + 0.984375;
+      }
+    }
+    case 'elastic': {
+      const c4 = (2 * Math.PI) / 3;
+      return clampedT === 0
+        ? 0
+        : clampedT === 1
+        ? 1
+        : -Math.pow(2, 10 * clampedT - 10) * Math.sin((clampedT * 10 - 10.75) * c4);
+    }
+    default:
+      return clampedT;
+  }
+}
+
+/**
  * Calculates interpolated properties (opacity, position, scale, rotation, volume)
  * for a clip at a given timeline position based on its keyframes.
  */
@@ -2731,7 +2789,9 @@ export function getInterpolatedClipProperties(clip: Clip, currentTime: number) {
     };
   }
 
-  const t = (offset - kfA.timestamp) / range;
+  const rawT = (offset - kfA.timestamp) / range;
+  const activeEasing = kfB.easing || kfA.easing || 'linear';
+  const t = applyKeyframeEasing(rawT, activeEasing);
 
   const interp = (valA: number | undefined, valB: number | undefined, def: number) => {
     const a = valA ?? def;

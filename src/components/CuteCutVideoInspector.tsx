@@ -86,6 +86,7 @@ export const CuteCutVideoInspector: React.FC<CuteCutVideoInspectorProps> = ({
     { id: 'filmstrip', name: 'Filmstrip', icon: '🎞️' },
     { id: 'circle', name: 'Circle', icon: '⭕' },
     { id: 'rectangle', name: 'Rectangle', icon: '▭' },
+    { id: 'mirror', name: 'Mirror', icon: '🪞' },
     { id: 'heart', name: 'Heart', icon: '❤️' },
     { id: 'star', name: 'Star', icon: '⭐' },
   ];
@@ -766,6 +767,26 @@ export const CuteCutVideoInspector: React.FC<CuteCutVideoInspectorProps> = ({
                         <div className="w-4 h-4 rounded-full bg-white shadow-md" />
                       </button>
                     </div>
+
+                    {/* Mask Size Slider */}
+                    <div className="space-y-1 pt-2 border-t border-[#262633]">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-300">Mask Scale</span>
+                        <span className="font-mono text-cyan-400">{mask.size || 100}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="20"
+                        max="250"
+                        value={mask.size || 100}
+                        onChange={(e) =>
+                          onUpdateClip(clip.id, {
+                            mask: { ...mask, size: parseInt(e.target.value) },
+                          })
+                        }
+                        className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -1410,29 +1431,181 @@ export const CuteCutVideoInspector: React.FC<CuteCutVideoInspectorProps> = ({
                   </div>
                 </div>
 
-                {/* Preset LUTs selection */}
-                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-2">
-                  <span className="text-gray-300 font-semibold">LUT / Filter Preset</span>
-                  <div className="grid grid-cols-3 gap-1.5 max-h-36 overflow-y-auto custom-scrollbar">
-                    {PRESET_LUTS.slice(0, 9).map((lut) => (
-                      <button
-                        key={lut.id}
-                        onClick={() => {
+                {/* CapCut Trending LUTs */}
+                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-200 font-semibold text-xs flex items-center gap-1.5">
+                      <Palette className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>CapCut Trending LUTs</span>
+                    </span>
+                    <span className="font-mono text-cyan-400 text-xs font-bold">
+                      {filters.lutIntensity ?? 100}%
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: 'none', name: 'Original', desc: 'No LUT' },
+                      { id: 'teal-orange', name: 'Teal & Orange', desc: 'Blockbuster Cinematic' },
+                      { id: 'moody-dark', name: 'Moody Dark', desc: 'Dark thriller aesthetic' },
+                      { id: 'golden-hour', name: 'Golden Hour', desc: 'Warm sunset glow' },
+                      { id: 'retro-90s', name: 'Retro 90s Film', desc: 'Analog nostalgic warmth' },
+                      { id: 'bw-noir', name: 'B&W Noir', desc: 'Dramatic monochrome' },
+                      { id: 'cyberpunk', name: 'Cyberpunk Neon', desc: 'High saturation night' },
+                      { id: 'vintage-warm', name: 'Vintage Warm', desc: 'Soft sepia fade' },
+                      { id: 'clean-bright', name: 'Clean Bright', desc: 'Vlog & Commercial' },
+                    ].map((lut) => {
+                      const isSelected = (filters.lutPreset || 'none') === lut.id;
+                      return (
+                        <button
+                          key={lut.id}
+                          onClick={() =>
+                            onUpdateClip(clip.id, {
+                              filters: {
+                                ...filters,
+                                lutPreset: lut.id as any,
+                              },
+                            })
+                          }
+                          className={`p-2 rounded-lg border text-left transition flex flex-col justify-between ${
+                            isSelected
+                              ? 'border-cyan-400 bg-cyan-950/50 text-cyan-200 shadow-xs'
+                              : 'border-gray-800 bg-[#121217] text-gray-400 hover:border-gray-700 hover:text-gray-200'
+                          }`}
+                        >
+                          <span className="text-[11px] font-bold truncate">{lut.name}</span>
+                          <span className="text-[9px] text-gray-500 truncate mt-0.5">{lut.desc}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {filters.lutPreset && filters.lutPreset !== 'none' && (
+                    <div className="space-y-1.5 pt-1 border-t border-[#262633]">
+                      <div className="flex justify-between text-xs text-gray-300">
+                        <span>LUT Filter Intensity</span>
+                        <span className="font-mono text-cyan-400">{filters.lutIntensity ?? 100}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={filters.lutIntensity ?? 100}
+                        onChange={(e) =>
                           onUpdateClip(clip.id, {
                             filters: {
                               ...filters,
-                              brightness: lut.filters?.brightness ?? 100,
-                              contrast: lut.filters?.contrast ?? 100,
-                              saturation: lut.filters?.saturation ?? 100,
-                              sepia: lut.filters?.sepia ?? 0,
+                              lutIntensity: parseInt(e.target.value),
                             },
-                          });
-                        }}
-                        className="p-1.5 rounded bg-[#121217] border border-gray-800 hover:border-cyan-400 text-[10px] text-gray-300 truncate text-center"
-                      >
-                        {lut.name}
-                      </button>
-                    ))}
+                          })
+                        }
+                        className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Creative Film Overlays (Vintage Dust, VHS Camcorder, Anamorphic Flares) */}
+                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
+                  <div className="flex items-center gap-1.5 font-semibold text-gray-200 text-xs">
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Creative Film Overlays</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Vintage Dust & Scratches */}
+                    <button
+                      onClick={() =>
+                        onUpdateClip(clip.id, {
+                          videoEffects: {
+                            ...clip.videoEffects,
+                            vintageDust: !clip.videoEffects?.vintageDust,
+                            dustIntensity: clip.videoEffects?.dustIntensity ?? 60,
+                          },
+                        })
+                      }
+                      className={`p-2 rounded-lg border text-left transition flex items-center justify-between ${
+                        clip.videoEffects?.vintageDust
+                          ? 'border-cyan-400 bg-cyan-950/40 text-cyan-200'
+                          : 'border-gray-800 bg-[#121217] text-gray-400 hover:border-gray-700 hover:text-gray-200'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold truncate">Film Dust & Scratches</div>
+                        <div className="text-[9px] text-gray-500">Authentic 35mm grain</div>
+                      </div>
+                      <span className={`w-2 h-2 rounded-full shrink-0 ml-1.5 ${clip.videoEffects?.vintageDust ? 'bg-cyan-400' : 'bg-gray-700'}`} />
+                    </button>
+
+                    {/* VHS Date Stamp & Camcorder OSD */}
+                    <button
+                      onClick={() =>
+                        onUpdateClip(clip.id, {
+                          videoEffects: {
+                            ...clip.videoEffects,
+                            vhsOverlay: !clip.videoEffects?.vhsOverlay,
+                          },
+                        })
+                      }
+                      className={`p-2 rounded-lg border text-left transition flex items-center justify-between ${
+                        clip.videoEffects?.vhsOverlay
+                          ? 'border-cyan-400 bg-cyan-950/40 text-cyan-200'
+                          : 'border-gray-800 bg-[#121217] text-gray-400 hover:border-gray-700 hover:text-gray-200'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold truncate">VHS Camcorder OSD</div>
+                        <div className="text-[9px] text-gray-500">REC 90s timestamp</div>
+                      </div>
+                      <span className={`w-2 h-2 rounded-full shrink-0 ml-1.5 ${clip.videoEffects?.vhsOverlay ? 'bg-cyan-400' : 'bg-gray-700'}`} />
+                    </button>
+
+                    {/* Anamorphic Lens Flare */}
+                    <button
+                      onClick={() =>
+                        onUpdateClip(clip.id, {
+                          videoEffects: {
+                            ...clip.videoEffects,
+                            anamorphicFlare: !clip.videoEffects?.anamorphicFlare,
+                          },
+                        })
+                      }
+                      className={`p-2 rounded-lg border text-left transition flex items-center justify-between ${
+                        clip.videoEffects?.anamorphicFlare
+                          ? 'border-cyan-400 bg-cyan-950/40 text-cyan-200'
+                          : 'border-gray-800 bg-[#121217] text-gray-400 hover:border-gray-700 hover:text-gray-200'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold truncate">Anamorphic Flares</div>
+                        <div className="text-[9px] text-gray-500">Horizontal blue streaks</div>
+                      </div>
+                      <span className={`w-2 h-2 rounded-full shrink-0 ml-1.5 ${clip.videoEffects?.anamorphicFlare ? 'bg-cyan-400' : 'bg-gray-700'}`} />
+                    </button>
+
+                    {/* Film Grain */}
+                    <button
+                      onClick={() =>
+                        onUpdateClip(clip.id, {
+                          videoEffects: {
+                            ...clip.videoEffects,
+                            grain: !clip.videoEffects?.grain,
+                            grainIntensity: clip.videoEffects?.grainIntensity ?? 50,
+                          },
+                        })
+                      }
+                      className={`p-2 rounded-lg border text-left transition flex items-center justify-between ${
+                        clip.videoEffects?.grain
+                          ? 'border-cyan-400 bg-cyan-950/40 text-cyan-200'
+                          : 'border-gray-800 bg-[#121217] text-gray-400 hover:border-gray-700 hover:text-gray-200'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold truncate">Film Grain</div>
+                        <div className="text-[9px] text-gray-500">Cinema 16mm texture</div>
+                      </div>
+                      <span className={`w-2 h-2 rounded-full shrink-0 ml-1.5 ${clip.videoEffects?.grain ? 'bg-cyan-400' : 'bg-gray-700'}`} />
+                    </button>
                   </div>
                 </div>
               </div>

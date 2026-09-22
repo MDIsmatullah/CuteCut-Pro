@@ -23,8 +23,47 @@ export interface StockItem {
 
 export { CURATED_STOCK_CATALOG };
 
+export const DEFAULT_PEXELS_KEY = 'zQcA6fA1V1ErZ5UOPLM6HY5YbqFLBoaGrxzg583UlE5tDUzSAda0umZU';
+export const DEFAULT_PIXABAY_KEY = '51611607-2bddfcd1e87cf3230c2436755';
+
+export function isValidPexelsKey(key?: string): boolean {
+  if (!key) return false;
+  const cleaned = key.trim();
+  if (cleaned.length < 25) return false;
+  if (/pexels/i.test(cleaned)) return false;
+  return true;
+}
+
+export function isValidPixabayKey(key?: string): boolean {
+  if (!key) return false;
+  const cleaned = key.trim();
+  if (cleaned.length < 15) return false;
+  if (/pixabay/i.test(cleaned)) return false;
+  return true;
+}
+
+export function getEffectivePexelsKey(customKey?: string): string {
+  if (isValidPexelsKey(customKey)) {
+    return customKey!.trim();
+  }
+  if (isValidPexelsKey(process.env.PEXELS_API_KEY)) {
+    return process.env.PEXELS_API_KEY!.trim();
+  }
+  return DEFAULT_PEXELS_KEY;
+}
+
+export function getEffectivePixabayKey(customKey?: string): string {
+  if (isValidPixabayKey(customKey)) {
+    return customKey!.trim();
+  }
+  if (isValidPixabayKey(process.env.PIXABAY_API_KEY)) {
+    return process.env.PIXABAY_API_KEY!.trim();
+  }
+  return DEFAULT_PIXABAY_KEY;
+}
+
 /**
- * Search Pexels API (if key in ENV or passed from user)
+ * Search Pexels API (with automatic fallback to default production key)
  */
 export async function searchPexelsApi(options: {
   query: string;
@@ -33,11 +72,11 @@ export async function searchPexelsApi(options: {
   page?: number;
   apiKey?: string;
 }): Promise<StockItem[]> {
-  const key = options.apiKey?.trim() || process.env.PEXELS_API_KEY?.trim();
+  const key = getEffectivePexelsKey(options.apiKey);
   if (!key) return [];
 
-  const perPage = options.perPage || 15;
-  const page = options.page || 1;
+  const perPage = Math.max(1, Math.min(80, options.perPage || 15));
+  const page = Math.max(1, options.page || 1);
 
   try {
     if (options.mediaType === 'video') {
@@ -48,6 +87,15 @@ export async function searchPexelsApi(options: {
       if (!res.ok) return [];
       const data = await res.json();
       const videos: any[] = data.videos || [];
+
+      // If no videos found and query had multiple words, try with the first two significant keywords
+      if (videos.length === 0 && options.query.trim().includes(' ')) {
+        const simplifiedQuery = options.query.trim().split(/\s+/).slice(0, 2).join(' ');
+        if (simplifiedQuery !== options.query.trim()) {
+          return searchPexelsApi({ ...options, query: simplifiedQuery });
+        }
+      }
+
       return videos.map((v: any) => {
         // Find best fast-streaming HD mp4 file (priority: 720p or 1080p mp4 for near-instant web buffering)
         const videoFiles: any[] = v.video_files || [];
@@ -80,6 +128,14 @@ export async function searchPexelsApi(options: {
       if (!res.ok) return [];
       const data = await res.json();
       const photos: any[] = data.photos || [];
+
+      if (photos.length === 0 && options.query.trim().includes(' ')) {
+        const simplifiedQuery = options.query.trim().split(/\s+/).slice(0, 2).join(' ');
+        if (simplifiedQuery !== options.query.trim()) {
+          return searchPexelsApi({ ...options, query: simplifiedQuery });
+        }
+      }
+
       return photos.map((p: any) => ({
         id: `pexels-p-${p.id}`,
         title: p.alt || `Pexels Photo by ${p.photographer || 'Photographer'}`,
@@ -101,7 +157,7 @@ export async function searchPexelsApi(options: {
 }
 
 /**
- * Search Pixabay API (if key in ENV or passed from user)
+ * Search Pixabay API (with automatic fallback to default production key)
  */
 export async function searchPixabayApi(options: {
   query: string;
@@ -110,11 +166,12 @@ export async function searchPixabayApi(options: {
   page?: number;
   apiKey?: string;
 }): Promise<StockItem[]> {
-  const key = options.apiKey?.trim() || process.env.PIXABAY_API_KEY?.trim();
+  const key = getEffectivePixabayKey(options.apiKey);
   if (!key) return [];
 
-  const perPage = options.perPage || 15;
-  const page = options.page || 1;
+  // Pixabay strictly requires per_page to be between 3 and 200
+  const perPage = Math.max(3, Math.min(200, options.perPage || 15));
+  const page = Math.max(1, options.page || 1);
 
   try {
     if (options.mediaType === 'video') {
@@ -123,6 +180,14 @@ export async function searchPixabayApi(options: {
       if (!res.ok) return [];
       const data = await res.json();
       const hits: any[] = data.hits || [];
+
+      if (hits.length === 0 && options.query.trim().includes(' ')) {
+        const simplifiedQuery = options.query.trim().split(/\s+/).slice(0, 2).join(' ');
+        if (simplifiedQuery !== options.query.trim()) {
+          return searchPixabayApi({ ...options, query: simplifiedQuery });
+        }
+      }
+
       return hits.map((h: any) => {
         // In Pixabay, 'large' is often 4K (200MB+), which causes long player buffering latency.
         // 'medium' (1080p, ~12MB) or 'small' (720p, ~5MB) buffers 10x-20x faster.
@@ -147,6 +212,14 @@ export async function searchPixabayApi(options: {
       if (!res.ok) return [];
       const data = await res.json();
       const hits: any[] = data.hits || [];
+
+      if (hits.length === 0 && options.query.trim().includes(' ')) {
+        const simplifiedQuery = options.query.trim().split(/\s+/).slice(0, 2).join(' ');
+        if (simplifiedQuery !== options.query.trim()) {
+          return searchPixabayApi({ ...options, query: simplifiedQuery });
+        }
+      }
+
       return hits.map((h: any) => ({
         id: `pixabay-p-${h.id}`,
         title: h.tags || `Pixabay Image #${h.id}`,
@@ -360,10 +433,10 @@ export async function getStockAssetsForAyahs(options: {
   let liveResults: StockItem[] = [];
   let sourceUsed = 'catalog-curated-150-library';
 
-  const effectivePexelsKey = options.pexelsApiKey?.trim() || process.env.PEXELS_API_KEY?.trim();
-  const effectivePixabayKey = options.pixabayApiKey?.trim() || process.env.PIXABAY_API_KEY?.trim();
+  const effectivePexelsKey = getEffectivePexelsKey(options.pexelsApiKey);
+  const effectivePixabayKey = getEffectivePixabayKey(options.pixabayApiKey);
 
-  // 1. Try live Pexels API if key available
+  // 1. Try live Pexels API if key available and requested (or auto)
   if (reqSource !== 'pixabay' && effectivePexelsKey) {
     const pexelsItems = await searchPexelsApi({
       query: categoryOrQuery,
@@ -377,8 +450,8 @@ export async function getStockAssetsForAyahs(options: {
     }
   }
 
-  // 2. Try live Pixabay API if key available and needed
-  if (liveResults.length < targetCount && reqSource !== 'pexels' && effectivePixabayKey) {
+  // 2. Try live Pixabay API if key available and requested (or needed to reach target count)
+  if ((liveResults.length < targetCount || reqSource === 'pixabay') && reqSource !== 'pexels' && effectivePixabayKey) {
     const pixabayItems = await searchPixabayApi({
       query: categoryOrQuery,
       mediaType,
@@ -386,8 +459,13 @@ export async function getStockAssetsForAyahs(options: {
       apiKey: effectivePixabayKey
     });
     if (pixabayItems.length > 0) {
-      liveResults = [...liveResults, ...pixabayItems];
-      sourceUsed = sourceUsed === 'live-pexels-api' ? 'live-pexels-pixabay' : 'live-pixabay-api';
+      if (reqSource === 'pixabay') {
+        liveResults = pixabayItems;
+        sourceUsed = 'live-pixabay-api';
+      } else {
+        liveResults = [...liveResults, ...pixabayItems];
+        sourceUsed = sourceUsed === 'live-pexels-api' ? 'live-pexels-pixabay' : 'live-pixabay-api';
+      }
     }
   }
 

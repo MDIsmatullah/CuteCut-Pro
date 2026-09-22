@@ -20,20 +20,26 @@ const templatePatch = `const launcherScript = '#!/bin/bash\\n' +
           'export GTK_PATH="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gtk-3.0"\\n' +
           'export GIO_MODULE_DIR="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gio/modules"\\n' +
           'REAL_UID=$(id -u 2>/dev/null || echo 1000)\\n' +
-          'if [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then\\n' +
+          'if [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then\\n' +
           '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"\\n' +
-          'elif [ -S "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
+          'elif [ -n "$SNAP_NAME" ] && [ -S "/run/user/$REAL_UID/snap.$SNAP_NAME/pulse/native" ]; then\\n' +
+          '  export PULSE_SERVER="unix:/run/user/$REAL_UID/snap.$SNAP_NAME/pulse/native"\\n' +
+          'elif [ -S "/run/user/$REAL_UID/snap.cutecut-pro/pulse/native" ]; then\\n' +
+          '  export PULSE_SERVER="unix:/run/user/$REAL_UID/snap.cutecut-pro/pulse/native"\\n' +
+          'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
           '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/../pulse/native"\\n' +
           'elif [ -S "/run/user/$REAL_UID/pulse/native" ]; then\\n' +
           '  export PULSE_SERVER="unix:/run/user/$REAL_UID/pulse/native"\\n' +
-          'elif [ -S "/run/user/$REAL_UID/snap.cutecut-pro/pulse/native" ]; then\\n' +
-          '  export PULSE_SERVER="unix:/run/user/$REAL_UID/snap.cutecut-pro/pulse/native"\\n' +
           'elif [ -S "/var/run/pulse/native" ]; then\\n' +
           '  export PULSE_SERVER="unix:/var/run/pulse/native"\\n' +
           'fi\\n' +
-          'if [ -S "$XDG_RUNTIME_DIR/pipewire-0" ]; then\\n' +
+          'if [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/pipewire-0" ]; then\\n' +
           '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR"\\n' +
-          'elif [ -S "$XDG_RUNTIME_DIR/../pipewire-0" ]; then\\n' +
+          'elif [ -n "$SNAP_NAME" ] && [ -S "/run/user/$REAL_UID/snap.$SNAP_NAME/pipewire-0" ]; then\\n' +
+          '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID/snap.$SNAP_NAME"\\n' +
+          'elif [ -S "/run/user/$REAL_UID/snap.cutecut-pro/pipewire-0" ]; then\\n' +
+          '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID/snap.cutecut-pro"\\n' +
+          'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/../pipewire-0" ]; then\\n' +
           '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR/.."\\n' +
           'elif [ -S "/run/user/$REAL_UID/pipewire-0" ]; then\\n' +
           '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"\\n' +
@@ -53,7 +59,7 @@ const templatePatch = `const launcherScript = '#!/bin/bash\\n' +
           '  export GDK_BACKEND="x11"\\n' +
           '  PLATFORM_FLAGS="--ozone-platform=x11"\\n' +
           'fi\\n' +
-          'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-gpu-vsync --disable-features=AudioServiceSandbox --enable-features=PulseaudioLoopbackForCast $PLATFORM_FLAGS "$@"\\n';
+          'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-gpu-vsync --disable-features=AudioServiceSandbox,AudioServiceOutOfProcess --enable-features=PulseaudioLoopbackForCast --try-supported-channel-layouts --alsa-output-device=default $PLATFORM_FLAGS "$@"\\n';
         await (0, promises_1.writeFile)(path.join(templateDir, "command.sh"), launcherScript, { mode: 0o755 });
         const fsSync = require('fs');
         const pathSync = require('path');
@@ -123,14 +129,16 @@ if (content.includes(targetFunc)) {
       'export GTK_PATH="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gtk-3.0"\\n' +
       'export GIO_MODULE_DIR="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gio/modules"\\n' +
       'REAL_UID=$(id -u 2>/dev/null || echo 1000)\\n' +
-      'if [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then\\n' +
+      'if [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then\\n' +
       '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"\\n' +
-      'elif [ -S "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
+      'elif [ -n "$SNAP_NAME" ] && [ -S "/run/user/$REAL_UID/snap.$SNAP_NAME/pulse/native" ]; then\\n' +
+      '  export PULSE_SERVER="unix:/run/user/$REAL_UID/snap.$SNAP_NAME/pulse/native"\\n' +
+      'elif [ -S "/run/user/$REAL_UID/snap.cutecut-pro/pulse/native" ]; then\\n' +
+      '  export PULSE_SERVER="unix:/run/user/$REAL_UID/snap.cutecut-pro/pulse/native"\\n' +
+      'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
       '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/../pulse/native"\\n' +
       'elif [ -S "/run/user/$REAL_UID/pulse/native" ]; then\\n' +
       '  export PULSE_SERVER="unix:/run/user/$REAL_UID/pulse/native"\\n' +
-      'elif [ -S "/run/user/$REAL_UID/snap.cutecut-pro/pulse/native" ]; then\\n' +
-      '  export PULSE_SERVER="unix:/run/user/$REAL_UID/snap.cutecut-pro/pulse/native"\\n' +
       'elif [ -S "/var/run/pulse/native" ]; then\\n' +
       '  export PULSE_SERVER="unix:/var/run/pulse/native"\\n' +
       'fi\\n' +
@@ -156,7 +164,7 @@ if (content.includes(targetFunc)) {
       '  export GDK_BACKEND="x11"\\n' +
       '  PLATFORM_FLAGS="--ozone-platform=x11"\\n' +
       'fi\\n' +
-      'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-gpu-vsync --disable-features=AudioServiceSandbox --enable-features=PulseaudioLoopbackForCast $PLATFORM_FLAGS "$@"\\n';
+      'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-gpu-vsync --disable-features=AudioServiceSandbox,AudioServiceOutOfProcess --enable-features=PulseaudioLoopbackForCast --try-supported-channel-layouts --alsa-output-device=default $PLATFORM_FLAGS "$@"\\n';
 }
 //# sourceMappingURL=coreLegacy.js.map`;
   content = prefix + newFunc;

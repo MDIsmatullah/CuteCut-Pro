@@ -17,6 +17,7 @@ import { checkWebCodecsSupport, exportWithWebCodecs } from './services/webCodecs
 import { getClipEffectiveSpeedAtTime } from './utils/speedRampUtils';
 import { PreferencesModal } from './components/PreferencesModal';
 import { Quran100ProtocolsModal } from './components/Quran100ProtocolsModal';
+import { VeoAnimateImageModal } from './components/VeoAnimateImageModal';
 import { VideoExport } from './components/video/VideoExport';
 import LandingPortal from './components/LandingPortal';
 import NativeSplashScreen from './components/NativeSplashScreen';
@@ -358,6 +359,7 @@ export default function App() {
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [showGeminiIntelligenceModal, setShowGeminiIntelligenceModal] = useState(false);
+  const [showVeoAnimateModal, setShowVeoAnimateModal] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [showAboutSupportModal, setShowAboutSupportModal] = useState(false);
   const [showAISegmentationModal, setShowAISegmentationModal] = useState(false);
@@ -2214,9 +2216,13 @@ export default function App() {
   // Auto-unlock AudioContext on first user interaction (avoids browser & snap audio silence)
   useEffect(() => {
     const unlockAudio = () => {
-      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume().catch(() => {});
-      }
+      try {
+        const { ctx, speakerGain } = getAudioContext();
+        speakerGain.gain.value = isMuted ? 0 : 1;
+        if (ctx && ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+      } catch (e) {}
     };
     window.addEventListener('pointerdown', unlockAudio, { passive: true });
     window.addEventListener('keydown', unlockAudio, { passive: true });
@@ -2226,7 +2232,7 @@ export default function App() {
       window.removeEventListener('keydown', unlockAudio);
       window.removeEventListener('touchstart', unlockAudio);
     };
-  }, []);
+  }, [isMuted]);
 
   const applyWebAudioEffects = (element: HTMLAudioElement | HTMLVideoElement, clip: Clip) => {
     try {
@@ -2367,7 +2373,8 @@ export default function App() {
       }
 
       // 4. Volume Gain & Fade In/Out Envelope (smoothly applied per-frame)
-      const baseGain = clip.volume !== undefined ? clip.volume : 1.0;
+      const rawVol = clip.volume !== undefined ? clip.volume : 80;
+      const normalizedVol = Math.max(0, Math.min(1, rawVol > 1 ? rawVol / 100 : rawVol));
       const fadeIn = clip.audioSettings?.fadeIn ?? 0;
       const fadeOut = clip.audioSettings?.fadeOut ?? 0;
       const elapsed = Math.max(0, currentTime - clip.start);
@@ -2379,7 +2386,8 @@ export default function App() {
         fadeFactor = Math.max(0, (clip.duration - elapsed) / fadeOut);
       }
 
-      nodeEntry.gainNode.gain.setValueAtTime(baseGain * fadeFactor, ctx.currentTime);
+      const effectiveGain = (isMuted || (!isPlaying && !exporting)) ? 0 : (normalizedVol * fadeFactor);
+      nodeEntry.gainNode.gain.setValueAtTime(effectiveGain, ctx.currentTime);
     } catch (err) {
       console.warn("Web Audio processing bypass:", err);
     }
@@ -2938,12 +2946,16 @@ export default function App() {
   }, []);
 
   const togglePlayPause = () => {
+    try {
+      const { ctx, speakerGain } = getAudioContext();
+      speakerGain.gain.value = isMuted ? 0 : 1;
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+    } catch (e) {}
     setIsPlaying(prev => {
       const next = !prev;
       lastTimeRef.current = performance.now();
-      if (next && audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume().catch(() => {});
-      }
       return next;
     });
   };
@@ -6731,6 +6743,7 @@ export default function App() {
             <MediaPanel
               initialTab={tab}
               onAddClip={addNewClip}
+              onOpenVeoAnimateModal={() => setShowVeoAnimateModal(true)}
               selectedAspectRatio={aspectRatio}
               tracks={tracks}
               onAlignQuran={handleAlignQuran}
@@ -7072,6 +7085,18 @@ export default function App() {
             <span className="bg-purple-500/20 text-purple-300 text-[9px] px-1 py-0.5 rounded font-mono font-bold border border-purple-500/30">PRO</span>
           </button>
 
+          {/* Veo AI Photo Animator Button */}
+          <button
+            id="btn-veo-animate-photo"
+            onClick={() => setShowVeoAnimateModal(true)}
+            className="flex items-center gap-1.5 px-3 h-9 bg-[#0e1d2c] hover:bg-[#14283d] border border-cyan-500/50 hover:border-cyan-400 text-cyan-300 text-xs font-semibold rounded-lg transition shadow-sm active:scale-95 cursor-pointer"
+            title="Animate photo into video with Google Veo AI (veo-3.1-fast-generate-preview)"
+          >
+            <Film className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+            <span>Animate Photo</span>
+            <span className="bg-cyan-500/20 text-cyan-300 text-[9px] px-1 py-0.5 rounded font-mono font-bold border border-cyan-500/30">VEO 3.1</span>
+          </button>
+
           {/* Save Project Button */}
           <button
             id="btn-save-project"
@@ -7320,6 +7345,7 @@ export default function App() {
           {/* Media Side-Panel */}
           <MediaPanel
             onAddClip={addNewClip}
+            onOpenVeoAnimateModal={() => setShowVeoAnimateModal(true)}
             selectedAspectRatio={aspectRatio}
             tracks={tracks}
             onAlignQuran={handleAlignQuran}
@@ -7708,6 +7734,15 @@ export default function App() {
         onExecuteAction={handleExecuteVoiceAction}
         currentTime={currentTime}
         aspectRatio={aspectRatio}
+      />
+
+      {/* Veo AI Image to Video Animation Modal (veo-3.1-fast-generate-preview) */}
+      <VeoAnimateImageModal
+        isOpen={showVeoAnimateModal}
+        onClose={() => setShowVeoAnimateModal(false)}
+        onAddClip={addNewClip}
+        tracks={tracks}
+        currentTime={currentTime}
       />
 
       {/* Keyboard Shortcuts Help Modal */}
