@@ -1,30 +1,26 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-# CUTECUT PRO Linux Auto-Audio & Universal Output Router (Speaker / Headphone / Bluetooth)
-export SNAP_DESKTOP_RUNTIME="${SNAP:-/snap/cutecut-pro/current}"
+# Keep audio inside the Snap's interfaces. Do not force a host PulseAudio
+# socket: on PipeWire systems it can bypass snapd's pulseaudio proxy.
+SNAP_ROOT="${SNAP:-/snap/cutecut-pro/current}"
+export SNAP_DESKTOP_RUNTIME="$SNAP_ROOT"
 
-# 1. Automatic PulseAudio / PipeWire Socket Detection (Disabled: Let snap's desktop-launch auto-configure safe sandboxed socket)
-# if [ -z "$PULSE_SERVER" ]; then
-#   if [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then
-#     export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"
-#   elif [ -S "/run/user/$(id -u)/pulse/native" ]; then
-#     export PULSE_SERVER="unix:/run/user/$(id -u)/pulse/native"
-#   elif [ -n "$SNAP_NAME" ] && [ -S "$XDG_RUNTIME_DIR/snap.$SNAP_NAME/pulse/native" ]; then
-#     export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/snap.$SNAP_NAME/pulse/native"
-#   fi
-# fi
-
-# 2. ALSA Fallback Configuration to prevent card 0 hardcoding & ensure seamless headphone routing
-if [ -d "$SNAP/usr/share/alsa" ]; then
-  export ALSA_CONFIG_PATH="$SNAP/usr/share/alsa/alsa.conf"
-fi
-if [ -d "$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib" ]; then
-  export ALSA_PLUGIN_DIR="$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib"
-  export LD_LIBRARY_PATH="$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:$SNAP/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+if [ -z "${PULSE_SERVER:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ] && [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then
+  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"
 fi
 
-# 3. Chromium/Electron Flags for Seamless PulseAudio Out-of-Process Playback
+# Only use the bundled ALSA configuration when it is complete. An invalid
+# ALSA_CONFIG_PATH makes Chromium/Electron silently lose audio output.
+if [ -f "$SNAP_ROOT/usr/share/alsa/alsa.conf" ]; then
+  export ALSA_CONFIG_PATH="$SNAP_ROOT/usr/share/alsa/alsa.conf"
+fi
+if [ -d "$SNAP_ROOT/usr/lib/x86_64-linux-gnu/alsa-lib" ]; then
+  export ALSA_PLUGIN_DIR="$SNAP_ROOT/usr/lib/x86_64-linux-gnu/alsa-lib"
+  export LD_LIBRARY_PATH="$SNAP_ROOT/usr/lib/x86_64-linux-gnu/alsa-lib:$SNAP_ROOT/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
+fi
+
+# Electron flags required for audio in a strictly confined Snap.
 EXTRA_FLAGS=(
   --no-sandbox
   --disable-gpu-sandbox
@@ -33,14 +29,12 @@ EXTRA_FLAGS=(
   --try-supported-channel-layouts
 )
 
-# 4. Check for native GNOME/GTK desktop launchers or direct executable
-if [ -f "$SNAP/command-chain/desktop-launch" ]; then
-  exec "$SNAP/command-chain/desktop-launch" "$SNAP/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
-elif [ -f "$SNAP/bin/desktop-launch" ]; then
-  exec "$SNAP/bin/desktop-launch" "$SNAP/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
-elif [ -f "$SNAP/cutecut-pro" ]; then
-  exec "$SNAP/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
+if [ -f "$SNAP_ROOT/command-chain/desktop-launch" ]; then
+  exec "$SNAP_ROOT/command-chain/desktop-launch" "$SNAP_ROOT/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
+elif [ -f "$SNAP_ROOT/bin/desktop-launch" ]; then
+  exec "$SNAP_ROOT/bin/desktop-launch" "$SNAP_ROOT/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
+elif [ -f "$SNAP_ROOT/cutecut-pro" ]; then
+  exec "$SNAP_ROOT/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
 else
-  exec "$SNAP/usr/bin/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
+  exec "$SNAP_ROOT/usr/bin/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
 fi
-
