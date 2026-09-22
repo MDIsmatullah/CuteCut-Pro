@@ -5,7 +5,7 @@ set -e
 # Submits CuteCutPro.CuteCutPro package manifests to microsoft/winget-pkgs
 
 APP_ID="CuteCutPro.CuteCutPro"
-VERSION="2.4.3"
+VERSION="2.4.4"
 BRANCH_NAME="add-${APP_ID}-${VERSION}"
 REPO_OWNER="${GITHUB_REPOSITORY_OWNER:-MDIsmatullah}"
 GITHUB_TOKEN="${GH_TOKEN:-$GITHUB_TOKEN}"

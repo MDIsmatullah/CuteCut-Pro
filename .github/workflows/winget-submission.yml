@@ -24,10 +24,11 @@ jobs:
 
       - name: Validate WinGet Manifests
         run: |
-          echo "Validating WinGet Manifest files..."
-          cat winget/manifests/c/CuteCutPro/CuteCutPro/2.4.1/CuteCutPro.CuteCutPro.yaml
-          cat winget/manifests/c/CuteCutPro/CuteCutPro/2.4.1/CuteCutPro.CuteCutPro.installer.yaml
-          cat winget/manifests/c/CuteCutPro/CuteCutPro/2.4.1/CuteCutPro.CuteCutPro.locale.en-US.yaml
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Validating WinGet Manifest files for version ${VERSION}..."
+          cat winget/manifests/c/CuteCutPro/CuteCutPro/${VERSION}/CuteCutPro.CuteCutPro.yaml
+          cat winget/manifests/c/CuteCutPro/CuteCutPro/${VERSION}/CuteCutPro.CuteCutPro.installer.yaml
+          cat winget/manifests/c/CuteCutPro/CuteCutPro/${VERSION}/CuteCutPro.CuteCutPro.locale.en-US.yaml
 
       - name: Run WinGet Automated Submission
         run: |

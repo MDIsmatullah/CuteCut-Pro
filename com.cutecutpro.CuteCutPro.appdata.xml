@@ -32,6 +32,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="2.4.4" date="2026-09-21">
+      <description>
+        <p>Production release with Snapcraft PulseAudio compatibility fixes, resolving audio playback issues in strictly sandboxed Linux environments.</p>
+      </description>
+    </release>
     <release version="2.4.3" date="2026-09-21">
       <description>
         <p>Introduced Bézier Speed Curve inspector with interactive tangent handles, custom velocity ramping presets, Snap/Debian cross-platform audio pipeline hardening, and real-time motion curve interpolation.</p>

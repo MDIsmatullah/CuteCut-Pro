@@ -4,16 +4,16 @@ set -e
 # CUTECUT PRO Linux Auto-Audio & Universal Output Router (Speaker / Headphone / Bluetooth)
 export SNAP_DESKTOP_RUNTIME="${SNAP:-/snap/cutecut-pro/current}"
 
-# 1. Automatic PulseAudio / PipeWire Socket Detection
-if [ -z "$PULSE_SERVER" ]; then
-  if [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then
-    export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"
-  elif [ -S "/run/user/$(id -u)/pulse/native" ]; then
-    export PULSE_SERVER="unix:/run/user/$(id -u)/pulse/native"
-  elif [ -n "$SNAP_NAME" ] && [ -S "$XDG_RUNTIME_DIR/snap.$SNAP_NAME/pulse/native" ]; then
-    export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/snap.$SNAP_NAME/pulse/native"
-  fi
-fi
+# 1. Automatic PulseAudio / PipeWire Socket Detection (Disabled: Let snap's desktop-launch auto-configure safe sandboxed socket)
+# if [ -z "$PULSE_SERVER" ]; then
+#   if [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then
+#     export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"
+#   elif [ -S "/run/user/$(id -u)/pulse/native" ]; then
+#     export PULSE_SERVER="unix:/run/user/$(id -u)/pulse/native"
+#   elif [ -n "$SNAP_NAME" ] && [ -S "$XDG_RUNTIME_DIR/snap.$SNAP_NAME/pulse/native" ]; then
+#     export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/snap.$SNAP_NAME/pulse/native"
+#   fi
+# fi
 
 # 2. ALSA Fallback Configuration to prevent card 0 hardcoding & ensure seamless headphone routing
 if [ -d "$SNAP/usr/share/alsa" ]; then

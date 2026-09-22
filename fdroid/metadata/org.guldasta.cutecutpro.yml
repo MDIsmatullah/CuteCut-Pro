@@ -10,8 +10,8 @@ Changelog: https://github.com/MDIsmatullah/CuteCut-Pro/releases
 
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
-CurrentVersion: 2.4.3
-CurrentVersionCode: 243
+CurrentVersion: 2.4.4
+CurrentVersionCode: 244
 
 Name: CuteCut Pro
 Summary: Professional multitrack video editor with Quranic audio-to-text synchronization
@@ -29,6 +29,17 @@ RepoType: git
 Repo: https://github.com/MDIsmatullah/CuteCut-Pro.git
 
 Builds:
+  - versionName: 2.4.4
+    versionCode: 244
+    commit: v2.4.4
+    subdir: android/app
+    gradle:
+      - yes
+    prebuild:
+      - npm ci
+      - npm run build
+      - npx cap sync android
+
   - versionName: 2.4.3
     versionCode: 243
     commit: v2.4.3
