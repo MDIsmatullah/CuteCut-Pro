@@ -41,7 +41,16 @@ if (process.platform === 'linux') {
   for (const p of possibleAlsaPaths) {
     if (fs.existsSync(p)) {
       process.env.ALSA_CONFIG_PATH = p;
+      process.env.ALSA_CONFIG_DIR = path.dirname(p);
       break;
+    }
+  }
+
+  const realHome = process.env.SNAP_REAL_HOME || process.env.HOME || '';
+  if (realHome && !process.env.PULSE_COOKIE) {
+    const candidateCookie = path.join(realHome, '.config/pulse/cookie');
+    if (fs.existsSync(candidateCookie)) {
+      process.env.PULSE_COOKIE = candidateCookie;
     }
   }
 
