@@ -4,6 +4,7 @@ import { Clip, VideoFilters, ColorGrading } from '../types';
 import { ColorGradingSection } from './ColorGradingSection';
 import { SpeedCurveEditor } from './SpeedCurveEditor';
 import { PRESET_LUTS } from '../data/presetAssets';
+import { LiveAnimationPreview } from './LiveAnimationPreview';
 
 interface CuteCutVideoInspectorProps {
   clip: Clip;
@@ -561,12 +562,15 @@ export const CuteCutVideoInspector: React.FC<CuteCutVideoInspectorProps> = ({
             {/* Subtab: REMOVE BG */}
             {videoSubTab === 'removeBg' && (
               <div className="space-y-4">
-                {/* Auto Removal */}
-                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-2">
+                {/* Auto Removal (AI Cutout) */}
+                <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-gray-200">Auto removal</div>
-                      <div className="text-[10px] text-gray-400">One-click AI portrait background cutout</div>
+                      <div className="font-medium text-gray-200 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-cyan-400" />
+                        <span>AI Auto Cutout</span>
+                      </div>
+                      <div className="text-[10px] text-gray-400">One-click AI portrait & background isolation</div>
                     </div>
                     <button
                       onClick={() => {
@@ -577,8 +581,9 @@ export const CuteCutVideoInspector: React.FC<CuteCutVideoInspectorProps> = ({
                             chromaKey: {
                               enabled: !isAuto,
                               color: 'auto',
-                              threshold: 50,
-                              smoothness: 20,
+                              threshold: filters.chromaKey?.threshold || 42,
+                              smoothness: filters.chromaKey?.smoothness || 16,
+                              autoMode: filters.chromaKey?.autoMode || 'portrait',
                             },
                           },
                         });
@@ -592,6 +597,259 @@ export const CuteCutVideoInspector: React.FC<CuteCutVideoInspectorProps> = ({
                       <div className="w-4 h-4 rounded-full bg-white shadow-md" />
                     </button>
                   </div>
+
+                  {/* AI Cutout Sub-Settings */}
+                  {filters.chromaKey?.enabled && filters.chromaKey?.color === 'auto' && (
+                    <div className="space-y-3 pt-2 border-t border-[#262633]">
+                      {/* Mode selection */}
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] text-gray-400 font-medium">Detection Engine:</span>
+                        <div className="grid grid-cols-2 gap-1.5 bg-[#121217] p-1 rounded-lg border border-[#262633]">
+                          <button
+                            onClick={() =>
+                              onUpdateClip(clip.id, {
+                                filters: {
+                                  ...filters,
+                                  chromaKey: { ...filters.chromaKey, autoMode: 'portrait' },
+                                },
+                              })
+                            }
+                            className={`py-1 text-[10px] font-semibold rounded transition ${
+                              (filters.chromaKey?.autoMode || 'portrait') === 'portrait'
+                                ? 'bg-cyan-500 text-black shadow-xs'
+                                : 'text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            AI Portrait / Subject
+                          </button>
+                          <button
+                            onClick={() =>
+                              onUpdateClip(clip.id, {
+                                filters: {
+                                  ...filters,
+                                  chromaKey: { ...filters.chromaKey, autoMode: 'edge-sample' },
+                                },
+                              })
+                            }
+                            className={`py-1 text-[10px] font-semibold rounded transition ${
+                              filters.chromaKey?.autoMode === 'edge-sample'
+                                ? 'bg-cyan-500 text-black shadow-xs'
+                                : 'text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            Canvas Edge Sample
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Cutout Strength */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-gray-400 text-[10px]">
+                          <span>Cutout Sensitivity</span>
+                          <span className="font-mono text-cyan-400">{filters.chromaKey.threshold || 42}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max="90"
+                          value={filters.chromaKey.threshold || 42}
+                          onChange={(e) =>
+                            onUpdateClip(clip.id, {
+                              filters: {
+                                ...filters,
+                                chromaKey: {
+                                  ...filters.chromaKey,
+                                  threshold: parseInt(e.target.value),
+                                },
+                              },
+                            })
+                          }
+                          className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                        />
+                      </div>
+
+                      {/* Smoothness / Feathering */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-gray-400 text-[10px]">
+                          <span>Edge Feathering</span>
+                          <span className="font-mono text-cyan-400">{filters.chromaKey.smoothness || 16}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="60"
+                          value={filters.chromaKey.smoothness || 16}
+                          onChange={(e) =>
+                            onUpdateClip(clip.id, {
+                              filters: {
+                                ...filters,
+                                chromaKey: {
+                                  ...filters.chromaKey,
+                                  smoothness: parseInt(e.target.value),
+                                },
+                              },
+                            })
+                          }
+                          className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                        />
+                      </div>
+
+                      {/* CapCut Cutout Stroke / Border Glow */}
+                      <div className="pt-2.5 border-t border-[#262633] space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-xs font-semibold text-gray-200">Cutout Stroke Outline</div>
+                            <div className="text-[10px] text-gray-400">CapCut signature neon/solid subject border</div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const isStrokeActive = Boolean(filters.cutoutStroke?.enabled);
+                              onUpdateClip(clip.id, {
+                                filters: {
+                                  ...filters,
+                                  cutoutStroke: {
+                                    enabled: !isStrokeActive,
+                                    color: filters.cutoutStroke?.color || '#06b6d4',
+                                    width: filters.cutoutStroke?.width || 3,
+                                    style: filters.cutoutStroke?.style || 'neon',
+                                  },
+                                },
+                              });
+                            }}
+                            className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                              filters.cutoutStroke?.enabled ? 'bg-cyan-500 justify-end' : 'bg-gray-700 justify-start'
+                            }`}
+                          >
+                            <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                          </button>
+                        </div>
+
+                        {filters.cutoutStroke?.enabled && (
+                          <div className="bg-[#121217] p-2.5 rounded-lg border border-[#262633] space-y-2">
+                            {/* Color Presets */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-gray-400">Border Color:</span>
+                              <div className="flex items-center gap-1.5">
+                                {[
+                                  { color: '#ffffff', name: 'White' },
+                                  { color: '#06b6d4', name: 'Cyan' },
+                                  { color: '#f59e0b', name: 'Gold' },
+                                  { color: '#ec4899', name: 'Pink' },
+                                  { color: '#10b981', name: 'Emerald' },
+                                  { color: '#ef4444', name: 'Red' },
+                                ].map((swatch) => (
+                                  <button
+                                    key={swatch.color}
+                                    onClick={() =>
+                                      onUpdateClip(clip.id, {
+                                        filters: {
+                                          ...filters,
+                                          cutoutStroke: {
+                                            ...filters.cutoutStroke!,
+                                            color: swatch.color,
+                                          },
+                                        },
+                                      })
+                                    }
+                                    className={`w-4 h-4 rounded-full border transition-transform ${
+                                      filters.cutoutStroke?.color === swatch.color
+                                        ? 'scale-125 border-white shadow-xs'
+                                        : 'border-transparent opacity-80 hover:opacity-100'
+                                    }`}
+                                    style={{ backgroundColor: swatch.color }}
+                                    title={swatch.name}
+                                  />
+                                ))}
+                                <input
+                                  type="color"
+                                  value={filters.cutoutStroke?.color || '#06b6d4'}
+                                  onChange={(e) =>
+                                    onUpdateClip(clip.id, {
+                                      filters: {
+                                        ...filters,
+                                        cutoutStroke: {
+                                          ...filters.cutoutStroke!,
+                                          color: e.target.value,
+                                        },
+                                      },
+                                    })
+                                  }
+                                  className="w-5 h-5 rounded border border-gray-700 bg-transparent cursor-pointer ml-1"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Stroke Width */}
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-gray-400 text-[10px]">
+                                <span>Stroke Width</span>
+                                <span className="font-mono text-cyan-400">{filters.cutoutStroke?.width || 3}px</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="1"
+                                max="8"
+                                value={filters.cutoutStroke?.width || 3}
+                                onChange={(e) =>
+                                  onUpdateClip(clip.id, {
+                                    filters: {
+                                      ...filters,
+                                      cutoutStroke: {
+                                        ...filters.cutoutStroke!,
+                                        width: parseInt(e.target.value),
+                                      },
+                                    },
+                                  })
+                                }
+                                className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                              />
+                            </div>
+
+                            {/* Style: Solid vs Neon */}
+                            <div className="flex items-center justify-between text-[10px] pt-1">
+                              <span className="text-gray-400">Outline Glow:</span>
+                              <div className="flex rounded bg-[#1a1a22] p-0.5 border border-gray-800">
+                                <button
+                                  onClick={() =>
+                                    onUpdateClip(clip.id, {
+                                      filters: {
+                                        ...filters,
+                                        cutoutStroke: { ...filters.cutoutStroke!, style: 'solid' },
+                                      },
+                                    })
+                                  }
+                                  className={`px-2 py-0.5 rounded text-[10px] ${
+                                    filters.cutoutStroke?.style === 'solid'
+                                      ? 'bg-cyan-500 text-black font-bold'
+                                      : 'text-gray-400'
+                                  }`}
+                                >
+                                  Solid
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    onUpdateClip(clip.id, {
+                                      filters: {
+                                        ...filters,
+                                        cutoutStroke: { ...filters.cutoutStroke!, style: 'neon' },
+                                      },
+                                    })
+                                  }
+                                  className={`px-2 py-0.5 rounded text-[10px] ${
+                                    (filters.cutoutStroke?.style || 'neon') === 'neon'
+                                      ? 'bg-cyan-500 text-black font-bold'
+                                      : 'text-gray-400'
+                                  }`}
+                                >
+                                  Neon Glow
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Chroma Key */}
@@ -1251,14 +1509,19 @@ export const CuteCutVideoInspector: React.FC<CuteCutVideoInspectorProps> = ({
                           });
                         }
                       }}
-                      className={`p-2.5 rounded-lg border text-center flex flex-col items-center justify-center gap-1.5 transition ${
+                      className={`group p-2 rounded-lg border text-center flex flex-col items-center justify-center transition cursor-pointer ${
                         isSelected
-                          ? 'border-cyan-400 bg-cyan-950/40 text-cyan-300'
+                          ? 'border-cyan-400 bg-cyan-950/40 text-cyan-300 shadow-xs'
                           : 'border-[#262633] bg-[#1a1a22] text-gray-400 hover:border-gray-600 hover:text-white'
                       }`}
                     >
-                      <span className="text-xl">{anim.icon}</span>
-                      <span className="text-[10px] font-medium truncate max-w-full">{anim.name}</span>
+                      <LiveAnimationPreview
+                        type="video"
+                        id={anim.id}
+                        name={anim.name}
+                        icon={anim.icon}
+                        isSelected={isSelected}
+                      />
                     </button>
                   );
                 }

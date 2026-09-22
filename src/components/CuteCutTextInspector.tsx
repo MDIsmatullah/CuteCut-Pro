@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Type, Sparkles, Wand2, AlignLeft, AlignCenter, AlignRight, AlignJustify, Bold, Italic, Underline, Volume2, MessageSquare, Play, Check, Crown, Move, Layers, Sliders, Palette } from 'lucide-react';
 import { Clip } from '../types';
+import { LiveAnimationPreview } from './LiveAnimationPreview';
 
 interface CuteCutTextInspectorProps {
   clip: Clip;
@@ -902,28 +903,36 @@ export const CuteCutTextInspector: React.FC<CuteCutTextInspectorProps> = ({
                 { id: 'zoom-in', name: 'Zoom In', icon: '🔍' },
                 { id: 'wave', name: 'Wave Bounce', icon: '🌊' },
                 { id: 'glitch', name: 'Glitch Tech', icon: '⚡' },
-              ].map((anim) => (
-                <button
-                  key={anim.id}
-                  onClick={() =>
-                    onUpdateClip(clip.id, {
-                      textAnimation: {
-                        preset: anim.id as any,
-                        scope: 'all',
-                        characterTiming: 0.08,
-                      },
-                    })
-                  }
-                  className={`p-3 rounded-lg border text-center flex flex-col items-center justify-center gap-1.5 transition ${
-                    clip.textAnimation?.preset === anim.id
-                      ? 'border-cyan-400 bg-cyan-950/40 text-cyan-300'
-                      : 'border-[#262633] bg-[#1a1a22] text-gray-400 hover:border-gray-600 hover:text-white'
-                  }`}
-                >
-                  <span className="text-xl">{anim.icon}</span>
-                  <span className="text-[10px] font-medium">{anim.name}</span>
-                </button>
-              ))}
+              ].map((anim) => {
+                const isSelected = clip.textAnimation?.preset === anim.id;
+                return (
+                  <button
+                    key={anim.id}
+                    onClick={() =>
+                      onUpdateClip(clip.id, {
+                        textAnimation: {
+                          preset: anim.id as any,
+                          scope: 'all',
+                          characterTiming: 0.08,
+                        },
+                      })
+                    }
+                    className={`group p-2 rounded-lg border text-center flex flex-col items-center justify-center transition cursor-pointer ${
+                      isSelected
+                        ? 'border-cyan-400 bg-cyan-950/40 text-cyan-300 shadow-xs'
+                        : 'border-[#262633] bg-[#1a1a22] text-gray-400 hover:border-gray-600 hover:text-white'
+                    }`}
+                  >
+                    <LiveAnimationPreview
+                      type="text"
+                      id={anim.id}
+                      name={anim.name}
+                      icon={anim.icon}
+                      isSelected={isSelected}
+                    />
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

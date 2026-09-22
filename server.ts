@@ -1728,6 +1728,97 @@ Return JSON with format:
     }
   });
 
+  // API Route: Multi-turn Chat with Gemini (gemini-3.1-pro-preview, gemini-3.5-flash, gemini-3.1-flash-lite)
+  app.post('/api/ai/chat', async (req, res) => {
+    const { messages, model, systemInstruction, role } = req.body || {};
+    const ai = getAiClient(req);
+
+    const validModels = ['gemini-3.1-pro-preview', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+    const selectedModel = validModels.includes(model) ? model : 'gemini-3.5-flash';
+
+    // Role-specific default system instructions
+    let effectiveSystemInstruction = systemInstruction;
+    if (!effectiveSystemInstruction) {
+      if (role === 'director' || selectedModel === 'gemini-3.1-pro-preview') {
+        effectiveSystemInstruction = `You are the Executive Video Director & Master Cinematographer in CuteCut Pro video editor. You specialize in complex video production tasks: narrative pacing, storyboard architecture, color grading palettes, deep emotional engagement, shot composition, lighting design, and audio-visual synthesis. Give structured, professional, deeply reasoned guidance with step-by-step breakdowns.`;
+      } else if (role === 'fast_editor' || selectedModel === 'gemini-3.1-flash-lite') {
+        effectiveSystemInstruction = `You are the Ultra-Fast Video Assistant & Shortcut Copilot in CuteCut Pro video editor. Your primary focus is speed, rapid tips, keyboard shortcuts (S for split at playhead, Space for play/pause, M for mute, V for select, Delete for remove, Ctrl+Z for undo, Ctrl+B for blade cut), quick format recommendations, and immediate punchy video advice. Keep your answers brief, actionable, and straight to the point.`;
+      } else {
+        effectiveSystemInstruction = `You are the Creative Video Producer & Content Assistant in CuteCut Pro video editor. You help creators craft viral TikToks, YouTube videos, Instagram Reels, Quran recitations, and documentaries. You provide engaging video hooks, script outlines, caption styles, stock footage ideas, and pacing advice. Maintain a friendly, supportive, and creative tone.`;
+      }
+    }
+
+    const lastUserMsg = Array.isArray(messages) && messages.length > 0 
+      ? (messages[messages.length - 1].content || '') 
+      : '';
+
+    const generateFallbackReply = () => {
+      if (role === 'director' || selectedModel === 'gemini-3.1-pro-preview') {
+        return `🎬 **Executive Director Breakdown** for: "${lastUserMsg || 'Your Scene'}"\n\n1. **Visual Narrative & Camera Angle:**\n- Begin with a medium-close framing to establish emotional presence.\n- Use 24fps motion cadence with subtle slow-push camera movement to draw the audience in.\n\n2. **Lighting & Palette:**\n- Set color temperature to 3200K (warm golden amber) with deep shadow contrast (Lift: -12, Gain: +8).\n\n3. **Audio-Visual Sync:**\n- Place beat drop / recitation emphasis precisely at the 3-second mark.\n- Lower ambient soundtrack beneath recitation to -18dB.`;
+      } else if (role === 'fast_editor' || selectedModel === 'gemini-3.1-flash-lite') {
+        return `⚡ **Fast Editor Action Plan** for: "${lastUserMsg || 'Timeline Editing'}"\n\n• **Press 'S'** to instantly split your active clip at playhead position.\n• **Press 'Delete'** to remove unwanted portions.\n• **Press 'Space'** to preview immediately.\n• **Audio Tip:** Keep voiceover normalized at -2dB to 0dB peak, and background audio at -14dB.\n• **Aspect Ratio:** Use 9:16 for TikTok/Shorts and 16:9 for YouTube.`;
+      } else {
+        return `💡 **Video Producer Strategy** for: "${lastUserMsg || 'Your Project'}"\n\n1. **The 3-Second Hook:** Start with an unexpected visual cut or provocative title right at 0.0s.\n2. **Visual Rhythm:** Switch camera angles every 2.5 - 3.5 seconds to maximize viewer watch time.\n3. **Aesthetic Subtitles:** Use high-contrast font with a subtle drop shadow or glowing gold backdrop.\n4. **Call to Action:** Save the final 3 seconds for a clean branded outro.`;
+      }
+    };
+
+    if (!ai) {
+      return res.json({
+        reply: generateFallbackReply(),
+        model: selectedModel,
+        fallback: true,
+      });
+    }
+
+    try {
+      // Build conversation contents array preserving multi-turn history
+      const formattedContents: any[] = [];
+      if (Array.isArray(messages) && messages.length > 0) {
+        for (const msg of messages) {
+          const mRole = msg.role === 'model' || msg.role === 'assistant' ? 'model' : 'user';
+          formattedContents.push({
+            role: mRole,
+            parts: [{ text: String(msg.content || msg.text || '') }],
+          });
+        }
+      } else {
+        formattedContents.push({
+          role: 'user',
+          parts: [{ text: 'Hello! How can you help me with my video project?' }],
+        });
+      }
+
+      // Use safeGenerateContent wrapper to handle authentication/model fallbacks safely
+      const response = await safeGenerateContent(ai, {
+        model: selectedModel,
+        contents: formattedContents,
+        config: {
+          systemInstruction: effectiveSystemInstruction,
+        },
+      });
+
+      if (response && response.text) {
+        return res.json({
+          reply: response.text,
+          model: selectedModel,
+        });
+      }
+
+      // If safeGenerateContent returns null (e.g. auth issue or network issue), provide graceful role-specific response
+      return res.json({
+        reply: generateFallbackReply(),
+        model: selectedModel,
+        fallback: true,
+      });
+    } catch (err: any) {
+      return res.json({
+        reply: generateFallbackReply(),
+        model: selectedModel,
+        fallback: true,
+      });
+    }
+  });
+
   // API Route: High Quality Image Generation (gemini-3-pro-image-preview)
   app.post('/api/ai/generate-image', async (req, res) => {
     const { prompt, imageSize = '1K', aspectRatio = '16:9' } = req.body;

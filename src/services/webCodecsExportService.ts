@@ -46,9 +46,12 @@ export function checkWebCodecsSupport(): WebCodecsSupportInfo {
  */
 async function getSupportedVideoCodec(width: number, height: number, fps: number, bitrate: number): Promise<string> {
   const candidateCodecs = [
+    'avc1.640033', // H.264 High Profile Level 5.1 (4K 60fps NVENC / QuickSync / VideoToolbox)
+    'avc1.64002a', // H.264 High Profile Level 4.2 (1080p 60fps)
     'avc1.4d002a', // H.264 Main Profile, Level 4.2 (ideal for 1080p60 / 4K)
     'avc1.640028', // H.264 High Profile, Level 4.0
     'avc1.42001f', // H.264 Baseline Profile, Level 3.1
+    'vp09.00.41.08', // VP9 Profile 0, Level 4.1 (4K Hardware)
     'vp09.00.10.08', // VP9 Fallback
   ];
 
@@ -290,6 +293,7 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
     bitrate,
     framerate: fps,
     hardwareAcceleration: 'prefer-hardware',
+    latencyMode: 'quality',
     avc: { format: 'avc' }
   });
 
@@ -327,9 +331,26 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
 
     encodedFrames++;
 
-    // Throttling: If GPU queue is busy, yield to event loop so browser doesn't freeze
-    if (videoEncoder.encodeQueueSize > 5) {
-      await new Promise((resolve) => setTimeout(resolve, 0));
+    // Zero-lag GPU backpressure: Synchronize with NVENC/QuickSync/VideoToolbox pipeline
+    if (videoEncoder.encodeQueueSize > 4) {
+      await new Promise<void>((resolve) => {
+        let isResolved = false;
+        videoEncoder.ondequeue = () => {
+          if (videoEncoder.encodeQueueSize <= 2 && !isResolved) {
+            isResolved = true;
+            videoEncoder.ondequeue = null;
+            resolve();
+          }
+        };
+        // Fallback safeguard
+        setTimeout(() => {
+          if (!isResolved) {
+            isResolved = true;
+            videoEncoder.ondequeue = null;
+            resolve();
+          }
+        }, 1);
+      });
     }
 
     // Progress update every few frames or on completion

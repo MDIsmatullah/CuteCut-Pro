@@ -29,7 +29,9 @@ import {
   smartAnalyzeAyahVisualTheme,
   CURATED_STOCK_CATALOG,
   normalizeCategory,
-  StockItem
+  StockItem,
+  searchMultiSourceStock,
+  getStockAssetsForAyahs
 } from '../services/stockMediaService';
 
 export interface AyahVisualItem {
@@ -239,7 +241,7 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
 
   const [smartKeywordDistribution, setSmartKeywordDistribution] = useState<boolean>(true);
 
-  // Live Stock Media Fetcher from Pexels / Pixabay (powered by backend proxy with default production keys)
+  // Live Stock Media Fetcher from Pexels / Pixabay (supports backend proxy and direct client fallback)
   const fetchLiveStockMedia = async (
     sourceWeb: 'pexels' | 'pixabay',
     catId: string,
@@ -251,17 +253,34 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
       const catConfig = QURAN_TILAWAT_CATEGORIES.find(c => c.id === catId) || QURAN_TILAWAT_CATEGORIES[0];
       const activeQuery = customQuery.trim().length > 0 ? customQuery.trim() : catConfig.query;
 
-      const res = await fetch(
-        `/api/stock/search?category=${encodeURIComponent(activeQuery)}&mediaType=${type}&source=${sourceWeb}&count=12`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.items)) {
-          setStockExplorerItems(data.items);
-          if (data.sourceUsed) {
-            setStockSourceUsed(data.sourceUsed);
+      const isFileProtocol = typeof window !== 'undefined' && window.location && window.location.protocol === 'file:';
+
+      // 1. If not strictly on file://, try local server endpoint first
+      if (!isFileProtocol) {
+        try {
+          const res = await fetch(
+            `/api/stock/search?category=${encodeURIComponent(activeQuery)}&mediaType=${type}&source=${sourceWeb}&count=12`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && Array.isArray(data.items) && data.items.length > 0) {
+              setStockExplorerItems(data.items);
+              if (data.sourceUsed) {
+                setStockSourceUsed(data.sourceUsed);
+              }
+              return;
+            }
           }
+        } catch (serverErr) {
+          console.log('[QuranVisualsPanel] Server proxy search bypassed, using client live search:', serverErr);
         }
+      }
+
+      // 2. Direct Live Client Fetcher (works in built Electron, Snap, file://, and offline environments)
+      const directResult = await searchMultiSourceStock(activeQuery, type, 12, { source: sourceWeb });
+      if (directResult && Array.isArray(directResult.items) && directResult.items.length > 0) {
+        setStockExplorerItems(directResult.items);
+        setStockSourceUsed(directResult.sourceUsed || (sourceWeb === 'pixabay' ? 'live-pixabay-api' : 'live-pexels-api'));
       }
     } catch (e) {
       console.warn('Failed to fetch stock explorer media:', e);
@@ -654,16 +673,42 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
       const activeCat = QURAN_TILAWAT_CATEGORIES.find(c => c.id === visualCategory) || QURAN_TILAWAT_CATEGORIES[0];
       const activeQuery = searchQuery.trim().length > 0 ? searchQuery.trim() : activeCat.query;
 
-      // 1. Direct Pexels & Pixabay Multi-Ayah stock resolver endpoint
-      const stockRes = await fetch(
-        `/api/stock/search?category=${encodeURIComponent(activeQuery)}&mediaType=${mediaType}&count=${payloadVerses.length}&source=${stockSource}`
-      )
-        .then(r => (r.ok ? r.json() : null))
-        .catch(() => null);
+      // 1. Direct Pexels & Pixabay Multi-Ayah stock resolver endpoint (server or direct client)
+      let stockItems: any[] = [];
+      let sourceLabel = 'Live Stock Engine';
 
-      if (stockRes && stockRes.success && Array.isArray(stockRes.items) && stockRes.items.length > 0) {
+      const isFileProtocol = typeof window !== 'undefined' && window.location && window.location.protocol === 'file:';
+
+      if (!isFileProtocol) {
+        try {
+          const stockRes = await fetch(
+            `/api/stock/search?category=${encodeURIComponent(activeQuery)}&mediaType=${mediaType}&count=${payloadVerses.length}&source=${stockSource}`
+          ).then(r => (r.ok ? r.json() : null)).catch(() => null);
+
+          if (stockRes && stockRes.success && Array.isArray(stockRes.items) && stockRes.items.length > 0) {
+            stockItems = stockRes.items;
+            sourceLabel = stockRes.sourceUsed?.includes('api') ? 'Live Pexels/Pixabay API' : 'Curated 150+ 4K Stock Catalog';
+          }
+        } catch (e) {
+          console.warn('[QuranVisualsPanel] Server stock search failed, trying client search:', e);
+        }
+      }
+
+      // If server didn't return items, query client-side stock search engine
+      if (stockItems.length === 0) {
+        try {
+          const clientRes = await searchMultiSourceStock(activeQuery, mediaType, payloadVerses.length, { source: stockSource });
+          if (clientRes && Array.isArray(clientRes.items) && clientRes.items.length > 0) {
+            stockItems = clientRes.items;
+            sourceLabel = clientRes.sourceUsed?.includes('api') ? 'Live Pexels/Pixabay API' : 'Curated 150+ 4K Stock Catalog';
+          }
+        } catch (e) {
+          console.warn('[QuranVisualsPanel] Client stock search failed:', e);
+        }
+      }
+
+      if (stockItems.length > 0) {
         setGenerationProgress(80);
-        const stockItems = stockRes.items;
         const enriched: AyahVisualItem[] = payloadVerses.map((v: any, index: number) => {
           const item = stockItems[index % stockItems.length];
           const isVid = (item.mediaType || mediaType) === 'video';
@@ -689,7 +734,6 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
 
         setGeneratedVisuals(enriched);
         setGenerationProgress(100);
-        const sourceLabel = stockRes.sourceUsed.includes('api') ? 'Live Pexels/Pixabay API' : 'Curated 150+ 4K Stock Catalog';
         showToast(`✨ Generated ${enriched.length} unique Ayah scenes from ${sourceLabel}!`);
         return;
       }

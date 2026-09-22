@@ -6,11 +6,14 @@ import { Zap, Music, Wand2, X, Trash2, Check } from 'lucide-react';
 interface AutoBeatDetectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  tracks: Track[];
-  duration: number;
-  existingMarkers: BeatMarker[];
-  onApplyBeatMarkers: (markers: BeatMarker[]) => void;
-  onClearBeatMarkers: () => void;
+  tracks?: Track[];
+  duration?: number;
+  timelineDuration?: number;
+  audioClips?: Array<{ id: string; name?: string; url: string; start: number; duration: number }>;
+  existingMarkers?: BeatMarker[];
+  onApplyBeatMarkers?: (markers: BeatMarker[]) => void;
+  onApplyBeats?: (markers: BeatMarker[]) => void;
+  onClearBeatMarkers?: () => void;
 }
 
 export const AutoBeatDetectionModal: React.FC<AutoBeatDetectionModalProps> = ({
@@ -18,8 +21,11 @@ export const AutoBeatDetectionModal: React.FC<AutoBeatDetectionModalProps> = ({
   onClose,
   tracks,
   duration,
-  existingMarkers,
+  timelineDuration,
+  audioClips: directAudioClips,
+  existingMarkers = [],
   onApplyBeatMarkers,
+  onApplyBeats,
   onClearBeatMarkers,
 }) => {
   const [selectedMode, setSelectedMode] = useState<'audio' | 'tempo'>('tempo');
@@ -30,21 +36,34 @@ export const AutoBeatDetectionModal: React.FC<AutoBeatDetectionModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Find audio clips across all tracks
-  const audioClips = (tracks || [])
-    .flatMap((t) => t?.clips || [])
-    .filter((c) => c && (c.type === 'audio' || (c.url && (typeof c.url === 'string' && (c.url.endsWith('.mp3') || c.url.endsWith('.wav') || c.url.endsWith('.m4a'))))));
+  const effectiveDuration = duration || timelineDuration || 60;
+  const applyFn = onApplyBeatMarkers || onApplyBeats || (() => {});
+  const clearFn = onClearBeatMarkers || (() => {});
+
+  // Find audio clips across all tracks or from direct props
+  const audioClips = directAudioClips && directAudioClips.length > 0
+    ? directAudioClips
+    : (tracks || [])
+        .flatMap((t) => t?.clips || [])
+        .filter((c) => c && (c.type === 'audio' || (c.url && (typeof c.url === 'string' && (c.url.endsWith('.mp3') || c.url.endsWith('.wav') || c.url.endsWith('.m4a'))))))
+        .map((c) => ({
+          id: c.id,
+          name: c.name || 'Audio Clip',
+          url: c.url || '',
+          start: c.start || 0,
+          duration: c.duration || effectiveDuration,
+        }));
 
   const handleGenerate = async () => {
     setIsProcessing(true);
     setAppliedCount(null);
     try {
       let markers: BeatMarker[] = [];
-      if (selectedMode === 'audio' && selectedAudioClipId) {
-        const clip = audioClips.find((c) => c.id === selectedAudioClipId);
-        if (clip) {
-          markers = await detectAudioBeats(clip.url, clip.duration || duration, bpm);
-          // Adjust offsets relative to timeline if clip start > 0
+      if (selectedMode === 'audio' && (selectedAudioClipId || audioClips.length > 0)) {
+        const targetId = selectedAudioClipId || audioClips[0]?.id;
+        const clip = audioClips.find((c) => c.id === targetId);
+        if (clip && clip.url) {
+          markers = await detectAudioBeats(clip.url, clip.duration || effectiveDuration, bpm);
           if (clip.start > 0) {
             markers = markers.map((m) => ({
               ...m,
@@ -52,13 +71,13 @@ export const AutoBeatDetectionModal: React.FC<AutoBeatDetectionModalProps> = ({
             }));
           }
         } else {
-          markers = generateRhythmicBeats(duration, bpm);
+          markers = generateRhythmicBeats(effectiveDuration, bpm);
         }
       } else {
-        markers = generateRhythmicBeats(duration, bpm);
+        markers = generateRhythmicBeats(effectiveDuration, bpm);
       }
 
-      onApplyBeatMarkers(markers);
+      applyFn(markers);
       setAppliedCount(markers.length);
       setTimeout(() => {
         setIsProcessing(false);
@@ -227,7 +246,7 @@ export const AutoBeatDetectionModal: React.FC<AutoBeatDetectionModalProps> = ({
             {existingMarkers.length > 0 && (
               <button
                 onClick={() => {
-                  onClearBeatMarkers();
+                  clearFn();
                   setAppliedCount(null);
                 }}
                 className="px-3 py-1.5 rounded-lg border border-red-900/50 hover:bg-red-950/40 text-red-400 text-xs font-medium flex items-center gap-1.5 transition"

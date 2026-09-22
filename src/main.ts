@@ -23,11 +23,10 @@ if (process.platform === 'linux') {
   app.commandLine.appendSwitch('ignore-gpu-blocklist');
   app.commandLine.appendSwitch('enable-gpu-rasterization');
   
-  // Safe Audio Configuration for Linux (.deb, Snap, AppImage, PulseAudio & PipeWire)
-  app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox,AudioServiceOutOfProcess');
-  app.commandLine.appendSwitch('enable-features', 'PulseaudioLoopbackForCast');
+  // Safe Audio & Video Configuration for Linux (.deb, Snap, AppImage, PulseAudio & PipeWire)
+  app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox');
+  app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
   app.commandLine.appendSwitch('try-supported-channel-layouts');
-  app.commandLine.appendSwitch('alsa-output-device', 'default');
 
   // Fix ALSA configuration path if running in Snap or constrained environment
   const possibleAlsaPaths = [

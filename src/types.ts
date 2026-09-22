@@ -34,9 +34,16 @@ export interface VideoFilters {
   hueRotate: number;  // 0 to 360, default 0
   chromaKey: {
     enabled: boolean;
-    color: string; // hex string, e.g. "#00ff00"
+    color: string; // hex string, e.g. "#00ff00" or "auto"
     threshold: number; // 0 to 100
     smoothness: number; // 0 to 100
+    autoMode?: 'portrait' | 'edge-sample';
+  };
+  cutoutStroke?: {
+    enabled: boolean;
+    color: string; // hex or neon color
+    width: number; // 1 to 10 px
+    style?: 'solid' | 'neon' | 'glow';
   };
   colorGrading?: ColorGrading;
   lutPreset?: 'none' | 'teal-orange' | 'moody-dark' | 'golden-hour' | 'retro-90s' | 'bw-noir' | 'cyberpunk' | 'vintage-warm' | 'clean-bright';

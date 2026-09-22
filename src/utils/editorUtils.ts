@@ -311,34 +311,96 @@ export function applyPixelFilters(
       ? buildColorGradingLUT(filters.colorGrading)
       : { lutR: null, lutG: null, lutB: null };
 
-    // 1. First apply Chroma Key if active
+    // 1. First apply Chroma Key / AI Background Cutout if active
     if (filters.chromaKey.enabled) {
-      const keyColorHex = filters.chromaKey.color;
-      const threshold = filters.chromaKey.threshold * 2.55; // convert 0-100 to 0-255 range
-      const smoothness = filters.chromaKey.smoothness * 2.55;
+      const isAuto = filters.chromaKey.color === 'auto';
+      const threshold = (filters.chromaKey.threshold ?? 40) * 2.55; // convert 0-100 to 0-255 range
+      const smoothness = (filters.chromaKey.smoothness ?? 15) * 2.55;
 
-      // Parse Hex
-      const keyR = parseInt(keyColorHex.slice(1, 3), 16) || 0;
-      const keyG = parseInt(keyColorHex.slice(3, 5), 16) || 0;
-      const keyB = parseInt(keyColorHex.slice(5, 7), 16) || 0;
+      if (isAuto) {
+        // AI Auto Cutout: Dynamic corner/edge background profiling & subject contrast isolation
+        let sampleR = 0, sampleG = 0, sampleB = 0;
+        const sampleCoords = [
+          [4, 4], [width - 5, 4], [4, height - 5], [width - 5, height - 5],
+          [Math.floor(width / 2), 4], [4, Math.floor(height / 2)], [width - 5, Math.floor(height / 2)],
+          [Math.floor(width * 0.25), 4], [Math.floor(width * 0.75), 4]
+        ];
+        let validSamples = 0;
+        for (const [sx, sy] of sampleCoords) {
+          if (sx >= 0 && sx < width && sy >= 0 && sy < height) {
+            const sIdx = (sy * width + sx) * 4;
+            sampleR += data[sIdx];
+            sampleG += data[sIdx + 1];
+            sampleB += data[sIdx + 2];
+            validSamples++;
+          }
+        }
+        const bgR = validSamples > 0 ? sampleR / validSamples : 25;
+        const bgG = validSamples > 0 ? sampleG / validSamples : 25;
+        const bgB = validSamples > 0 ? sampleB / validSamples : 25;
 
-      for (let i = 0; i < len; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
+        const autoMode = filters.chromaKey.autoMode || 'portrait';
+        const cx = width / 2;
+        const cy = height / 2;
 
-        // RGB Euclidean distance
-        const dist = Math.sqrt(
-          (r - keyR) * (r - keyR) +
-          (g - keyG) * (g - keyG) +
-          (b - keyB) * (b - keyB)
-        );
+        for (let i = 0; i < len; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
 
-        if (dist < threshold) {
-          data[i + 3] = 0; // Fully transparent
-        } else if (dist < threshold + smoothness && smoothness > 0) {
-          const factor = (dist - threshold) / smoothness;
-          data[i + 3] = Math.min(data[i + 3], Math.floor(factor * 255));
+          const dist = Math.sqrt(
+            (r - bgR) * (r - bgR) +
+            (g - bgG) * (g - bgG) +
+            (b - bgB) * (b - bgB)
+          );
+
+          if (autoMode === 'portrait') {
+            const px = (i / 4) % width;
+            const py = Math.floor((i / 4) / width);
+            const normDistX = Math.abs(px - cx) / cx;
+            const normDistY = Math.abs(py - cy) / cy;
+            const centerWeight = Math.sqrt(normDistX * normDistX + normDistY * normDistY);
+
+            // Human skin tone cluster protection
+            const isSkin = r > 60 && g > 35 && b > 15 && r > g && g >= b && (r - g) >= 8 && (r - b) >= 12;
+
+            // Preserve foreground person/subject in central area
+            if (isSkin || (centerWeight < 0.62 && dist > threshold * 0.65)) {
+              continue;
+            }
+          }
+
+          if (dist < threshold) {
+            data[i + 3] = 0; // Transparent cutout
+          } else if (dist < threshold + smoothness && smoothness > 0) {
+            const factor = (dist - threshold) / smoothness;
+            data[i + 3] = Math.min(data[i + 3], Math.floor(factor * 255));
+          }
+        }
+      } else {
+        // Standard manual Chroma Key
+        const keyColorHex = filters.chromaKey.color || '#00ff00';
+        const keyR = parseInt(keyColorHex.slice(1, 3), 16) || 0;
+        const keyG = parseInt(keyColorHex.slice(3, 5), 16) || 0;
+        const keyB = parseInt(keyColorHex.slice(5, 7), 16) || 0;
+
+        for (let i = 0; i < len; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+
+          const dist = Math.sqrt(
+            (r - keyR) * (r - keyR) +
+            (g - keyG) * (g - keyG) +
+            (b - keyB) * (b - keyB)
+          );
+
+          if (dist < threshold) {
+            data[i + 3] = 0; // Fully transparent
+          } else if (dist < threshold + smoothness && smoothness > 0) {
+            const factor = (dist - threshold) / smoothness;
+            data[i + 3] = Math.min(data[i + 3], Math.floor(factor * 255));
+          }
         }
       }
     }
@@ -436,6 +498,47 @@ export function applyPixelFilters(
       data[i + 2] = Math.max(0, Math.min(255, b));
     }
 
+    // 3. CapCut Pro Cutout Stroke / Border Glow
+    if (filters.cutoutStroke?.enabled && filters.cutoutStroke.color) {
+      const strokeHex = filters.cutoutStroke.color;
+      const sR = parseInt(strokeHex.slice(1, 3), 16) || 6;
+      const sG = parseInt(strokeHex.slice(3, 5), 16) || 182;
+      const sB = parseInt(strokeHex.slice(5, 7), 16) || 212;
+      const sWidth = Math.max(1, Math.min(8, Math.round(filters.cutoutStroke.width || 3)));
+      const isGlow = filters.cutoutStroke.style === 'glow' || filters.cutoutStroke.style === 'neon';
+
+      const edgeIndices: number[] = [];
+      for (let y = sWidth; y < height - sWidth; y++) {
+        for (let x = sWidth; x < width - sWidth; x++) {
+          const idx = (y * width + x) * 4;
+          if (data[idx + 3] > 80) {
+            let isEdge = false;
+            for (let d = 1; d <= sWidth; d++) {
+              if (
+                data[((y - d) * width + x) * 4 + 3] < 30 ||
+                data[((y + d) * width + x) * 4 + 3] < 30 ||
+                data[(y * width + (x - d)) * 4 + 3] < 30 ||
+                data[(y * width + (x + d)) * 4 + 3] < 30
+              ) {
+                isEdge = true;
+                break;
+              }
+            }
+            if (isEdge) {
+              edgeIndices.push(idx);
+            }
+          }
+        }
+      }
+
+      for (const idx of edgeIndices) {
+        data[idx] = sR;
+        data[idx + 1] = sG;
+        data[idx + 2] = sB;
+        data[idx + 3] = isGlow ? 240 : 255;
+      }
+    }
+
     ctx.putImageData(imageData, 0, 0);
   } catch (err) {
     console.warn('Canvas pixel processing bypass:', err);
@@ -467,20 +570,35 @@ export function formatTimeCode(seconds: number, showMs = true): string {
 export function normalizeMediaUrl(url: string | undefined): string {
   if (!url) return '';
   const isTauri = typeof window !== 'undefined' && (!!(window as any).__TAURI__ || !!(window as any).__TAURI_INTERNALS__ || !!(window as any).__TAURI_IPC__);
-
-  // Automatically proxy external stock CDN resources (Pexels, Pixabay) to enable fast byte-range streaming and prevent CORS player blocks
-  if (
-    url.includes('pexels.com') ||
-    url.includes('pixabay.com')
-  ) {
-    if (!url.startsWith('/api/stock/proxy')) {
-      return `/api/stock/proxy?url=${encodeURIComponent(url)}`;
-    }
-    return url;
-  }
+  const isFileProtocol = typeof window !== 'undefined' && window.location && window.location.protocol === 'file:';
+  const isElectron = typeof window !== 'undefined' && !!(window as any).process?.versions?.electron;
 
   // Standard web protocol & Android Content URIs
   if (url.startsWith('blob:') || url.startsWith('data:') || url.startsWith('content:')) {
+    return url;
+  }
+
+  // If in Electron, Tauri, or loaded via file:// protocol, ALWAYS keep direct HTTPS/HTTP URLs for stock media
+  // to avoid broken relative /api/stock/proxy routes that only exist in server environments.
+  if (isFileProtocol || isTauri || isElectron) {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+  }
+
+  // When hosted on an active HTTP/HTTPS Web Server, proxy external stock CDN resources if beneficial
+  if (
+    typeof window !== 'undefined' &&
+    window.location &&
+    window.location.protocol.startsWith('http') &&
+    !isFileProtocol &&
+    !isElectron &&
+    (url.includes('pexels.com') || url.includes('pixabay.com'))
+  ) {
+    if (!url.startsWith('/api/stock/proxy') && !url.startsWith('http')) {
+      return url;
+    }
+    // Direct links to video-files and images work natively in HTML5 video/img tags
     return url;
   }
 
@@ -545,14 +663,6 @@ export function normalizeMediaUrl(url: string | undefined): string {
       return `http://asset.localhost/${formatted}`;
     }
     return cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
-  }
-
-  // Automatically proxy external stock CDN resources (Pexels, Pixabay) to enable fast byte-range streaming and prevent CORS player blocks
-  if (
-    url.includes('pexels.com') ||
-    url.includes('pixabay.com')
-  ) {
-    return `/api/stock/proxy?url=${encodeURIComponent(url)}`;
   }
 
   return url;

@@ -534,3 +534,27 @@ export async function getStockAssetsForAyahs(options: {
 
   return { items: finalItems, sourceUsed };
 }
+
+/**
+ * Universal Multi-Source Stock Searcher
+ * Works across Server, Web Browser, and Standalone Desktop Electron/Tauri
+ */
+export async function searchMultiSourceStock(
+  query: string,
+  mediaType: 'video' | 'image' = 'video',
+  count: number = 12,
+  options?: {
+    source?: 'pexels' | 'pixabay' | 'auto';
+    pexelsApiKey?: string;
+    pixabayApiKey?: string;
+  }
+): Promise<{ items: StockItem[]; sourceUsed: string }> {
+  return getStockAssetsForAyahs({
+    categoryOrQuery: query,
+    mediaType,
+    count,
+    source: options?.source,
+    pexelsApiKey: options?.pexelsApiKey,
+    pixabayApiKey: options?.pixabayApiKey
+  });
+}

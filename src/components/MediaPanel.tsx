@@ -16,6 +16,8 @@ import { FAMOUS_MIX_COLLECTIONS } from '../utils/quranSurahData';
 import OrnateAyahMedallion from './OrnateAyahMedallion';
 import { QuranVisualsPanel } from './QuranVisualsPanel';
 import { SoundEffectsPanel } from './SoundEffectsPanel';
+import { LiveAnimationPreview } from './LiveAnimationPreview';
+import { searchMultiSourceStock } from '../services/stockMediaService';
 
 /**
  * Asset URL Resolver Helper using Tauri's convertFileSrc API.
@@ -66,6 +68,101 @@ export async function openExternalUrl(url: string) {
   }
   window.open(url, '_blank', 'noopener,noreferrer');
 }
+
+interface StockVideoItemCardProps {
+  video: typeof STOCK_VIDEOS[0];
+  onAdd: () => void;
+}
+
+const StockVideoItemCard: React.FC<StockVideoItemCardProps> = ({ video, onAdd }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const videoRef = React.useRef<HTMLVideoElement | null>(null);
+
+  return (
+    <div
+      id={`stock-video-${video.id}`}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        if (videoRef.current) {
+          videoRef.current.currentTime = 0;
+          videoRef.current.play().catch(() => {});
+        }
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        if (videoRef.current) {
+          videoRef.current.pause();
+        }
+      }}
+      onClick={onAdd}
+      className="group bg-[#1a1a22] hover:bg-[#22222d] border border-gray-800/80 hover:border-cyan-500/60 rounded-xl p-2 flex flex-col cursor-pointer transition-all duration-200 relative shadow-xs hover:shadow-cyan-950/30"
+    >
+      <div className="w-full h-22 bg-slate-900 rounded-lg flex items-center justify-center relative overflow-hidden shrink-0 mb-1.5 border border-white/5">
+        {/* Static Thumbnail */}
+        {video.thumbnail.startsWith('http') ? (
+          <img
+            src={video.thumbnail}
+            alt={video.name}
+            className={`w-full h-full object-cover transition-transform duration-300 ${
+              isHovered ? 'opacity-0' : 'opacity-100 group-hover:scale-105'
+            }`}
+            referrerPolicy="no-referrer"
+            loading="lazy"
+          />
+        ) : (
+          <span className="text-2xl">{video.thumbnail}</span>
+        )}
+
+        {/* Live Video Preview on Hover (CapCut Pro Style) */}
+        {isHovered && video.url && (
+          <video
+            ref={videoRef}
+            src={video.url}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover z-10"
+          />
+        )}
+
+        {/* Live badge */}
+        {isHovered && (
+          <span className="absolute top-1 left-1 z-20 text-[8px] bg-red-600/90 text-white px-1.5 py-0.5 rounded font-mono font-bold flex items-center gap-1 shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+            LIVE
+          </span>
+        )}
+
+        {/* Quick Add Overlay on Hover */}
+        <div className="absolute inset-0 bg-black/30 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <div className="px-2.5 py-1 rounded-full bg-cyan-500 text-black font-bold text-[10px] flex items-center gap-1 shadow-lg transform group-hover:scale-105 transition-transform">
+            <Plus className="w-3 h-3 stroke-[3]" />
+            <span>Add to Timeline</span>
+          </div>
+        </div>
+
+        <span className="absolute bottom-1 right-1 z-20 text-[8px] bg-black/75 backdrop-blur-xs text-white px-1.5 py-0.5 rounded font-mono font-bold">
+          {video.duration}s
+        </span>
+      </div>
+
+      <div className="flex-1 min-w-0 flex flex-col justify-between">
+        <p className="text-[11px] font-medium text-gray-200 group-hover:text-cyan-200 line-clamp-2 leading-tight">
+          {video.name}
+        </p>
+        <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-gray-800/40">
+          <span className="text-[8px] text-cyan-400 font-medium tracking-wide bg-cyan-950/60 px-1.5 py-0.5 rounded-full truncate">
+            {video.category}
+          </span>
+          <span className="text-[9px] text-gray-400 group-hover:text-cyan-300 font-medium flex items-center gap-0.5">
+            + Add
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const SURAHS = [
   { id: 1, name: '1. Al-Fatihah (The Opening)' },
@@ -855,15 +952,31 @@ export default function MediaPanel({
     setIsSearchingStock(true);
     setStockSearchNotice(null);
     try {
-      const res = await fetch(`/api/stock/search?query=${encodeURIComponent(q)}&mediaType=${bgMediaType}&source=${stockSourceProvider}&count=8`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && Array.isArray(data.items) && data.items.length > 0) {
-          setStockSearchResults(data.items);
-          setStockSearchNotice(`Found ${data.items.length} ${data.sourceUsed.toUpperCase()} assets`);
-        } else {
-          setStockSearchNotice('No direct media found for query.');
+      const isFileProtocol = typeof window !== 'undefined' && window.location && window.location.protocol === 'file:';
+
+      if (!isFileProtocol) {
+        try {
+          const res = await fetch(`/api/stock/search?query=${encodeURIComponent(q)}&mediaType=${bgMediaType}&source=${stockSourceProvider}&count=8`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Array.isArray(data.items) && data.items.length > 0) {
+              setStockSearchResults(data.items);
+              setStockSearchNotice(`Found ${data.items.length} ${data.sourceUsed?.toUpperCase() || 'STOCK'} assets`);
+              return;
+            }
+          }
+        } catch (serverErr) {
+          console.log('[MediaPanel] Server stock search bypassed, using client fallback:', serverErr);
         }
+      }
+
+      // Direct client search (works in Electron, Snap, file://, and offline environments)
+      const clientRes = await searchMultiSourceStock(q, bgMediaType, 8, { source: stockSourceProvider });
+      if (clientRes && Array.isArray(clientRes.items) && clientRes.items.length > 0) {
+        setStockSearchResults(clientRes.items);
+        setStockSearchNotice(`Found ${clientRes.items.length} ${clientRes.sourceUsed?.toUpperCase() || 'STOCK'} assets`);
+      } else {
+        setStockSearchNotice('No direct media found for query.');
       }
     } catch (e) {
       console.warn('Stock search failed', e);
@@ -1672,6 +1785,8 @@ export default function MediaPanel({
               <span className="text-[9px] font-bold uppercase text-gray-500 tracking-wider px-2 py-1">Categories</span>
               {[
                 { id: 'All', label: 'All Stock', icon: '🎬' },
+                { id: 'Social & Trending', label: 'Social & Trending', icon: '🔥' },
+                { id: 'Atmosphere & Mood', label: 'Atmosphere & Mood', icon: '🌌' },
                 { id: 'Islamic & Holy', label: 'Islamic & Holy', icon: '🕋' },
                 { id: 'Nature & Skies', label: 'Nature & Skies', icon: '🌲' },
                 { id: 'Rain & Water', label: 'Rain & Water', icon: '🌧️' },
@@ -1739,44 +1854,11 @@ export default function MediaPanel({
                     v.category.toLowerCase().includes(videoSearchQuery.toLowerCase());
                   return matchesCategory && matchesSearch;
                 }).map((video) => (
-                  <div
+                  <StockVideoItemCard
                     key={video.id}
-                    id={`stock-video-${video.id}`}
-                    onClick={() => addPresetVideo(video)}
-                    className="group bg-[#1a1a22] hover:bg-[#22222d] border border-gray-800/80 hover:border-cyan-500/60 rounded-xl p-2 flex flex-col cursor-pointer transition-all duration-200 relative shadow-sm hover:shadow-cyan-950/30"
-                  >
-                    <div className="w-full h-20 bg-slate-900 rounded-lg flex items-center justify-center relative overflow-hidden shrink-0 mb-1.5 border border-white/5">
-                      {video.thumbnail.startsWith('http') ? (
-                        <img
-                          src={video.thumbnail}
-                          alt={video.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          referrerPolicy="no-referrer"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span className="text-2xl">{video.thumbnail}</span>
-                      )}
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="w-7 h-7 rounded-full bg-cyan-500/90 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                        </div>
-                      </div>
-                      <span className="absolute bottom-1 right-1 text-[8px] bg-black/75 backdrop-blur-xs text-white px-1.5 py-0.5 rounded font-mono font-bold">
-                        {video.duration}s
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0 flex flex-col justify-between">
-                      <p className="text-[11px] font-medium text-gray-200 group-hover:text-white line-clamp-2 leading-tight">
-                        {video.name}
-                      </p>
-                      <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-gray-800/40">
-                        <span className="text-[8px] text-cyan-400 font-medium tracking-wide bg-cyan-950/60 px-1.5 py-0.5 rounded-full truncate">
-                          {video.category}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                    video={video}
+                    onAdd={() => addPresetVideo(video)}
+                  />
                 ))}
               </div>
             </div>
@@ -2361,10 +2443,14 @@ export default function MediaPanel({
                         volume: 0,
                       });
                     }}
-                    className="group bg-[#1e1e26] hover:bg-[#252532] border border-gray-800 hover:border-cyan-500/50 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer transition text-center relative"
+                    className="group bg-[#1e1e26] hover:bg-[#252532] border border-gray-800 hover:border-cyan-500/50 rounded-xl p-2.5 flex flex-col items-center justify-center cursor-pointer transition text-center relative"
                   >
-                    <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">{trans.icon}</span>
-                    <p className="text-xs font-bold text-white truncate max-w-full">{trans.name}</p>
+                    <LiveAnimationPreview
+                      type="transition"
+                      id={trans.id}
+                      name={trans.name}
+                      icon={trans.icon}
+                    />
                     <button
                       className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 p-1 rounded bg-cyan-500 text-black transition"
                       title="Add Transition"

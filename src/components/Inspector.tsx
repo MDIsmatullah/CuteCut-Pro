@@ -1457,25 +1457,51 @@ export default function Inspector({
 
                 {selectedClip.filters.chromaKey.enabled && (
                   <div className="space-y-3 pt-2 border-t border-[#2d2d38]">
-                    {/* Key Color Picker */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-gray-400">Target Key Color</span>
-                      <div className="flex items-center gap-2">
-                        <input
-                          id="chroma-color-picker"
-                          type="color"
-                          value={selectedClip.filters.chromaKey.color}
-                          onChange={(e) => handleChromaChange('color', e.target.value)}
-                          className="w-6 h-6 rounded border-0 cursor-pointer bg-transparent"
-                        />
-                        <span className="font-mono text-[10px] text-gray-500 uppercase">{selectedClip.filters.chromaKey.color}</span>
-                      </div>
+                    {/* Mode Selector */}
+                    <div className="flex rounded bg-[#16161c] p-0.5 border border-gray-800 text-[10px]">
+                      <button
+                        onClick={() => handleChromaChange('color', 'auto')}
+                        className={`flex-1 py-1 rounded font-semibold transition ${
+                          selectedClip.filters.chromaKey.color === 'auto'
+                            ? 'bg-cyan-500 text-black shadow-xs'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        AI Auto Cutout
+                      </button>
+                      <button
+                        onClick={() => handleChromaChange('color', '#00ff00')}
+                        className={`flex-1 py-1 rounded font-semibold transition ${
+                          selectedClip.filters.chromaKey.color !== 'auto'
+                            ? 'bg-cyan-500 text-black shadow-xs'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        Chroma Key Color
+                      </button>
                     </div>
 
-                    {/* Similarity Threshold */}
+                    {/* Key Color Picker (only if manual) */}
+                    {selectedClip.filters.chromaKey.color !== 'auto' && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-gray-400">Target Key Color</span>
+                        <div className="flex items-center gap-2">
+                          <input
+                            id="chroma-color-picker"
+                            type="color"
+                            value={selectedClip.filters.chromaKey.color}
+                            onChange={(e) => handleChromaChange('color', e.target.value)}
+                            className="w-6 h-6 rounded border-0 cursor-pointer bg-transparent"
+                          />
+                          <span className="font-mono text-[10px] text-gray-500 uppercase">{selectedClip.filters.chromaKey.color}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Similarity / Cutout Threshold */}
                     <div className="space-y-1">
                       <div className="flex justify-between text-[11px] text-gray-400">
-                        <span>Similarity Threshold</span>
+                        <span>{selectedClip.filters.chromaKey.color === 'auto' ? 'Cutout Sensitivity' : 'Similarity Threshold'}</span>
                         <span className="font-mono">{selectedClip.filters.chromaKey.threshold}%</span>
                       </div>
                       <input

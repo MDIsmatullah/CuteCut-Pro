@@ -220,6 +220,34 @@ export const CuteCutAudioInspector: React.FC<CuteCutAudioInspectorProps> = ({
               </div>
             </div>
 
+            {/* Auto Beat Rhythm Sync (CapCut Beats) */}
+            <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-medium text-gray-200">
+                  <Zap className="w-4 h-4 text-amber-400 fill-amber-400/20" />
+                  <span>Auto Beat Detection</span>
+                </div>
+                <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded font-semibold">
+                  CapCut Pro Sync
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                Extract musical beat drops and rhythm peaks to magnetically snap video clips, cuts, and visual transitions.
+              </p>
+              <button
+                onClick={() => {
+                  const beatBtn = document.getElementById('btn-auto-beat-detect');
+                  if (beatBtn) {
+                    beatBtn.click();
+                  }
+                }}
+                className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/40 hover:border-amber-400 text-amber-300 font-semibold text-xs flex items-center justify-center gap-2 transition hover:shadow-xs cursor-pointer"
+              >
+                <Wand2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Open Auto Beat Detection</span>
+              </button>
+            </div>
+
             {/* Stereo Pan & 3D Spatial Audio */}
             <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
               <div className="flex items-center justify-between">

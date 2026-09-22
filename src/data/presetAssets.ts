@@ -130,6 +130,70 @@ export const STOCK_VIDEOS: PresetMedia[] = [
     category: 'VFX & Noor',
     isImage: false
   },
+  {
+    id: 'vid-vfx-bokeh-flare',
+    name: 'Warm Cinematic Bokeh Flare & Particles',
+    type: 'video',
+    url: '/videos/golden_sunrise.mp4',
+    duration: 18,
+    thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+    category: 'VFX & Noor',
+    isImage: false
+  },
+
+  // ======================== ATMOSPHERE & MOOD ========================
+  {
+    id: 'vid-mood-rain-window',
+    name: 'Lo-Fi Rain on Window Glass Drops',
+    type: 'video',
+    url: '/videos/rain_water.mp4',
+    duration: 16,
+    thumbnail: 'https://images.unsplash.com/photo-1428592953211-077101b2021b?auto=format&fit=crop&w=800&q=80',
+    category: 'Atmosphere & Mood',
+    isImage: false
+  },
+  {
+    id: 'vid-mood-misty-pines',
+    name: 'Deep Pine Forest Fog Ambience',
+    type: 'video',
+    url: '/videos/forest_waterfall.mp4',
+    duration: 20,
+    thumbnail: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80',
+    category: 'Atmosphere & Mood',
+    isImage: false
+  },
+  {
+    id: 'vid-mood-ocean-drift',
+    name: 'Endless Sunset Ocean Horizon Waves',
+    type: 'video',
+    url: '/videos/ocean_sunset.mp4',
+    duration: 20,
+    thumbnail: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80',
+    category: 'Atmosphere & Mood',
+    isImage: false
+  },
+
+  // ======================== SOCIAL & TRENDING ========================
+  {
+    id: 'vid-social-countdown',
+    name: 'Cinematic 5-Sec Leader Countdown Timer',
+    type: 'video',
+    url: '/videos/night_stars.mp4',
+    duration: 10,
+    thumbnail: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=800&q=80',
+    category: 'Social & Trending',
+    isImage: false
+  },
+  {
+    id: 'vid-social-aurora-loop',
+    name: 'Cyber Neon Lights Dynamic Motion Loop',
+    type: 'video',
+    url: '/videos/milkyway_galaxy.mp4',
+    duration: 20,
+    thumbnail: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=80',
+    category: 'Social & Trending',
+    isImage: false
+  },
 
   // ======================== GREEN SCREEN ========================
   {
@@ -139,6 +203,16 @@ export const STOCK_VIDEOS: PresetMedia[] = [
     url: '/videos/floating_clouds.mp4',
     duration: 20,
     thumbnail: 'https://images.pexels.com/photos/844297/pexels-photo-844297.jpeg?auto=compress&cs=tinysrgb&w=800',
+    category: 'Green Screen',
+    isImage: false
+  },
+  {
+    id: 'vid-rain-greenscreen',
+    name: 'Ultra Natural Raindrop Mask Overlay',
+    type: 'video',
+    url: '/videos/rain_water.mp4',
+    duration: 16,
+    thumbnail: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=800&q=80',
     category: 'Green Screen',
     isImage: false
   }

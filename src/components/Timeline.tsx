@@ -2527,6 +2527,27 @@ export default function Timeline({
               })}
             </div>
 
+            {/* Visual Beat Guidelines down the entire tracks background */}
+            {beatMarkers.map((bm) => {
+              const bLeft = bm.time * zoom;
+              const isDrop = bm.type === 'drop';
+              return (
+                <div
+                  key={`guide-${bm.id}`}
+                  className="absolute top-8 bottom-0 pointer-events-none z-10 w-px"
+                  style={{ left: `${bLeft}px` }}
+                >
+                  <div
+                    className={`w-full h-full ${
+                      isDrop
+                        ? 'bg-pink-500/40 border-l border-dashed border-pink-400/50 shadow-[0_0_8px_rgba(236,72,153,0.3)]'
+                        : 'bg-amber-400/25 border-l border-dotted border-amber-400/40'
+                    }`}
+                  />
+                </div>
+              );
+            })}
+
             {/* Visual Breath Mapping Overlay Guidelines across the entire tracks background */}
             {showSilenceGuide && activeBreathMarkers.map((marker) => {
               const left = marker.startTime * zoom;
@@ -3459,6 +3480,7 @@ export default function Timeline({
         isOpen={showBeatModal}
         onClose={() => setShowBeatModal(false)}
         timelineDuration={duration}
+        existingMarkers={beatMarkers}
         audioClips={(tracks || [])
           .flatMap((t) => t?.clips || [])
           .filter((c) => c && (c.type === ClipType.AUDIO || c.type === ClipType.VIDEO) && Boolean(c.url))
@@ -3471,6 +3493,9 @@ export default function Timeline({
           }))}
         onApplyBeats={(newBeats) => {
           setBeatMarkers(newBeats);
+        }}
+        onClearBeatMarkers={() => {
+          setBeatMarkers([]);
         }}
       />
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Scissors, Download, RefreshCw, Film, Type, Code, Terminal, Save, User, FolderOpen, Brain, Mic, Heart, Cloud, CloudUpload, X, LogOut, Check, ChevronDown, Loader2, Keyboard, Zap, Wifi, WifiOff, Settings } from 'lucide-react';
+import { Scissors, Download, RefreshCw, Film, Type, Code, Terminal, Save, User, FolderOpen, Brain, Mic, Heart, Cloud, CloudUpload, X, LogOut, Check, ChevronDown, Loader2, Keyboard, Zap, Wifi, WifiOff, Settings, MessageSquare, Bot } from 'lucide-react';
 import { Clip, ClipType, Track, WatermarkSettings, VisualStylePreset } from './types';
 import MediaPanel from './components/MediaPanel';
 import PreviewPlayer from './components/PreviewPlayer';
@@ -10,6 +10,7 @@ import ProjectSaveModal, { SavedProjectSession } from './components/ProjectSaveM
 import UpdateCheckerModal from './components/UpdateCheckerModal';
 import VoiceAssistantModal from './components/VoiceAssistantModal';
 import { GeminiAIIntelligenceModal } from './components/GeminiAIIntelligenceModal';
+import { GeminiChatbotModal } from './components/GeminiChatbotModal';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import AboutSupportModal from './components/AboutSupportModal';
 import ExportModal, { ExportConfig } from './components/ExportModal';
@@ -358,6 +359,7 @@ export default function App() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [showGeminiChatModal, setShowGeminiChatModal] = useState(false);
   const [showGeminiIntelligenceModal, setShowGeminiIntelligenceModal] = useState(false);
   const [showVeoAnimateModal, setShowVeoAnimateModal] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
@@ -7081,6 +7083,18 @@ export default function App() {
             <span className="bg-cyan-500/20 text-cyan-300 text-[9px] px-1 py-0.5 rounded font-mono font-bold border border-cyan-500/30">LIVE</span>
           </button>
 
+          {/* Gemini Multi-turn AI Chatbot Button */}
+          <button
+            id="btn-gemini-ai-chat"
+            onClick={() => setShowGeminiChatModal(true)}
+            className="flex items-center gap-1.5 px-3 h-9 bg-gradient-to-r from-cyan-950/70 to-blue-950/70 hover:from-cyan-900/80 hover:to-blue-900/80 border border-cyan-500/50 hover:border-cyan-400 text-cyan-200 text-xs font-semibold rounded-lg transition shadow-md active:scale-95 cursor-pointer"
+            title="Open Multi-Turn Gemini AI Chatbot (gemini-3.1-pro-preview, gemini-3.5-flash, gemini-3.1-flash-lite)"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
+            <span>AI Chat</span>
+            <span className="bg-cyan-500/20 text-cyan-300 text-[9px] px-1 py-0.5 rounded font-mono font-bold border border-cyan-500/30">COPILOT</span>
+          </button>
+
           {/* Gemini AI Intelligence Button */}
           <button
             id="btn-gemini-ai-intelligence"
@@ -7734,6 +7748,23 @@ export default function App() {
         onExecuteAction={handleExecuteVoiceAction}
       />
 
+      {/* Gemini Multi-turn Chatbot Modal (gemini-3.1-pro-preview, gemini-3.5-flash, gemini-3.1-flash-lite) */}
+      <GeminiChatbotModal
+        isOpen={showGeminiChatModal}
+        onClose={() => setShowGeminiChatModal(false)}
+        onAddTextToTimeline={(text) => {
+          addNewClip({
+            type: ClipType.TEXT,
+            name: 'AI Generated Text',
+            duration: 4,
+            text: text.slice(0, 120),
+            fontSize: 32,
+            color: '#ffffff',
+            fontFamily: 'Inter',
+          });
+        }}
+      />
+
       {/* Gemini AI Intelligence Studio Modal (gemini-3.7-flash High Thinking) */}
       <GeminiAIIntelligenceModal
         isOpen={showGeminiIntelligenceModal}
@@ -7797,6 +7828,22 @@ export default function App() {
           audioSource={tracks.find(t => t.id === 'track-audio-1')?.clips[0]?.url || ''}
           onClose={() => setShowVideoSynthesis(false)}
         />
+      )}
+
+      {/* Floating Gemini AI Chatbot Launcher Button */}
+      {!showGeminiChatModal && (
+        <button
+          id="btn-floating-gemini-chat"
+          onClick={() => setShowGeminiChatModal(true)}
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-bold text-xs shadow-xl shadow-cyan-900/40 hover:scale-105 active:scale-95 transition-all border border-cyan-300/40 group cursor-pointer"
+          title="Open Gemini AI Chatbot Copilot"
+        >
+          <div className="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center">
+            <MessageSquare className="w-3.5 h-3.5 text-cyan-200 group-hover:rotate-12 transition-transform" />
+          </div>
+          <span>Gemini Copilot</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        </button>
       )}
 
     </div>
