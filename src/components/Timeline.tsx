@@ -501,7 +501,7 @@ export default function Timeline({
   const [dragOverTrackId, setDragOverTrackId] = useState<string | null>(null);
 
   // Timeline tracks - preserve exact user track ordering (moving up/down/reordering)
-  const sortedTracks = tracks;
+  const sortedTracks = tracks || [];
 
   const activeSelectedIds = useMemo(() => {
     return selectedClipIds && selectedClipIds.length > 0
@@ -510,8 +510,8 @@ export default function Timeline({
   }, [selectedClipIds, selectedClipId]);
 
   // Keep latest mutable references to callbacks and dynamic state values to prevent recreation loops
-  const tracksRef = useRef(tracks);
-  tracksRef.current = tracks;
+  const tracksRef = useRef(tracks || []);
+  tracksRef.current = tracks || [];
   const sortedTracksRef = useRef(sortedTracks);
   sortedTracksRef.current = sortedTracks;
   const onMoveTrackRef = useRef(onMoveTrack);
@@ -656,11 +656,11 @@ export default function Timeline({
     };
   }, [onZoomChange]);
 
-  const selectedClip = selectedClipId ? tracks.flatMap(t => t.clips).find(c => c.id === selectedClipId) : null;
+  const selectedClip = selectedClipId ? (tracks || []).flatMap(t => t?.clips || []).find(c => c?.id === selectedClipId) : null;
 
   // Selection statistics by clip type for multi-selection
   const selectedClipsList = useMemo(() => {
-    return tracks.flatMap(t => t.clips).filter(c => activeSelectedIds.includes(c.id));
+    return (tracks || []).flatMap(t => t?.clips || []).filter(c => c && activeSelectedIds.includes(c.id));
   }, [tracks, activeSelectedIds]);
 
   const selectedCounts = useMemo(() => {
@@ -2245,7 +2245,7 @@ export default function Timeline({
               onClick={() => {
                 if (tracksContainerRef.current) {
                   const availableWidth = tracksContainerRef.current.clientWidth - 80;
-                  const allClips = tracks.flatMap(t => t.clips);
+                  const allClips = (tracks || []).flatMap(t => t?.clips || []);
                   const maxClipEnd = allClips.length > 0 
                     ? Math.max(...allClips.map(c => c.start + c.duration))
                     : duration;
@@ -3349,7 +3349,7 @@ export default function Timeline({
               <button
                 type="button"
                 onClick={() => {
-                  const allIds = tracks.flatMap(t => t.clips.map(c => c.id));
+                  const allIds = (tracks || []).flatMap(t => (t?.clips || []).map(c => c?.id).filter(Boolean) as string[]);
                   onSelectClips(allIds);
                   setContextMenu(prev => ({ ...prev, isOpen: false }));
                 }}
@@ -3459,9 +3459,9 @@ export default function Timeline({
         isOpen={showBeatModal}
         onClose={() => setShowBeatModal(false)}
         timelineDuration={duration}
-        audioClips={tracks
-          .flatMap((t) => t.clips)
-          .filter((c) => (c.type === ClipType.AUDIO || c.type === ClipType.VIDEO) && Boolean(c.url))
+        audioClips={(tracks || [])
+          .flatMap((t) => t?.clips || [])
+          .filter((c) => c && (c.type === ClipType.AUDIO || c.type === ClipType.VIDEO) && Boolean(c.url))
           .map((c) => ({
             id: c.id,
             name: c.name,

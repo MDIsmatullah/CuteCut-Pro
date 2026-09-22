@@ -1,15 +1,29 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, Auth } from 'firebase/auth';
-import { getFirestore, Firestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  getFirestore,
+  Firestore,
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  getDocs,
+  deleteDoc,
+  serverTimestamp,
+  getDocFromServer,
+} from 'firebase/firestore';
 import { VisualStylePreset } from '../types';
-// Static production-grade config to bypass potential JSON parse issues during local bundle/Vite builds
+import firebaseConfigFile from '../../firebase-applet-config.json';
+
+// Configuration loaded from firebase-applet-config.json
 const firebaseConfig = {
-  apiKey: "AIzaSyB4lTCMFm5BATXF1Erceq66gFenLsVlsc8",
-  authDomain: "enhanced-polygon-56shk.firebaseapp.com",
-  projectId: "enhanced-polygon-56shk",
-  storageBucket: "enhanced-polygon-56shk.firebasestorage.app",
-  messagingSenderId: "447393315446",
-  appId: "1:447393315446:web:77eefd3f0e3da6781c7d57"
+  apiKey: firebaseConfigFile.apiKey || "AIzaSyB4lTCMFm5BATXF1Erceq66gFenLsVlsc8",
+  authDomain: firebaseConfigFile.authDomain || "enhanced-polygon-56shk.firebaseapp.com",
+  projectId: firebaseConfigFile.projectId || "enhanced-polygon-56shk",
+  storageBucket: firebaseConfigFile.storageBucket || "enhanced-polygon-56shk.firebasestorage.app",
+  messagingSenderId: firebaseConfigFile.messagingSenderId || "447393315446",
+  appId: firebaseConfigFile.appId || "1:447393315446:web:77eefd3f0e3da6781c7d57",
+  firestoreDatabaseId: firebaseConfigFile.firestoreDatabaseId || "ai-studio-webvideoeditor-2e0654e6-452f-4ecb-8718-6414384b1d0c",
 };
 
 // Initialize Firebase App safely (singleton)
@@ -19,22 +33,121 @@ export const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseC
 export const auth: Auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: 'select_account',
 });
 
-// Firestore Instance (supporting databaseId if specified in config)
-const databaseId = "ai-studio-webvideoeditor-2e0654e6-452f-4ecb-8718-6414384b1d0c";
+// Firestore Instance (with exact databaseId)
+export const db: Firestore = firebaseConfig.firestoreDatabaseId
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
 
-export const db: Firestore = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+// Standard Firestore Error Handling conforming to Firebase Integration Skill
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const currentUser = auth.currentUser;
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: currentUser?.uid || null,
+      email: currentUser?.email || null,
+      emailVerified: currentUser?.emailVerified || false,
+      isAnonymous: currentUser?.isAnonymous || false,
+      tenantId: currentUser?.tenantId || null,
+      providerInfo: currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || [],
+    },
+    operationType,
+    path,
+  };
+  console.error('[Firestore Error Details]:', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+// Connection Validation on Boot
+export async function testFirestoreConnection(): Promise<boolean> {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+    console.log('[Firebase Firestore] Cloud database connection verified.');
+    return true;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn('[Firebase Firestore] Please check your Firebase connection / network state.');
+    }
+    return false;
+  }
+}
+
+// Auto-run connection probe in background
+testFirestoreConnection();
 
 export interface FirestoreTimelinePayload {
+  id?: string;
+  userId?: string;
   tracks: any[];
   duration: number;
   selectedSurahId?: number;
   alignmentScope?: string;
   aspectRatio?: string;
   name?: string;
+  watermark?: any;
   updatedAt?: any;
+}
+
+/**
+ * Save user profile to Firestore
+ * Path: users/{userId}
+ */
+export async function syncUserProfileToFirestore(user: {
+  uid: string;
+  email: string;
+  displayName?: string | null;
+  photoURL?: string | null;
+}): Promise<void> {
+  if (!user.uid) return;
+  const path = `users/${user.uid}`;
+  try {
+    const userDocRef = doc(db, 'users', user.uid);
+    await setDoc(
+      userDocRef,
+      {
+        id: user.uid,
+        email: user.email,
+        displayName: user.displayName || user.email.split('@')[0],
+        photoURL: user.photoURL || '',
+        lastLoginAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
 }
 
 /**
@@ -43,15 +156,22 @@ export interface FirestoreTimelinePayload {
  */
 export async function saveUserTimelineProject(userId: string, projectData: FirestoreTimelinePayload): Promise<void> {
   if (!userId) return;
+  const path = `users/${userId}/projects/active-timeline`;
   try {
     const projectRef = doc(db, 'users', userId, 'projects', 'active-timeline');
-    await setDoc(projectRef, {
-      ...projectData,
-      userId,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
+    await setDoc(
+      projectRef,
+      {
+        ...projectData,
+        id: 'active-timeline',
+        userId,
+        name: projectData.name || 'Active Workspace Project',
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
   } catch (error) {
-    console.warn('[Firebase Firestore] Error saving active timeline project:', error);
+    handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
@@ -61,6 +181,7 @@ export async function saveUserTimelineProject(userId: string, projectData: Fires
  */
 export async function getUserTimelineProject(userId: string): Promise<FirestoreTimelinePayload | null> {
   if (!userId) return null;
+  const path = `users/${userId}/projects/active-timeline`;
   try {
     const projectRef = doc(db, 'users', userId, 'projects', 'active-timeline');
     const docSnap = await getDoc(projectRef);
@@ -69,8 +190,67 @@ export async function getUserTimelineProject(userId: string): Promise<FirestoreT
     }
     return null;
   } catch (error) {
-    console.warn('[Firebase Firestore] Error fetching active timeline project:', error);
-    return null;
+    handleFirestoreError(error, OperationType.GET, path);
+  }
+}
+
+/**
+ * Save or update a named project in Firestore
+ * Path: users/{userId}/projects/{projectId}
+ */
+export async function saveUserNamedProject(userId: string, projectId: string, projectData: FirestoreTimelinePayload): Promise<void> {
+  if (!userId || !projectId) return;
+  const path = `users/${userId}/projects/${projectId}`;
+  try {
+    const projectRef = doc(db, 'users', userId, 'projects', projectId);
+    await setDoc(
+      projectRef,
+      {
+        ...projectData,
+        id: projectId,
+        userId,
+        name: projectData.name || 'Untitled Video Project',
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+/**
+ * Get all saved user projects from Firestore
+ * Path: users/{userId}/projects
+ */
+export async function getUserNamedProjects(userId: string): Promise<FirestoreTimelinePayload[]> {
+  if (!userId) return [];
+  const path = `users/${userId}/projects`;
+  try {
+    const colRef = collection(db, 'users', userId, 'projects');
+    const snap = await getDocs(colRef);
+    const projects: FirestoreTimelinePayload[] = [];
+    snap.forEach((d) => {
+      projects.push(d.data() as FirestoreTimelinePayload);
+    });
+    return projects;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+  }
+}
+
+/**
+ * Delete a user project from Firestore
+ * Path: users/{userId}/projects/{projectId}
+ */
+export async function deleteUserNamedProject(userId: string, projectId: string): Promise<void> {
+  if (!userId || !projectId) return;
+  const path = `users/${userId}/projects/${projectId}`;
+  try {
+    const docRef = doc(db, 'users', userId, 'projects', projectId);
+    await deleteDoc(docRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 
@@ -80,15 +260,21 @@ export async function getUserTimelineProject(userId: string): Promise<FirestoreT
  */
 export async function saveUserStylePreset(userId: string, preset: VisualStylePreset): Promise<void> {
   if (!userId || !preset.id) return;
+  const path = `users/${userId}/presets/${preset.id}`;
   try {
     const presetRef = doc(db, 'users', userId, 'presets', preset.id);
-    await setDoc(presetRef, {
-      ...preset,
-      userId,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
+    await setDoc(
+      presetRef,
+      {
+        ...preset,
+        id: preset.id,
+        userId,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
   } catch (error) {
-    console.warn('[Firebase Firestore] Error saving user style preset:', error);
+    handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
@@ -98,6 +284,7 @@ export async function saveUserStylePreset(userId: string, preset: VisualStylePre
  */
 export async function getUserStylePresets(userId: string): Promise<VisualStylePreset[]> {
   if (!userId) return [];
+  const path = `users/${userId}/presets`;
   try {
     const presetsCol = collection(db, 'users', userId, 'presets');
     const snap = await getDocs(presetsCol);
@@ -107,8 +294,7 @@ export async function getUserStylePresets(userId: string): Promise<VisualStylePr
     });
     return list;
   } catch (error) {
-    console.warn('[Firebase Firestore] Error fetching user style presets:', error);
-    return [];
+    handleFirestoreError(error, OperationType.LIST, path);
   }
 }
 
@@ -118,11 +304,11 @@ export async function getUserStylePresets(userId: string): Promise<VisualStylePr
  */
 export async function deleteUserStylePreset(userId: string, presetId: string): Promise<void> {
   if (!userId || !presetId) return;
+  const path = `users/${userId}/presets/${presetId}`;
   try {
     const presetRef = doc(db, 'users', userId, 'presets', presetId);
     await deleteDoc(presetRef);
   } catch (error) {
-    console.warn('[Firebase Firestore] Error deleting user style preset:', error);
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
-

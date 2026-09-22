@@ -31,9 +31,9 @@ export const AutoBeatDetectionModal: React.FC<AutoBeatDetectionModalProps> = ({
   if (!isOpen) return null;
 
   // Find audio clips across all tracks
-  const audioClips = tracks
-    .flatMap((t) => t.clips)
-    .filter((c) => c.type === 'audio' || c.url.endsWith('.mp3') || c.url.endsWith('.wav') || c.url.endsWith('.m4a'));
+  const audioClips = (tracks || [])
+    .flatMap((t) => t?.clips || [])
+    .filter((c) => c && (c.type === 'audio' || (c.url && (typeof c.url === 'string' && (c.url.endsWith('.mp3') || c.url.endsWith('.wav') || c.url.endsWith('.m4a'))))));
 
   const handleGenerate = async () => {
     setIsProcessing(true);

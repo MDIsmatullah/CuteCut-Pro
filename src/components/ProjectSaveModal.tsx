@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { Track, WatermarkSettings, VisualStylePreset, Clip, AyahSymbolStyle } from '../types';
 import { UserProfile } from './AuthModal';
-import { saveUserStylePreset, getUserStylePresets, deleteUserStylePreset } from '../utils/firebaseConfig';
+import { saveUserStylePreset, getUserStylePresets, deleteUserStylePreset, saveUserNamedProject, getUserNamedProjects, deleteUserNamedProject } from '../utils/firebaseConfig';
 
 export interface SavedProjectSession {
   id: string;
@@ -370,20 +370,61 @@ export const ProjectSaveModal: React.FC<ProjectSaveModalProps> = ({
   // Load saved projects & presets on modal open
   useEffect(() => {
     if (isOpen) {
-      // 1. Projects
-      try {
-        const rawProj = localStorage.getItem(PROJECT_STORAGE_KEY);
-        if (rawProj) {
-          setSavedProjects(JSON.parse(rawProj));
-        }
-      } catch (e) {
-        console.error('Failed to parse saved projects:', e);
-      }
+      // 1. Projects (LocalStorage + Firestore cloud sync)
+      loadAllProjects();
 
       // 2. Presets (LocalStorage + Firestore profile sync)
       loadAllPresets();
     }
   }, [isOpen, userProfile?.uid]);
+
+  const loadAllProjects = async () => {
+    let localList: SavedProjectSession[] = [];
+    try {
+      const rawProj = localStorage.getItem(PROJECT_STORAGE_KEY);
+      if (rawProj) {
+        localList = JSON.parse(rawProj);
+      }
+    } catch (e) {
+      console.error('Failed to parse saved projects:', e);
+    }
+    setSavedProjects(localList);
+
+    if (userProfile?.uid) {
+      try {
+        const cloudProjects = await getUserNamedProjects(userProfile.uid);
+        if (cloudProjects && cloudProjects.length > 0) {
+          const map = new Map<string, SavedProjectSession>();
+          localList.forEach(p => map.set(p.id, p));
+          cloudProjects.forEach(cp => {
+            if (cp.id) {
+              map.set(cp.id, {
+                id: cp.id,
+                name: cp.name || 'Untitled Video Project',
+                createdAt: typeof cp.updatedAt === 'string' ? cp.updatedAt : new Date().toISOString(),
+                updatedAt: typeof cp.updatedAt === 'string' ? cp.updatedAt : new Date().toISOString(),
+                duration: cp.duration || 20,
+                trackCount: cp.tracks?.length || 0,
+                clipCount: cp.tracks?.reduce((sum: number, t: any) => sum + (t.clips?.length || 0), 0) || 0,
+                data: {
+                  tracks: cp.tracks || [],
+                  duration: cp.duration || 20,
+                  zoom: 35,
+                  aspectRatio: (cp.aspectRatio as any) || '16:9',
+                  watermark: cp.watermark,
+                },
+              });
+            }
+          });
+          const merged = Array.from(map.values());
+          setSavedProjects(merged);
+          localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(merged));
+        }
+      } catch (err) {
+        console.warn('[Firestore] Error fetching user cloud projects:', err);
+      }
+    }
+  };
 
   const loadAllPresets = async () => {
     let localList: VisualStylePreset[] = [];
@@ -441,7 +482,7 @@ export const ProjectSaveModal: React.FC<ProjectSaveModalProps> = ({
   const totalClips = currentTracks.reduce((sum, t) => sum + (t.clips?.length || 0), 0);
 
   // --- PROJECT SAVING HANDLERS ---
-  const handleSaveCurrentProject = () => {
+  const handleSaveCurrentProject = async () => {
     const now = new Date().toISOString();
     const newSession: SavedProjectSession = {
       id: `proj-${Date.now()}`,
@@ -464,6 +505,21 @@ export const ProjectSaveModal: React.FC<ProjectSaveModalProps> = ({
     setSavedProjects(updated);
     localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(updated));
 
+    // Persist to Cloud Firestore if logged in
+    if (userProfile?.uid) {
+      try {
+        await saveUserNamedProject(userProfile.uid, newSession.id, {
+          tracks: currentTracks,
+          duration: currentDuration,
+          aspectRatio: currentAspectRatio,
+          name: newSession.name,
+          watermark: watermark,
+        });
+      } catch (err) {
+        console.warn('[Firestore] Project save error:', err);
+      }
+    }
+
     setSaveSuccess(true);
     setTimeout(() => {
       setSaveSuccess(false);
@@ -471,10 +527,18 @@ export const ProjectSaveModal: React.FC<ProjectSaveModalProps> = ({
     }, 1200);
   };
 
-  const handleDeleteProject = (id: string) => {
+  const handleDeleteProject = async (id: string) => {
     const updated = savedProjects.filter(p => p.id !== id);
     setSavedProjects(updated);
     localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(updated));
+
+    if (userProfile?.uid) {
+      try {
+        await deleteUserNamedProject(userProfile.uid, id);
+      } catch (err) {
+        console.warn('[Firestore] Project delete error:', err);
+      }
+    }
   };
 
   const handleExportProjectJSON = (project: SavedProjectSession) => {

@@ -3137,13 +3137,13 @@ export default function Inspector({
               </div>
 
               {/* Apply to ALL subtitles button */}
-              {onBatchUpdateClips && tracks.length > 0 && (
+              {onBatchUpdateClips && (tracks || []).length > 0 && (
                 <div className="pt-2 border-t border-gray-800">
                   <button
                     onClick={() => {
                       const anim = selectedClip.textAnimation;
                       if (!anim) return;
-                      const textTrack = tracks.find(t => t.id === selectedClip.trackId) || tracks.find(t => t.type === ClipType.TEXT);
+                      const textTrack = (tracks || []).find(t => t.id === selectedClip.trackId) || (tracks || []).find(t => t.type === ClipType.TEXT);
                       if (textTrack) {
                         const batchUpdates = textTrack.clips.map(c => ({
                           id: c.id,

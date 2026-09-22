@@ -52,7 +52,7 @@ import {
 } from './utils/editorUtils';
 import { QURAN_TRANSLATION_OPTIONS, getTranslationOptionById, fetchSingleAyahTranslation, getTaawwuzTranslation, getTasmiyahTranslation, OFFLINE_SURAH_TRANSLATIONS } from './utils/quranTranslations';
 import { parseMixedAyahsString } from './utils/quranSurahData';
-import { auth, googleProvider, saveUserTimelineProject, getUserTimelineProject } from './utils/firebaseConfig';
+import { auth, googleProvider, saveUserTimelineProject, getUserTimelineProject, syncUserProfileToFirestore } from './utils/firebaseConfig';
 import { getSystemSpecs, SystemSpecs } from './utils/systemPerformance';
 import { signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
@@ -136,9 +136,9 @@ export default function App() {
     }
 
     // Check if clicked clip belongs to a unified compound group
-    const targetClip = tracks.flatMap(t => t.clips).find(c => c.id === id);
+    const targetClip = (tracks || []).flatMap(t => t?.clips || []).find(c => c?.id === id);
     const relatedIds = targetClip?.groupId
-      ? tracks.flatMap(t => t.clips).filter(c => c.groupId === targetClip.groupId).map(c => c.id)
+      ? (tracks || []).flatMap(t => t?.clips || []).filter(c => c && c.groupId === targetClip.groupId).map(c => c.id)
       : [id];
 
     if (isMultiSelect) {
@@ -159,9 +159,9 @@ export default function App() {
     if (id === null) {
       setSelectedClipIds([]);
     } else {
-      const targetClip = tracks.flatMap(t => t.clips).find(c => c.id === id);
+      const targetClip = (tracks || []).flatMap(t => t?.clips || []).find(c => c?.id === id);
       const relatedIds = targetClip?.groupId
-        ? tracks.flatMap(t => t.clips).filter(c => c.groupId === targetClip.groupId).map(c => c.id)
+        ? (tracks || []).flatMap(t => t?.clips || []).filter(c => c && c.groupId === targetClip.groupId).map(c => c.id)
         : [id];
       setSelectedClipIds(relatedIds);
     }
@@ -558,6 +558,14 @@ export default function App() {
         setCurrentUser(userProfile);
         localStorage.setItem('cutecut_pro_user', JSON.stringify(userProfile));
 
+        // Sync user profile to Firestore
+        syncUserProfileToFirestore({
+          uid: fbUser.uid,
+          email: fbUser.email || '',
+          displayName: fbUser.displayName,
+          photoURL: fbUser.photoURL,
+        }).catch(err => console.warn('[Firebase Firestore] User profile sync error:', err));
+
         // Fetch user active timeline document from Cloud Firestore
         try {
           const cloudProject = await getUserTimelineProject(fbUser.uid);
@@ -784,7 +792,7 @@ export default function App() {
   };
 
   const handleLoadSavedProject = (project: SavedProjectSession) => {
-    if (project.data?.tracks) {
+    if (project.data?.tracks && Array.isArray(project.data.tracks)) {
       setTracks(project.data.tracks);
       if (project.data.duration) setDuration(project.data.duration);
       if (project.data.zoom) setZoom(project.data.zoom);
@@ -2579,7 +2587,7 @@ export default function App() {
     });
 
     // Cleanup deleted clips from DOM to prevent memory leaks and resource hogs
-    const activeClipIds = new Set(tracks.flatMap(t => t.clips.map(c => c.id)));
+    const activeClipIds = new Set((tracks || []).flatMap(t => (t?.clips || []).map(c => c?.id).filter(Boolean)));
     Object.keys(videoElementsRef.current).forEach(id => {
       if (!activeClipIds.has(id)) {
         const el = videoElementsRef.current[id];
@@ -2928,7 +2936,7 @@ export default function App() {
       // Ctrl + A: Select All clips
       if (e.ctrlKey && e.code === 'KeyA') {
         e.preventDefault();
-        const allIds = tracksRef.current.flatMap(t => t.clips.map(c => c.id));
+        const allIds = (tracksRef.current || []).flatMap(t => (t?.clips || []).map(c => c?.id).filter(Boolean));
         setSelectedClipIds(allIds);
       }
 
@@ -3962,7 +3970,7 @@ export default function App() {
   ) => {
     let targetClip: Clip | null = null;
     if (targetClipId) {
-      targetClip = tracks.flatMap(t => t.clips).find(c => c.id === targetClipId) || null;
+      targetClip = (tracks || []).flatMap(t => t?.clips || []).find(c => c?.id === targetClipId) || null;
     }
     if (!targetClip && selectedClipId) {
       targetClip = getSelectedClip();
@@ -4080,7 +4088,7 @@ export default function App() {
   const handleAutoRemoveSilence = async (targetClipId?: string) => {
     let targetClip: Clip | null = null;
     if (targetClipId) {
-      targetClip = tracks.flatMap(t => t.clips).find(c => c.id === targetClipId) || null;
+      targetClip = (tracks || []).flatMap(t => t?.clips || []).find(c => c?.id === targetClipId) || null;
     }
     if (!targetClip && selectedClipId) {
       targetClip = getSelectedClip();
@@ -4157,13 +4165,13 @@ export default function App() {
   const handleAutoSegmentRhythm = (targetClipId?: string, intervalSec: number = 3.0) => {
     let targetClip: Clip | null = null;
     if (targetClipId) {
-      targetClip = tracks.flatMap(t => t.clips).find(c => c.id === targetClipId) || null;
+      targetClip = (tracks || []).flatMap(t => t?.clips || []).find(c => c?.id === targetClipId) || null;
     }
     if (!targetClip && selectedClipId) {
       targetClip = getSelectedClip();
     }
     if (!targetClip) {
-      const anyClip = tracks.flatMap(t => t.clips)[0];
+      const anyClip = (tracks || []).flatMap(t => t?.clips || [])[0];
       if (anyClip) targetClip = anyClip;
     }
 

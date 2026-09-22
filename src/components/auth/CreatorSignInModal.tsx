@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { User, Shield, Lock, Mail, Sparkles, CheckCircle2, LogOut, X, Crown, Loader2, Database, HardDrive } from 'lucide-react';
 import { GoogleDriveService, GoogleDriveUser } from '../../services/googleDriveService';
 import { UserProfile } from '../AuthModal';
+import { auth, googleProvider } from '../../utils/firebaseConfig';
+import { signInWithPopup } from 'firebase/auth';
 
 interface CreatorSignInModalProps {
   isOpen: boolean;
@@ -102,6 +104,30 @@ export const CreatorSignInModal: React.FC<CreatorSignInModalProps> = ({
     } catch (err: any) {
       console.error('[Google Drive Auth Error]', err);
       setStatusMsg('Failed to initialize Google Auth: ' + err.message);
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleFirebaseGoogleSignIn = async () => {
+    try {
+      setIsGoogleLoading(true);
+      setStatusMsg('');
+      const res = await signInWithPopup(auth, googleProvider);
+      if (res.user) {
+        const u = res.user;
+        onLogin({
+          name: u.displayName || u.email?.split('@')[0] || 'CuteCut Creator',
+          email: u.email || '',
+          tier: 'PRO',
+          avatar: u.photoURL || undefined,
+          uid: u.uid,
+        });
+        onClose();
+      }
+    } catch (err: any) {
+      console.warn('[Firebase Google Sign-In Modal Error]', err);
+      setStatusMsg('Google sign-in was blocked or cancelled. Try standard email sign in below.');
     } finally {
       setIsGoogleLoading(false);
     }
@@ -287,13 +313,13 @@ export const CreatorSignInModal: React.FC<CreatorSignInModalProps> = ({
             /* Not Logged In - Primary Google OAuth & Secondary Email View */
             <div className="space-y-5" id="auth-not-logged-in-section">
               <div className="space-y-2.5">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Highly Recommended</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Fast Google Sign In</p>
                 <button
                   type="button"
-                  onClick={handleConnectGoogleDrive}
+                  onClick={handleFirebaseGoogleSignIn}
                   disabled={isGoogleLoading}
                   className="w-full py-3 px-4 rounded-xl bg-white hover:bg-gray-100 disabled:opacity-75 text-slate-950 font-bold text-xs flex items-center justify-center gap-2.5 shadow-md hover:scale-[1.01] transition duration-200 cursor-pointer"
-                  id="auth-connect-gdrive-btn"
+                  id="auth-google-firebase-btn"
                 >
                   {isGoogleLoading ? (
                     <Loader2 className="w-4.5 h-4.5 animate-spin text-cyan-600" />
@@ -305,11 +331,10 @@ export const CreatorSignInModal: React.FC<CreatorSignInModalProps> = ({
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                     </svg>
                   )}
-                  <span>Connect Personal Google Drive</span>
+                  <span>Sign in with Google</span>
                 </button>
                 <p className="text-[9.5px] text-gray-500 text-center leading-normal px-2">
-                  Secures secure appdata presets backups & uploads exported videos instantly. 
-                  No storage is stored on our servers.
+                  Syncs your video projects and calligraphy style presets with Cloud Firestore database.
                 </p>
               </div>
 

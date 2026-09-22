@@ -48,18 +48,17 @@
     }
   },
   "firestore": {
-    "collections": {
-      "users": {
-        "entity": "User",
-        "subcollections": {
-          "projects": {
-            "entity": "Project"
-          },
-          "presets": {
-            "entity": "Preset"
-          }
-        }
-      }
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles"
+    },
+    "/users/{userId}/projects/{projectId}": {
+      "schema": "Project",
+      "description": "User timeline projects"
+    },
+    "/users/{userId}/presets/{presetId}": {
+      "schema": "Preset",
+      "description": "User saved visual styling presets"
     }
   }
 }

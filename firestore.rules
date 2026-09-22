@@ -1,11 +1,92 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Default-deny catch-all to prevent unauthorized root collection reads or writes
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common security primitives
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() {
+      return request.resource.data;
+    }
+    function existing() {
+      return resource.data;
+    }
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Validation helper for user document
+    function isValidUser(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.email is string && data.email.size() <= 256 &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 128)) &&
+             (!('lastLoginAt' in data) || (data.lastLoginAt is string && data.lastLoginAt.size() <= 128));
+    }
+
+    // Validation helper for project document
+    function isValidProject(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.tracks is list && data.tracks.size() <= 50 &&
+             (!('name' in data) || (data.name is string && data.name.size() <= 256)) &&
+             (!('duration' in data) || (data.duration is number && data.duration >= 0 && data.duration <= 72000)) &&
+             (!('aspectRatio' in data) || (data.aspectRatio is string && data.aspectRatio.size() <= 32)) &&
+             (!('selectedSurahId' in data) || (data.selectedSurahId is number && data.selectedSurahId >= 1 && data.selectedSurahId <= 114)) &&
+             (!('alignmentScope' in data) || (data.alignmentScope is string && data.alignmentScope.size() <= 64)) &&
+             (!('watermark' in data) || (data.watermark is map)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string || data.updatedAt is timestamp));
+    }
+
+    // Validation helper for preset document
+    function isValidPreset(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() <= 256 &&
+             data.styleConfig is map &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 64)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 128)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 128));
+    }
+
+    // Test connection probe allowed for checking Firestore connectivity
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // User Collection Rules
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow get: if isOwner(userId);
+      allow list: if false; // PII isolation - no blanket listing of users
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming()) && incoming().id == userId;
+      allow update: if isOwner(userId) && isValidUser(incoming()) && incoming().id == existing().id && incoming().email == existing().email;
+      allow delete: if isOwner(userId);
+
+      // Projects Subcollection
+      match /projects/{projectId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(projectId) && isValidProject(incoming()) && incoming().userId == userId;
+        allow update: if isOwner(userId) && isValidProject(incoming()) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      // Presets Subcollection
+      match /presets/{presetId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(presetId) && isValidPreset(incoming()) && incoming().userId == userId;
+        allow update: if isOwner(userId) && isValidPreset(incoming()) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
       }
     }
   }
