@@ -921,6 +921,8 @@ export default function MediaPanel({
   // Quran Form states
   const [quranSurahPreset, setQuranSurahPreset] = useState<string>('67');
   const [quranSurahCustom, setQuranSurahCustom] = useState<number>(67);
+  const [surahDropdownOpen, setSurahDropdownOpen] = useState<boolean>(false);
+  const [surahSearchText, setSurahSearchText] = useState<string>('');
   const [quranSelectionType, setQuranSelectionType] = useState<'single' | 'range' | 'list' | 'all' | 'mixed'>('all');
   const [quranSurahEnd, setQuranSurahEnd] = useState<number>(3);
   const [quranSurahList, setQuranSurahList] = useState<string>('112, 113, 114');
@@ -3142,31 +3144,121 @@ export default function MediaPanel({
               </div>
             ) : (
               <div className="bg-[#15151a] border border-gray-800 rounded-xl p-4 space-y-4">
-                {/* BLOCK 1: SELECT SURAH / CHAPTER */}
-                <div className="space-y-1.5">
+                {/* BLOCK 1: SELECT SURAH / CHAPTER (Custom Interactive Dropdown to bypass Linux/Snap select popup bug) */}
+                <div className="space-y-1.5 relative">
                   <label className="block text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center justify-between">
                     <span>SELECT SURAH / CHAPTER</span>
                     <span className="text-[10px] text-amber-400 font-mono">114 Chapters</span>
                   </label>
-                  <select
-                    id="select-surah-chapter"
-                    value={quranSurahPreset === 'custom' ? quranSurahCustom : quranSurahPreset}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setQuranSurahPreset(val);
-                      const num = parseInt(val, 10);
-                      if (!isNaN(num)) {
-                        setQuranSurahCustom(num);
-                      }
-                    }}
-                    className="w-full bg-[#0a0a0d] border border-gray-800 focus:border-amber-500 rounded-lg p-2.5 text-xs text-white font-medium focus:outline-none transition cursor-pointer"
-                  >
-                    {SURAHS.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+
+                  {(() => {
+                    const currentSurahId = quranSurahPreset === 'custom' ? quranSurahCustom : parseInt(quranSurahPreset, 10) || 67;
+                    const selectedSurah = SURAHS.find((s) => s.id === currentSurahId) || SURAHS[66];
+                    const filteredSurahs = SURAHS.filter((s) => 
+                      s.name.toLowerCase().includes(surahSearchText.toLowerCase()) || 
+                      String(s.id).includes(surahSearchText.trim())
+                    );
+
+                    return (
+                      <div className="relative">
+                        {/* Custom Dropdown Trigger Button */}
+                        <button
+                          type="button"
+                          id="select-surah-chapter"
+                          onClick={() => setSurahDropdownOpen(!surahDropdownOpen)}
+                          className="w-full bg-[#0a0a0d] border border-gray-800 hover:border-amber-500/70 focus:border-amber-500 rounded-lg p-2.5 text-xs text-white font-medium focus:outline-none transition cursor-pointer flex items-center justify-between text-left shadow-inner"
+                        >
+                          <span className="truncate pr-2 font-semibold text-amber-300">
+                            {selectedSurah.name}
+                          </span>
+                          <svg
+                            className={`w-4 h-4 text-amber-400 transition-transform duration-200 flex-shrink-0 ${
+                              surahDropdownOpen ? 'rotate-180 text-amber-300' : ''
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+
+                        {/* Interactive Dropdown Popover */}
+                        {surahDropdownOpen && (
+                          <>
+                            {/* Backdrop overlay to close when clicking anywhere outside */}
+                            <div
+                              className="fixed inset-0 z-40"
+                              onClick={() => {
+                                setSurahDropdownOpen(false);
+                                setSurahSearchText('');
+                              }}
+                            />
+
+                            <div className="absolute left-0 right-0 top-full mt-1 bg-[#121218] border border-amber-500/40 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-72 backdrop-blur-md">
+                              {/* Search Bar inside Dropdown */}
+                              <div className="p-2 border-b border-gray-800 bg-[#0d0d12]">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    autoFocus
+                                    placeholder="🔍 Search Surah (e.g. Yasin, Mulk, 36)..."
+                                    value={surahSearchText}
+                                    onChange={(e) => setSurahSearchText(e.target.value)}
+                                    className="w-full bg-[#181822] border border-gray-700 focus:border-amber-500 text-xs text-white rounded-lg px-3 py-1.5 outline-none placeholder-gray-500 transition"
+                                  />
+                                  {surahSearchText && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setSurahSearchText('')}
+                                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs"
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Surah List Items */}
+                              <div className="overflow-y-auto divide-y divide-gray-800/50 flex-1 custom-scrollbar">
+                                {filteredSurahs.length > 0 ? (
+                                  filteredSurahs.map((s) => {
+                                    const isSelected = s.id === currentSurahId;
+                                    return (
+                                      <button
+                                        key={s.id}
+                                        type="button"
+                                        onClick={() => {
+                                          setQuranSurahPreset(String(s.id));
+                                          setQuranSurahCustom(s.id);
+                                          setSurahDropdownOpen(false);
+                                          setSurahSearchText('');
+                                        }}
+                                        className={`w-full text-left px-3.5 py-2 text-xs transition flex items-center justify-between cursor-pointer ${
+                                          isSelected
+                                            ? 'bg-amber-500/20 text-amber-300 font-bold border-l-4 border-amber-400'
+                                            : 'text-gray-300 hover:bg-gray-800/80 hover:text-white'
+                                        }`}
+                                      >
+                                        <span className="truncate">{s.name}</span>
+                                        {isSelected && (
+                                          <span className="text-amber-400 text-xs font-mono ml-2">✓ Selected</span>
+                                        )}
+                                      </button>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="p-4 text-center text-xs text-gray-500">
+                                    No Surah found matching &quot;{surahSearchText}&quot;
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* BLOCK 2: ALIGNMENT SCOPE */}

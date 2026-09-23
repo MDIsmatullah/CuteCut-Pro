@@ -331,9 +331,15 @@ function createWindow() {
     },
   });
 
+  // Ensure window always opens maximized like a professional desktop studio
+  mainWindow.maximize();
+
   mainWindow.once('ready-to-show', () => {
-    if (mainWindow && !mainWindow.isVisible()) {
-      mainWindow.show();
+    if (mainWindow) {
+      mainWindow.maximize();
+      if (!mainWindow.isVisible()) {
+        mainWindow.show();
+      }
     }
   });
 

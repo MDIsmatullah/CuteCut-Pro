@@ -1,5 +1,5 @@
 cask "cutecut-pro" do
-  version "2.4.4"
+  version "2.4.5"
   sha256 :no_check
 
   url "https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v#{version}/CuteCut.Pro-#{version}-arm64.dmg"

@@ -32,6 +32,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="2.4.5" date="2026-09-24">
+      <description>
+        <p>Production release with launcher script POSIX formatting fix, window auto-maximize on startup, PulseAudio/PipeWire auto-routing, and interactive searchable Surah picker.</p>
+      </description>
+    </release>
     <release version="2.4.4" date="2026-09-21">
       <description>
         <p>Production release with Snapcraft PulseAudio compatibility fixes, resolving audio playback issues in strictly sandboxed Linux environments.</p>

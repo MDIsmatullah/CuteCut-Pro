@@ -217,6 +217,8 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
   const [sourceMode, setSourceMode] = useState<'timeline' | 'surah'>('timeline');
   const [syncTimingMode, setSyncTimingMode] = useState<'exact' | 'continuous'>('exact');
   const [selectedSurah, setSelectedSurah] = useState<number>(1);
+  const [surahDropdownOpen, setSurahDropdownOpen] = useState<boolean>(false);
+  const [surahSearchText, setSurahSearchText] = useState<string>('');
   const [startAyah, setStartAyah] = useState<number>(1);
   const [endAyah, setEndAyah] = useState<number>(7);
   const [mediaType, setMediaType] = useState<'video' | 'image'>('video');
@@ -1100,25 +1102,87 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-2 text-xs">
-            <div className="col-span-3">
+            <div className="col-span-3 relative">
               <label className="text-[10px] text-gray-400 block mb-1">Select Surah</label>
-              <select
-                value={selectedSurah}
-                onChange={(e) => {
-                  const sId = parseInt(e.target.value, 10);
-                  setSelectedSurah(sId);
-                  const sObj = SURAHS.find(s => s.id === sId);
-                  setStartAyah(1);
-                  setEndAyah(sObj ? Math.min(10, sObj.id === 1 ? 7 : 10) : 7);
-                }}
-                className="w-full bg-[#1c1c24] border border-[#33333d] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500"
-              >
-                {SURAHS.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+              {(() => {
+                const sObj = SURAHS.find(s => s.id === selectedSurah) || SURAHS[0];
+                const filteredSurahs = SURAHS.filter(s =>
+                  s.name.toLowerCase().includes(surahSearchText.toLowerCase()) ||
+                  String(s.id).includes(surahSearchText.trim())
+                );
+
+                return (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setSurahDropdownOpen(!surahDropdownOpen)}
+                      className="w-full bg-[#1c1c24] border border-[#33333d] hover:border-cyan-500/70 focus:border-cyan-500 rounded-lg px-2.5 py-2 text-xs text-white flex items-center justify-between transition cursor-pointer text-left"
+                    >
+                      <span className="truncate pr-2 text-cyan-300 font-medium">{sObj.name}</span>
+                      <svg
+                        className={`w-3.5 h-3.5 text-cyan-400 transition-transform duration-200 flex-shrink-0 ${
+                          surahDropdownOpen ? 'rotate-180 text-cyan-300' : ''
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {surahDropdownOpen && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => {
+                            setSurahDropdownOpen(false);
+                            setSurahSearchText('');
+                          }}
+                        />
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-[#15151e] border border-cyan-500/40 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-64 backdrop-blur-md">
+                          <div className="p-2 border-b border-gray-800 bg-[#0e0e14]">
+                            <input
+                              type="text"
+                              autoFocus
+                              placeholder="🔍 Search Surah..."
+                              value={surahSearchText}
+                              onChange={(e) => setSurahSearchText(e.target.value)}
+                              className="w-full bg-[#1c1c28] border border-gray-700 focus:border-cyan-500 text-xs text-white rounded-md px-2.5 py-1.5 outline-none placeholder-gray-500"
+                            />
+                          </div>
+                          <div className="overflow-y-auto divide-y divide-gray-800/50 flex-1 custom-scrollbar">
+                            {filteredSurahs.map(s => {
+                              const isSelected = s.id === selectedSurah;
+                              return (
+                                <button
+                                  key={s.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedSurah(s.id);
+                                    setStartAyah(1);
+                                    setEndAyah(Math.min(10, s.id === 1 ? 7 : 10));
+                                    setSurahDropdownOpen(false);
+                                    setSurahSearchText('');
+                                  }}
+                                  className={`w-full text-left px-3 py-1.5 text-xs transition flex items-center justify-between cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-cyan-500/20 text-cyan-300 font-bold border-l-2 border-cyan-400'
+                                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                                  }`}
+                                >
+                                  <span className="truncate">{s.name}</span>
+                                  {isSelected && <span className="text-cyan-400 text-xs font-mono ml-2">✓</span>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             <div>
               <label className="text-[10px] text-gray-400 block mb-1">Start Ayah</label>
