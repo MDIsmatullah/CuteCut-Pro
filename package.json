@@ -265,6 +265,7 @@
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-shell": "^2.3.5",
     "@vitejs/plugin-react": "^5.0.4",
+    "app-builder-lib": "^26.15.3",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "firebase": "^12.17.1",
@@ -298,21 +299,21 @@
     "nanoid": "^3.3.8"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "*",
-    "@rollup/rollup-win32-x64-msvc": "*",
-    "@rollup/rollup-darwin-x64": "*",
-    "@rollup/rollup-darwin-arm64": "*",
-    "lightningcss-linux-x64-gnu": "*",
-    "lightningcss-win32-x64-msvc": "*",
-    "lightningcss-darwin-x64": "*",
-    "lightningcss-darwin-arm64": "*",
-    "@tailwindcss/oxide-linux-x64-gnu": "*",
-    "@tailwindcss/oxide-win32-x64-msvc": "*",
-    "@tailwindcss/oxide-darwin-x64": "*",
-    "@tailwindcss/oxide-darwin-arm64": "*",
     "@img/sharp-darwin-arm64": "*",
     "@img/sharp-darwin-x64": "*",
+    "@img/sharp-linux-x64": "*",
     "@img/sharp-win32-x64": "*",
-    "@img/sharp-linux-x64": "*"
+    "@rollup/rollup-darwin-arm64": "*",
+    "@rollup/rollup-darwin-x64": "*",
+    "@rollup/rollup-linux-x64-gnu": "*",
+    "@rollup/rollup-win32-x64-msvc": "*",
+    "@tailwindcss/oxide-darwin-arm64": "*",
+    "@tailwindcss/oxide-darwin-x64": "*",
+    "@tailwindcss/oxide-linux-x64-gnu": "*",
+    "@tailwindcss/oxide-win32-x64-msvc": "*",
+    "lightningcss-darwin-arm64": "*",
+    "lightningcss-darwin-x64": "*",
+    "lightningcss-linux-x64-gnu": "*",
+    "lightningcss-win32-x64-msvc": "*"
   }
 }
