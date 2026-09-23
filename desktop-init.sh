@@ -1,44 +1,46 @@
 #!/bin/bash
-set -euo pipefail
+set -e
 
-SNAP_ROOT="${SNAP:-/snap/cutecut-pro/current}"
-export SNAP_DESKTOP_RUNTIME="$SNAP_ROOT"
+# CUTECUT PRO Linux Auto-Audio & Universal Output Router (Speaker / Headphone / Bluetooth)
+export SNAP_DESKTOP_RUNTIME="${SNAP:-/snap/cutecut-pro/current}"
 
-# desktop-launch may export the host path /usr/share/alsa/alsa.conf, which is
-# not visible inside strict confinement. Prefer the copy staged in the Snap.
-if [ -f "$SNAP_ROOT/usr/share/alsa/alsa.conf" ]; then
-  export ALSA_CONFIG_PATH="$SNAP_ROOT/usr/share/alsa/alsa.conf"
-  export ALSA_CONFIG_DIR="$SNAP_ROOT/usr/share/alsa"
+# 1. Automatic PulseAudio / PipeWire Socket Detection (Disabled: Let snap's desktop-launch auto-configure safe sandboxed socket)
+# if [ -z "$PULSE_SERVER" ]; then
+#   if [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then
+#     export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"
+#   elif [ -S "/run/user/$(id -u)/pulse/native" ]; then
+#     export PULSE_SERVER="unix:/run/user/$(id -u)/pulse/native"
+#   elif [ -n "$SNAP_NAME" ] && [ -S "$XDG_RUNTIME_DIR/snap.$SNAP_NAME/pulse/native" ]; then
+#     export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/snap.$SNAP_NAME/pulse/native"
+#   fi
+# fi
+
+# 2. ALSA Fallback Configuration to prevent card 0 hardcoding & ensure seamless headphone routing
+if [ -d "$SNAP/usr/share/alsa" ]; then
+  export ALSA_CONFIG_PATH="$SNAP/usr/share/alsa/alsa.conf"
+fi
+if [ -d "$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib" ]; then
+  export ALSA_PLUGIN_DIR="$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib"
+  export LD_LIBRARY_PATH="$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:$SNAP/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
 fi
 
-# Use a plugin directory only when it really contains the PulseAudio ALSA
-# modules. This avoids pointing ALSA at a nonexistent host or GNOME path.
-for alsa_plugin_dir in \
-  "$SNAP_ROOT/usr/lib/x86_64-linux-gnu/alsa-lib" \
-  "$SNAP_ROOT/usr/lib/aarch64-linux-gnu/alsa-lib" \
-  "$SNAP_ROOT/usr/lib/alsa-lib"; do
-  if [ -f "$alsa_plugin_dir/libasound_module_pcm_pulse.so" ] && [ -f "$alsa_plugin_dir/libasound_module_conf_pulse.so" ]; then
-    export ALSA_PLUGIN_DIR="$alsa_plugin_dir"
-    export LD_LIBRARY_PATH="$alsa_plugin_dir:${LD_LIBRARY_PATH:-}"
-    break
-  fi
-done
-
+# 3. Chromium/Electron Flags for Seamless PulseAudio Out-of-Process Playback
 EXTRA_FLAGS=(
   --no-sandbox
   --disable-gpu-sandbox
-  --disable-gpu
   --ozone-platform-hint=auto
   --disable-features=AudioServiceSandbox
   --try-supported-channel-layouts
 )
 
-if [ -f "$SNAP_ROOT/command-chain/desktop-launch" ]; then
-  exec "$SNAP_ROOT/command-chain/desktop-launch" "$SNAP_ROOT/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
-elif [ -f "$SNAP_ROOT/bin/desktop-launch" ]; then
-  exec "$SNAP_ROOT/bin/desktop-launch" "$SNAP_ROOT/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
-elif [ -f "$SNAP_ROOT/cutecut-pro" ]; then
-  exec "$SNAP_ROOT/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
+# 4. Check for native GNOME/GTK desktop launchers or direct executable
+if [ -f "$SNAP/command-chain/desktop-launch" ]; then
+  exec "$SNAP/command-chain/desktop-launch" "$SNAP/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
+elif [ -f "$SNAP/bin/desktop-launch" ]; then
+  exec "$SNAP/bin/desktop-launch" "$SNAP/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
+elif [ -f "$SNAP/cutecut-pro" ]; then
+  exec "$SNAP/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
 else
-  exec "$SNAP_ROOT/usr/bin/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
+  exec "$SNAP/usr/bin/cutecut-pro" "${EXTRA_FLAGS[@]}" "$@"
 fi
+

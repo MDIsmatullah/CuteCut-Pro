@@ -1,31 +1,124 @@
 import { app, BrowserWindow, session, ipcMain, dialog, safeStorage, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import os from 'os';
 import crypto from 'crypto';
 
+const resolvedFilename = __filename;
 const resolvedDirname = __dirname;
 
-// Network & media access configuration.
+// Network & Web Security bypasses for Quran API media access
 app.commandLine.appendSwitch('disable-web-security');
 app.commandLine.appendSwitch('allow-running-insecure-content');
 app.commandLine.appendSwitch('ignore-certificate-errors');
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-// Linux/Snap runtime configuration. Audio routing is intentionally delegated to
-// snapd's pulseaudio/audio-playback interfaces and the desktop-launch chain.
-// Do not set ALSA_CONFIG_PATH, ALSA_CONFIG_DIR, PULSE_SERVER, or
-// PIPEWIRE_RUNTIME_DIR here: forcing host or bundled paths breaks the Snap's
-// ALSA PulseAudio plugins and produces "PcmOpen: default" errors.
+// Safe GPU acceleration & Linux sandboxing (avoids Linux X11/Wayland/Snap launch crashes & fixes audio)
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('no-sandbox');
   app.commandLine.appendSwitch('disable-setuid-sandbox');
   app.commandLine.appendSwitch('disable-gpu-sandbox');
   app.commandLine.appendSwitch('disable-dev-shm-usage');
-  app.commandLine.appendSwitch('disable-gpu');
+  app.commandLine.appendSwitch('ignore-gpu-blocklist');
+  app.commandLine.appendSwitch('enable-gpu-rasterization');
+  
+  // Safe Audio & Video Configuration for Linux (.deb, Snap, AppImage, PulseAudio & PipeWire)
   app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox');
+  app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
   app.commandLine.appendSwitch('try-supported-channel-layouts');
-  app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
+
+  // Fix ALSA configuration path and plugin path if running in Snap or constrained environment
+  const possibleAlsaPaths = [
+    process.env.SNAP ? path.join(process.env.SNAP, 'usr/share/alsa/alsa.conf') : '',
+    '/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf',
+    '/snap/core22/current/usr/share/alsa/alsa.conf',
+    '/snap/gnome-3-28-1804/current/usr/share/alsa/alsa.conf',
+    '/snap/core18/current/usr/share/alsa/alsa.conf',
+    '/usr/share/alsa/alsa.conf'
+  ].filter(Boolean);
+
+  for (const p of possibleAlsaPaths) {
+    if (fs.existsSync(p)) {
+      process.env.ALSA_CONFIG_PATH = p;
+      process.env.ALSA_CONFIG_DIR = path.dirname(p);
+      break;
+    }
+  }
+
+  if (process.env.SNAP) {
+    const alsaPluginPaths = [
+      path.join(process.env.SNAP, 'usr/lib/x86_64-linux-gnu/alsa-lib'),
+      '/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/alsa-lib',
+      '/snap/core22/current/usr/lib/x86_64-linux-gnu/alsa-lib',
+      '/usr/lib/x86_64-linux-gnu/alsa-lib'
+    ].filter(p => fs.existsSync(p));
+    if (alsaPluginPaths.length > 0) {
+      process.env.ALSA_PLUGIN_DIR = alsaPluginPaths.join(':');
+    }
+  }
+
+  const xdgRuntime = process.env.XDG_RUNTIME_DIR;
+  const realUid = typeof process.getuid === 'function' ? process.getuid() : 1000;
+  const snapName = process.env.SNAP_NAME || 'cutecut-pro';
+
+  // Auto-connect PulseAudio and ALSA if in Snap
+  if (process.env.SNAP) {
+    // If running in Snap, prioritize user runtime directory or direct snap pulse path
+    if (xdgRuntime && fs.existsSync(path.join(xdgRuntime, 'pulse/native'))) {
+      process.env.PULSE_SERVER = `unix:${path.join(xdgRuntime, 'pulse/native')}`;
+    }
+  }
+
+  // Handle PulseAudio cookie cleanly (avoid AppArmor permission denied in Snap)
+  if (process.env.SNAP && process.env.SNAP_USER_DATA) {
+    const snapCookie = path.join(process.env.SNAP_USER_DATA, '.config/pulse/cookie');
+    if (fs.existsSync(snapCookie)) {
+      process.env.PULSE_COOKIE = snapCookie;
+    } else {
+      delete process.env.PULSE_COOKIE;
+    }
+  }
+
+  if (!process.env.PULSE_SERVER) {
+    const pulsePaths = [
+      xdgRuntime ? path.join(xdgRuntime, 'pulse/native') : '',
+      `/run/user/${realUid}/snap.${snapName}/pulse/native`,
+      `/run/user/${realUid}/snap.cutecut-pro/pulse/native`,
+      xdgRuntime ? path.join(xdgRuntime, '../pulse/native') : '',
+      `/run/user/${realUid}/pulse/native`,
+      '/var/run/pulse/native'
+    ].filter(Boolean);
+    for (const p of pulsePaths) {
+      if (fs.existsSync(p)) {
+        process.env.PULSE_SERVER = `unix:${p}`;
+        break;
+      }
+    }
+  }
+
+  if (!process.env.PIPEWIRE_RUNTIME_DIR) {
+    const pipewirePaths = [
+      xdgRuntime && fs.existsSync(path.join(xdgRuntime, 'pipewire-0')) ? xdgRuntime : '',
+      fs.existsSync(`/run/user/${realUid}/snap.${snapName}/pipewire-0`) ? `/run/user/${realUid}/snap.${snapName}` : '',
+      fs.existsSync(`/run/user/${realUid}/snap.cutecut-pro/pipewire-0`) ? `/run/user/${realUid}/snap.cutecut-pro` : '',
+      xdgRuntime && fs.existsSync(path.join(xdgRuntime, '../pipewire-0')) ? path.join(xdgRuntime, '..') : '',
+      fs.existsSync(`/run/user/${realUid}/pipewire-0`) ? `/run/user/${realUid}` : ''
+    ].filter(Boolean);
+    if (pipewirePaths[0]) {
+      process.env.PIPEWIRE_RUNTIME_DIR = pipewirePaths[0];
+    }
+  }
+
+  const waylandDisplay = process.env.WAYLAND_DISPLAY;
+  const isWaylandAvailable = !!(xdgRuntime && waylandDisplay && fs.existsSync(path.join(xdgRuntime, waylandDisplay)));
+
+  if (isWaylandAvailable) {
+    app.commandLine.appendSwitch('enable-features', 'VaapiVideoDecoder,UseOzonePlatform');
+    app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
+  } else {
+    app.commandLine.appendSwitch('ozone-platform', 'x11');
+  }
 } else {
   app.commandLine.appendSwitch('enable-gpu-rasterization');
   app.commandLine.appendSwitch('ignore-gpu-blocklist');
@@ -34,12 +127,16 @@ if (process.platform === 'linux') {
 let mainWindow: BrowserWindow | null = null;
 let oauthSession: { codeVerifier: string; state: string } | null = null;
 
-if (process.defaultApp && process.argv.length >= 2) {
-  app.setAsDefaultProtocolClient('cutecutpro', process.execPath, [path.resolve(process.argv[1])]);
+// Register custom protocol scheme cutecutpro://
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('cutecutpro', process.execPath, [path.resolve(process.argv[1])]);
+  }
 } else {
   app.setAsDefaultProtocolClient('cutecutpro');
 }
 
+// Token Encryption/Decryption Helpers
 function encryptToken(token: string): string {
   try {
     if (safeStorage && safeStorage.isEncryptionAvailable()) {
@@ -89,7 +186,9 @@ function getSecureTokens() {
   try {
     const filePath = getTokensFilePath();
     if (!fs.existsSync(filePath)) return null;
-    const encryptedData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    const raw = fs.readFileSync(filePath, 'utf-8');
+    const encryptedData = JSON.parse(raw);
+    
     return {
       tokens: {
         access_token: decryptToken(encryptedData.tokens.access_token),
@@ -109,7 +208,9 @@ function getSecureTokens() {
 function clearSecureTokens() {
   try {
     const filePath = getTokensFilePath();
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
   } catch (err) {
     console.error('[Electron Storage] Failed to clear secure tokens:', err);
   }
@@ -117,34 +218,67 @@ function clearSecureTokens() {
 
 async function handleDeepLink(urlStr: string) {
   try {
-    const parsedUrl = new URL(urlStr.replace('cutecutpro://', 'http://localhost/'));
+    console.log('[Electron DeepLink] Captured OAuth redirect:', urlStr);
+    
+    // Parse protocol URL format (e.g. cutecutpro://auth-callback?code=xxx&state=yyy)
+    const urlClean = urlStr.replace('cutecutpro://', 'http://localhost/');
+    const parsedUrl = new URL(urlClean);
     const code = parsedUrl.searchParams.get('code');
     const state = parsedUrl.searchParams.get('state');
-    if (!code) return;
-    if (oauthSession && state && state !== oauthSession.state) return;
 
-    const tokens = await (await fetch('https://oauth2.googleapis.com/token', {
+    if (!code) {
+      console.warn('[Electron DeepLink] Redirect url did not contain authorization code.');
+      return;
+    }
+
+    if (oauthSession && state && state !== oauthSession.state) {
+      console.error('[Electron DeepLink] Anti-CSRF state verification failed!');
+      return;
+    }
+
+    const codeVerifier = oauthSession?.codeVerifier || '';
+    const client_id = process.env.GOOGLE_CLIENT_ID || '447393315446-u9m01qo1inee3vbkgtdi19t7fic2aun6.apps.googleusercontent.com';
+    const client_secret = process.env.GOOGLE_CLIENT_SECRET || '';
+
+    console.log('[Electron DeepLink] Commencing PKCE Google Token Exchange...');
+
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code,
-        client_id: process.env.GOOGLE_CLIENT_ID || '447393315446-u9m01qo1inee3vbkgtdi19t7fic2aun6.apps.googleusercontent.com',
-        client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
+        client_id,
+        client_secret,
         redirect_uri: 'cutecutpro://auth-callback',
         grant_type: 'authorization_code',
-        code_verifier: oauthSession?.codeVerifier || ''
+        code_verifier: codeVerifier
       }).toString()
-    })).json();
-
-    const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` }
     });
-    const storedData = { tokens, userProfile: await userRes.json() };
+
+    if (!tokenRes.ok) {
+      const errText = await tokenRes.text();
+      throw new Error(`Google exchange error: ${errText}`);
+    }
+
+    const tokens = await tokenRes.json();
+
+    // Fetch user details
+    const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { 'Authorization': `Bearer ${tokens.access_token}` }
+    });
+    const userProfile = await userRes.json();
+
+    const storedData = { tokens, userProfile };
     saveSecureTokens(storedData);
-    mainWindow?.webContents.send('auth:google-login-success', storedData);
+
+    if (mainWindow) {
+      mainWindow.webContents.send('auth:google-login-success', storedData);
+    }
   } catch (err: any) {
     console.error('[Electron DeepLink] OAuth pipeline crashed:', err);
-    mainWindow?.webContents.send('auth:google-login-error', { error: err.message });
+    if (mainWindow) {
+      mainWindow.webContents.send('auth:google-login-error', { error: err.message });
+    }
   }
 }
 
@@ -158,7 +292,13 @@ function resolveEntryHtml(): string {
     path.join(process.cwd(), 'dist', 'index.html'),
     path.join(process.cwd(), 'index.html')
   ];
-  return candidates.find(candidate => fs.existsSync(candidate)) || path.join(appPath, 'dist', 'index.html');
+
+  for (const candidate of candidates) {
+    if (candidate && fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return path.join(appPath, 'dist', 'index.html');
 }
 
 function createWindow() {
@@ -172,6 +312,7 @@ function createWindow() {
     path.join(app.getAppPath(), 'public', 'icon.png'),
     path.join(app.getAppPath(), 'icon.png')
   ];
+  const windowIcon = iconCandidates.find(p => fs.existsSync(p));
 
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -179,8 +320,9 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 700,
     title: 'CuteCut Pro',
-    icon: iconCandidates.find(p => fs.existsSync(p)),
+    icon: windowIcon,
     backgroundColor: '#0a0a12',
+    show: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -189,93 +331,178 @@ function createWindow() {
     },
   });
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show());
+  mainWindow.once('ready-to-show', () => {
+    if (mainWindow && !mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+  });
+
+  // Comprehensive CORS & Network Bypass Rules for quran.com and external cloud streams
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const responseHeaders = { ...details.responseHeaders };
+    
     responseHeaders['access-control-allow-origin'] = ['*'];
     responseHeaders['Access-Control-Allow-Origin'] = ['*'];
     responseHeaders['access-control-allow-methods'] = ['GET, POST, OPTIONS, PUT, DELETE'];
     responseHeaders['Access-Control-Allow-Methods'] = ['GET, POST, OPTIONS, PUT, DELETE'];
     responseHeaders['access-control-allow-headers'] = ['*'];
     responseHeaders['Access-Control-Allow-Headers'] = ['*'];
-    callback({ responseHeaders });
+
+    callback({
+      responseHeaders,
+    });
   });
 
   const devUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:3000';
+  
   if (process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(devUrl);
   } else {
-    mainWindow.loadFile(resolveEntryHtml()).catch(() => mainWindow?.loadURL(devUrl));
+    const entryHtml = resolveEntryHtml();
+    mainWindow.loadFile(entryHtml).catch(() => {
+      mainWindow?.loadURL(devUrl);
+    });
   }
-  mainWindow.on('closed', () => { mainWindow = null; });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 }
 
-ipcMain.handle('get-system-hardware-info', async () => ({
-  cpus: os.cpus().length,
-  totalMemoryGb: Math.round((os.totalmem() / 1073741824) * 10) / 10,
-  freeMemoryGb: Math.round((os.freemem() / 1073741824) * 10) / 10,
-  platform: process.platform,
-  arch: process.arch,
-  electronVersion: process.versions.electron,
-  chromeVersion: process.versions.chrome
-}));
+// System Hardware Info IPC Handler
+ipcMain.handle('get-system-hardware-info', async () => {
+  return {
+    cpus: os.cpus().length,
+    totalMemoryGb: Math.round((os.totalmem() / (1024 * 1024 * 1024)) * 10) / 10,
+    freeMemoryGb: Math.round((os.freemem() / (1024 * 1024 * 1024)) * 10) / 10,
+    platform: process.platform,
+    arch: process.arch,
+    electronVersion: process.versions.electron,
+    chromeVersion: process.versions.chrome
+  };
+});
 
+// Register Native File Save IPC Handlers
 ipcMain.handle('show-save-video-dialog', async (_event, defaultFilename: string) => {
   if (!mainWindow) return null;
   const ext = defaultFilename.endsWith('.mp4') ? 'mp4' : 'webm';
   const result = await dialog.showSaveDialog(mainWindow, {
-    title: 'Save Exported Video', defaultPath: defaultFilename,
-    filters: [{ name: 'Video Files', extensions: [ext, 'webm', 'mp4'] }, { name: 'All Files', extensions: ['*'] }]
+    title: 'Save Exported Video',
+    defaultPath: defaultFilename,
+    filters: [
+      { name: 'Video Files', extensions: [ext, 'webm', 'mp4'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
   });
-  return result.canceled || !result.filePath ? null : result.filePath;
+  if (result.canceled || !result.filePath) return null;
+  return result.filePath;
 });
 
 ipcMain.handle('save-video-buffer-to-disk', async (_event, { filePath, buffer }: { filePath: string; buffer: Uint8Array | number[] }) => {
   try {
     const nodeBuf = Buffer.from(buffer);
-    if (!nodeBuf.length) throw new Error('Received 0 bytes buffer - aborted write');
+    if (nodeBuf.length === 0) {
+      throw new Error('Received 0 bytes buffer - aborted write');
+    }
     await fs.promises.writeFile(filePath, nodeBuf);
     return { success: true, bytesWritten: nodeBuf.length, filePath };
   } catch (err: any) {
+    console.error('[Electron IPC] Failed to write video to disk:', err);
     return { success: false, error: err.message };
   }
 });
 
+// Register Secure Google Drive Auth IPC Handlers
 ipcMain.handle('auth:google-login', async () => {
   const codeVerifier = crypto.randomBytes(32).toString('base64url');
   const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
   const state = crypto.randomBytes(16).toString('hex');
+
   oauthSession = { codeVerifier, state };
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
-    client_id: process.env.GOOGLE_CLIENT_ID || '447393315446-u9m01qo1inee3vbkgtdi19t7fic2aun6.apps.googleusercontent.com',
-    redirect_uri: 'cutecutpro://auth-callback', response_type: 'code',
-    scope: 'openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',
-    code_challenge: codeChallenge, code_challenge_method: 'S256', state, access_type: 'offline', prompt: 'consent'
-  }).toString()}`;
+
+  const client_id = process.env.GOOGLE_CLIENT_ID || '447393315446-u9m01qo1inee3vbkgtdi19t7fic2aun6.apps.googleusercontent.com';
+  const redirect_uri = 'cutecutpro://auth-callback';
+  const scopes = [
+    'openid',
+    'email',
+    'profile',
+    'https://www.googleapis.com/auth/drive.appdata',
+    'https://www.googleapis.com/auth/drive.file'
+  ].join(' ');
+
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + new URLSearchParams({
+    client_id,
+    redirect_uri,
+    response_type: 'code',
+    scope: scopes,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
+    state,
+    access_type: 'offline',
+    prompt: 'consent'
+  }).toString();
+
   shell.openExternal(authUrl);
   return { success: true };
 });
 
-ipcMain.handle('auth:get-stored-tokens', async () => getSecureTokens());
-ipcMain.handle('auth:save-tokens', async (_event, data: any) => { saveSecureTokens(data); return { success: true }; });
-ipcMain.handle('auth:clear-stored-tokens', async () => { clearSecureTokens(); return { success: true }; });
+ipcMain.handle('auth:get-stored-tokens', async () => {
+  return getSecureTokens();
+});
 
+ipcMain.handle('auth:save-tokens', async (_event, data: any) => {
+  saveSecureTokens(data);
+  return { success: true };
+});
+
+ipcMain.handle('auth:clear-stored-tokens', async () => {
+  clearSecureTokens();
+  return { success: true };
+});
+
+// Lock Single Instance and capture deep links
 const gotTheLock = app.requestSingleInstanceLock();
+
 if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (_event, commandLine) => {
-    mainWindow?.focus();
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
     const url = commandLine.find(arg => arg.startsWith('cutecutpro://'));
-    if (url) handleDeepLink(url);
+    if (url) {
+      handleDeepLink(url);
+    }
   });
-  app.on('open-url', (event, url) => { event.preventDefault(); handleDeepLink(url); });
+
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    handleDeepLink(url);
+  });
+
   app.whenReady().then(() => {
     createWindow();
+
+    // Check if app was opened with a protocol deep link (Windows/Linux)
     const initialUrl = process.argv.find(arg => arg.startsWith('cutecutpro://'));
-    if (initialUrl) setTimeout(() => handleDeepLink(initialUrl), 1500);
-    app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
+    if (initialUrl) {
+      setTimeout(() => {
+        handleDeepLink(initialUrl);
+      }, 1500);
+    }
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
   });
 }
 
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});

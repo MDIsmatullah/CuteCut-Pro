@@ -19,59 +19,60 @@ const templatePatch = `const launcherScript = '#!/bin/bash\\n' +
           'export GSETTINGS_SCHEMA_DIR="/snap/gnome-42-2204/current/usr/share/glib-2.0/schemas:$SNAP/usr/share/glib-2.0/schemas:/usr/share/glib-2.0/schemas:\${GSETTINGS_SCHEMA_DIR:-}"\\n' +
           'export GTK_PATH="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gtk-3.0"\\n' +
           'export GIO_MODULE_DIR="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gio/modules"\\n' +
-          'REAL_UID=$(id -u 2>/dev/null || echo 1000)\\n' +
-          'mkdir -p "$SNAP_USER_DATA/.config/pulse" 2>/dev/null || true\\n' +
-          'if [ -n "$SNAP_REAL_HOME" ] && [ -f "$SNAP_REAL_HOME/.config/pulse/cookie" ]; then\\n' +
-          '  cp -f "$SNAP_REAL_HOME/.config/pulse/cookie" "$SNAP_USER_DATA/.config/pulse/cookie" 2>/dev/null || true\\n' +
-          '  export PULSE_COOKIE="$SNAP_REAL_HOME/.config/pulse/cookie"\\n' +
-          'elif [ -f "/home/$USER/.config/pulse/cookie" ]; then\\n' +
-          '  cp -f "/home/$USER/.config/pulse/cookie" "$SNAP_USER_DATA/.config/pulse/cookie" 2>/dev/null || true\\n' +
-          '  export PULSE_COOKIE="$SNAP_USER_DATA/.config/pulse/cookie"\\n' +
-          'fi\\n' +
-          'if [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then\\n' +
-          '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"\\n' +
-          'elif [ -n "$SNAP_NAME" ] && [ -S "/run/user/$REAL_UID/snap.$SNAP_NAME/pulse/native" ]; then\\n' +
-          '  export PULSE_SERVER="unix:/run/user/$REAL_UID/snap.$SNAP_NAME/pulse/native"\\n' +
-          'elif [ -S "/run/user/$REAL_UID/snap.cutecut-pro/pulse/native" ]; then\\n' +
-          '  export PULSE_SERVER="unix:/run/user/$REAL_UID/snap.cutecut-pro/pulse/native"\\n' +
-          'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/../pulse/native" ]; then\\n' +
-          '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/../pulse/native"\\n' +
-          'elif [ -S "/run/user/$REAL_UID/pulse/native" ]; then\\n' +
-          '  export PULSE_SERVER="unix:/run/user/$REAL_UID/pulse/native"\\n' +
-          'elif [ -S "/var/run/pulse/native" ]; then\\n' +
-          '  export PULSE_SERVER="unix:/var/run/pulse/native"\\n' +
-          'fi\\n' +
-          'if [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/pipewire-0" ]; then\\n' +
-          '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR"\\n' +
-          'elif [ -n "$SNAP_NAME" ] && [ -S "/run/user/$REAL_UID/snap.$SNAP_NAME/pipewire-0" ]; then\\n' +
-          '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID/snap.$SNAP_NAME"\\n' +
-          'elif [ -S "/run/user/$REAL_UID/snap.cutecut-pro/pipewire-0" ]; then\\n' +
-          '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID/snap.cutecut-pro"\\n' +
-          'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/../pipewire-0" ]; then\\n' +
-          '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR/.."\\n' +
-          'elif [ -S "/run/user/$REAL_UID/pipewire-0" ]; then\\n' +
-          '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"\\n' +
-          'fi\\n' +
-          'export ALSA_PLUGIN_DIR="$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/alsa-lib:/usr/lib/x86_64-linux-gnu/alsa-lib"\\n' +
-          'if [ -f "/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf" ]; then\\n' +
-          '  export ALSA_CONFIG_PATH="/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf"\\n' +
-          '  export ALSA_CONFIG_DIR="/snap/gnome-42-2204/current/usr/share/alsa"\\n' +
-          'elif [ -f "/snap/core22/current/usr/share/alsa/alsa.conf" ]; then\\n' +
-          '  export ALSA_CONFIG_PATH="/snap/core22/current/usr/share/alsa/alsa.conf"\\n' +
-          '  export ALSA_CONFIG_DIR="/snap/core22/current/usr/share/alsa"\\n' +
-          'elif [ -f "/usr/share/alsa/alsa.conf" ]; then\\n' +
-          '  export ALSA_CONFIG_PATH="/usr/share/alsa/alsa.conf"\\n' +
-          '  export ALSA_CONFIG_DIR="/usr/share/alsa"\\n' +
-          'fi\\n' +
-          'printf "pcm.!default {\\\\n  type pulse\\\\n  fallback \\\\"sysdefault\\\\"\\\\n}\\\\nctl.!default {\\\\n  type pulse\\\\n  fallback \\\\"sysdefault\\\\"\\\\n}\\\\n" > "$SNAP_USER_DATA/.asoundrc" 2>/dev/null || true\\n' +
-          'if [ -n "$WAYLAND_DISPLAY" ] && [ -e "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then\\n' +
-          '  PLATFORM_FLAGS="--ozone-platform-hint=auto"\\n' +
-          'else\\n' +
-          '  unset WAYLAND_DISPLAY\\n' +
-          '  export GDK_BACKEND="x11"\\n' +
-          '  PLATFORM_FLAGS="--ozone-platform=x11"\\n' +
-          'fi\\n' +
-          'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-gpu-vsync --disable-features=AudioServiceSandbox --autoplay-policy=no-user-gesture-required --try-supported-channel-layouts $PLATFORM_FLAGS "$@"\\n';
+          'REAL_UID=$(id -u 2>/dev/null || echo 1000)\n' +
+          'mkdir -p "$SNAP_USER_DATA/.config/pulse" 2>/dev/null || true\n' +
+          'if [ -r "$SNAP_USER_DATA/.config/pulse/cookie" ]; then\n' +
+          '  export PULSE_COOKIE="$SNAP_USER_DATA/.config/pulse/cookie"\n' +
+          'else\n' +
+          '  unset PULSE_COOKIE\n' +
+          'fi\n' +
+          'if [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then\n' +
+          '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"\n' +
+          'elif [ -n "$SNAP_NAME" ] && [ -S "/run/user/$REAL_UID/snap.$SNAP_NAME/pulse/native" ]; then\n' +
+          '  export PULSE_SERVER="unix:/run/user/$REAL_UID/snap.$SNAP_NAME/pulse/native"\n' +
+          'elif [ -S "/run/user/$REAL_UID/snap.cutecut-pro/pulse/native" ]; then\n' +
+          '  export PULSE_SERVER="unix:/run/user/$REAL_UID/snap.cutecut-pro/pulse/native"\n' +
+          'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/../pulse/native" ]; then\n' +
+          '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/../pulse/native"\n' +
+          'elif [ -S "/run/user/$REAL_UID/pulse/native" ]; then\n' +
+          '  export PULSE_SERVER="unix:/run/user/$REAL_UID/pulse/native"\n' +
+          'elif [ -S "/var/run/pulse/native" ]; then\n' +
+          '  export PULSE_SERVER="unix:/var/run/pulse/native"\n' +
+          'fi\n' +
+          'if [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/pipewire-0" ]; then\n' +
+          '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR"\n' +
+          'elif [ -n "$SNAP_NAME" ] && [ -S "/run/user/$REAL_UID/snap.$SNAP_NAME/pipewire-0" ]; then\n' +
+          '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID/snap.$SNAP_NAME"\n' +
+          'elif [ -S "/run/user/$REAL_UID/snap.cutecut-pro/pipewire-0" ]; then\n' +
+          '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID/snap.cutecut-pro"\n' +
+          'elif [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/../pipewire-0" ]; then\n' +
+          '  export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR/.."\n' +
+          'elif [ -S "/run/user/$REAL_UID/pipewire-0" ]; then\n' +
+          '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"\n' +
+          'fi\n' +
+          'export ALSA_PLUGIN_DIR="$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/alsa-lib:/snap/core22/current/usr/lib/x86_64-linux-gnu/alsa-lib:/usr/lib/x86_64-linux-gnu/alsa-lib"\n' +
+          'if [ -f "$SNAP/usr/share/alsa/alsa.conf" ]; then\n' +
+          '  export ALSA_CONFIG_PATH="$SNAP/usr/share/alsa/alsa.conf"\n' +
+          '  export ALSA_CONFIG_DIR="$SNAP/usr/share/alsa"\n' +
+          'elif [ -f "/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf" ]; then\n' +
+          '  export ALSA_CONFIG_PATH="/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf"\n' +
+          '  export ALSA_CONFIG_DIR="/snap/gnome-42-2204/current/usr/share/alsa"\n' +
+          'elif [ -f "/snap/core22/current/usr/share/alsa/alsa.conf" ]; then\n' +
+          '  export ALSA_CONFIG_PATH="/snap/core22/current/usr/share/alsa/alsa.conf"\n' +
+          '  export ALSA_CONFIG_DIR="/snap/core22/current/usr/share/alsa"\n' +
+          'elif [ -f "/usr/share/alsa/alsa.conf" ]; then\n' +
+          '  export ALSA_CONFIG_PATH="/usr/share/alsa/alsa.conf"\n' +
+          '  export ALSA_CONFIG_DIR="/usr/share/alsa"\n' +
+          'fi\n' +
+          'printf "pcm.!default {\\n  type pulse\\n  fallback \\"sysdefault\\"\\n}\\nctl.!default {\\n  type pulse\\n  fallback \\"sysdefault\\"\\n}\\n" > "$SNAP_USER_DATA/.asoundrc" 2>/dev/null || true\n' +
+          'if [ -n "$WAYLAND_DISPLAY" ] && [ -e "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then\n' +
+          '  PLATFORM_FLAGS="--ozone-platform-hint=auto"\n' +
+          'else\n' +
+          '  unset WAYLAND_DISPLAY\n' +
+          '  export GDK_BACKEND="x11"\n' +
+          '  PLATFORM_FLAGS="--ozone-platform=x11"\n' +
+          'fi\n' +
+          'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-gpu-vsync --disable-features=AudioServiceSandbox --autoplay-policy=no-user-gesture-required --try-supported-channel-layouts $PLATFORM_FLAGS "$@"\n';
         await (0, promises_1.writeFile)(path.join(templateDir, "command.sh"), launcherScript, { mode: 0o755 });
         const fsSync = require('fs');
         const pathSync = require('path');
@@ -135,19 +136,17 @@ if (content.includes(targetFunc)) {
   const newFunc = `function buildCommandShContent(opts) {
     return '#!/bin/bash\\n' +
       'export LD_LIBRARY_PATH="$SNAP:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio:$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:$SNAP/usr/lib/x86_64-linux-gnu/nss:$SNAP/lib/x86_64-linux-gnu/nss:$SNAP/nss:/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu:/snap/gnome-42-2204/current/usr/lib:/snap/gnome-42-2204/current/lib/x86_64-linux-gnu:/snap/gnome-42-2204/current/lib:/snap/core22/current/usr/lib/x86_64-linux-gnu:/snap/core22/current/lib/x86_64-linux-gnu:\${LD_LIBRARY_PATH:-}"\\n' +
-      'export PATH="/snap/gnome-42-2204/current/usr/bin:$SNAP/bin:$SNAP/usr/bin:\$PATH"\\n' +
+      'export PATH="/snap/gnome-42-2204/current/usr/bin:$SNAP/bin:$SNAP/usr/bin:\\$PATH"\\n' +
       'export XDG_DATA_DIRS="/snap/gnome-42-2204/current/usr/share:$SNAP/usr/share:\${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"\\n' +
       'export GSETTINGS_SCHEMA_DIR="/snap/gnome-42-2204/current/usr/share/glib-2.0/schemas:$SNAP/usr/share/glib-2.0/schemas:/usr/share/glib-2.0/schemas:\${GSETTINGS_SCHEMA_DIR:-}"\\n' +
       'export GTK_PATH="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gtk-3.0"\\n' +
       'export GIO_MODULE_DIR="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gio/modules"\\n' +
-      'REAL_UID=$(id -u 2>/dev/null || echo 1000)\\n' +
+      'REAL_UID=\\$(id -u 2>/dev/null || echo 1000)\\n' +
       'mkdir -p "$SNAP_USER_DATA/.config/pulse" 2>/dev/null || true\\n' +
-      'if [ -n "$SNAP_REAL_HOME" ] && [ -f "$SNAP_REAL_HOME/.config/pulse/cookie" ]; then\\n' +
-      '  cp -f "$SNAP_REAL_HOME/.config/pulse/cookie" "$SNAP_USER_DATA/.config/pulse/cookie" 2>/dev/null || true\\n' +
-      '  export PULSE_COOKIE="$SNAP_REAL_HOME/.config/pulse/cookie"\\n' +
-      'elif [ -f "/home/$USER/.config/pulse/cookie" ]; then\\n' +
-      '  cp -f "/home/$USER/.config/pulse/cookie" "$SNAP_USER_DATA/.config/pulse/cookie" 2>/dev/null || true\\n' +
+      'if [ -r "$SNAP_USER_DATA/.config/pulse/cookie" ]; then\\n' +
       '  export PULSE_COOKIE="$SNAP_USER_DATA/.config/pulse/cookie"\\n' +
+      'else\\n' +
+      '  unset PULSE_COOKIE\\n' +
       'fi\\n' +
       'if [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then\\n' +
       '  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"\\n' +
@@ -173,8 +172,11 @@ if (content.includes(targetFunc)) {
       'elif [ -S "/run/user/$REAL_UID/pipewire-0" ]; then\\n' +
       '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"\\n' +
       'fi\\n' +
-      'export ALSA_PLUGIN_DIR="$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/alsa-lib:/usr/lib/x86_64-linux-gnu/alsa-lib"\\n' +
-      'if [ -f "/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf" ]; then\\n' +
+      'export ALSA_PLUGIN_DIR="$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/alsa-lib:/snap/core22/current/usr/lib/x86_64-linux-gnu/alsa-lib:/usr/lib/x86_64-linux-gnu/alsa-lib"\\n' +
+      'if [ -f "$SNAP/usr/share/alsa/alsa.conf" ]; then\\n' +
+      '  export ALSA_CONFIG_PATH="$SNAP/usr/share/alsa/alsa.conf"\\n' +
+      '  export ALSA_CONFIG_DIR="$SNAP/usr/share/alsa"\\n' +
+      'elif [ -f "/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf" ]; then\\n' +
       '  export ALSA_CONFIG_PATH="/snap/gnome-42-2204/current/usr/share/alsa/alsa.conf"\\n' +
       '  export ALSA_CONFIG_DIR="/snap/gnome-42-2204/current/usr/share/alsa"\\n' +
       'elif [ -f "/snap/core22/current/usr/share/alsa/alsa.conf" ]; then\\n' +
