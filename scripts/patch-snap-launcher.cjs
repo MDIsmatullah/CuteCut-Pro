@@ -10,15 +10,19 @@ if (!fs.existsSync(targetPath)) {
 
 let content = fs.readFileSync(targetPath, 'utf8');
 
-// The launcher shell script to be returned by buildCommandShContent
-const customScriptLines = [
+const lines = [
   '#!/bin/bash',
-  'export LD_LIBRARY_PATH="$SNAP:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio:$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:$SNAP/usr/lib/x86_64-linux-gnu/nss:$SNAP/lib/x86_64-linux-gnu/nss:$SNAP/nss:/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu:/snap/gnome-42-2204/current/usr/lib:/snap/gnome-42-2204/current/lib/x86_64-linux-gnu:/snap/gnome-42-2204/current/lib:/snap/core22/current/usr/lib/x86_64-linux-gnu:/snap/core22/current/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"',
-  'export PATH="/snap/gnome-42-2204/current/usr/bin:$SNAP/bin:$SNAP/usr/bin:$PATH"',
+  'set -e',
+  '',
+  '# Audio and graphic library paths',
+  'export LD_LIBRARY_PATH="$SNAP/app:$SNAP:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio:$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:$SNAP/usr/lib/x86_64-linux-gnu/nss:$SNAP/lib/x86_64-linux-gnu/nss:$SNAP/nss:/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu:/snap/gnome-42-2204/current/usr/lib:/snap/gnome-42-2204/current/lib/x86_64-linux-gnu:/snap/gnome-42-2204/current/lib:/snap/core22/current/usr/lib/x86_64-linux-gnu:/snap/core22/current/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"',
+  'export PATH="/snap/gnome-42-2204/current/usr/bin:$SNAP/app:$SNAP/bin:$SNAP/usr/bin:$PATH"',
   'export XDG_DATA_DIRS="/snap/gnome-42-2204/current/usr/share:$SNAP/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"',
   'export GSETTINGS_SCHEMA_DIR="/snap/gnome-42-2204/current/usr/share/glib-2.0/schemas:$SNAP/usr/share/glib-2.0/schemas:/usr/share/glib-2.0/schemas:${GSETTINGS_SCHEMA_DIR:-}"',
   'export GTK_PATH="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gtk-3.0"',
   'export GIO_MODULE_DIR="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gio/modules"',
+  '',
+  '# PulseAudio and PipeWire Sockets detection',
   'REAL_UID=$(id -u 2>/dev/null || echo 1000)',
   'mkdir -p "$SNAP_USER_DATA/.config/pulse" 2>/dev/null || true',
   'if [ -r "$SNAP_USER_DATA/.config/pulse/cookie" ]; then',
@@ -50,6 +54,8 @@ const customScriptLines = [
   'elif [ -S "/run/user/$REAL_UID/pipewire-0" ]; then',
   '  export PIPEWIRE_RUNTIME_DIR="/run/user/$REAL_UID"',
   'fi',
+  '',
+  '# ALSA Config and Plugins',
   'export ALSA_PLUGIN_DIR="$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/alsa-lib:/snap/core22/current/usr/lib/x86_64-linux-gnu/alsa-lib:/usr/lib/x86_64-linux-gnu/alsa-lib"',
   'if [ -f "$SNAP/usr/share/alsa/alsa.conf" ]; then',
   '  export ALSA_CONFIG_PATH="$SNAP/usr/share/alsa/alsa.conf"',
@@ -65,6 +71,8 @@ const customScriptLines = [
   '  export ALSA_CONFIG_DIR="/usr/share/alsa"',
   'fi',
   'printf "pcm.!default {\\n  type pulse\\n  fallback \\"sysdefault\\"\\n}\\nctl.!default {\\n  type pulse\\n  fallback \\"sysdefault\\"\\n}\\n" > "$SNAP_USER_DATA/.asoundrc" 2>/dev/null || true',
+  '',
+  '# Ozone / Wayland display flags',
   'if [ -n "$WAYLAND_DISPLAY" ] && [ -e "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then',
   '  PLATFORM_FLAGS="--ozone-platform-hint=auto"',
   'else',
@@ -72,19 +80,32 @@ const customScriptLines = [
   '  export GDK_BACKEND="x11"',
   '  PLATFORM_FLAGS="--ozone-platform=x11"',
   'fi',
-  'exec "$SNAP/cutecut-pro" --no-sandbox --disable-dev-shm-usage --disable-gpu-vsync --disable-features=AudioServiceSandbox --autoplay-policy=no-user-gesture-required --try-supported-channel-layouts $PLATFORM_FLAGS "$@"',
+  '',
+  '# Locate app executable',
+  'if [ -x "$SNAP/app/cutecut-pro" ]; then',
+  '  APP_BIN="$SNAP/app/cutecut-pro"',
+  'elif [ -x "$SNAP/cutecut-pro" ]; then',
+  '  APP_BIN="$SNAP/cutecut-pro"',
+  'elif [ -x "$SNAP/app/CuteCut Pro" ]; then',
+  '  APP_BIN="$SNAP/app/CuteCut Pro"',
+  'elif [ -x "$SNAP/CuteCut Pro" ]; then',
+  '  APP_BIN="$SNAP/CuteCut Pro"',
+  'else',
+  '  APP_BIN=$(find "$SNAP" -maxdepth 2 -type f -executable ! -name "*.sh" ! -name "*.so*" 2>/dev/null | head -n 1)',
+  'fi',
+  '',
+  'exec "$APP_BIN" --no-sandbox --disable-dev-shm-usage --disable-gpu-vsync --disable-features=AudioServiceSandbox --autoplay-policy=no-user-gesture-required --try-supported-channel-layouts $PLATFORM_FLAGS "$@"',
   ''
-].join('\\n');
+];
 
-// 1. Replace buildCommandShContent function cleanly with JSON stringified content
+const scriptJoined = lines.join('\n');
+
+// 1. Replace buildCommandShContent function cleanly
 const targetFunc = 'function buildCommandShContent(opts) {';
 if (content.includes(targetFunc)) {
   const index = content.indexOf(targetFunc);
   const prefix = content.substring(0, index);
-  const newFunc = `function buildCommandShContent(opts) {
-    return ${JSON.stringify(customScriptLines)};
-}
-//# sourceMappingURL=coreLegacy.js.map`;
+  const newFunc = `function buildCommandShContent(opts) {\n    return ${JSON.stringify(scriptJoined)};\n}\n//# sourceMappingURL=coreLegacy.js.map`;
   content = prefix + newFunc;
   console.log('Successfully replaced buildCommandShContent in coreLegacy.js.');
 }
