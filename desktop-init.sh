@@ -1,29 +1,19 @@
 #!/bin/bash
 set -euo pipefail
 
-# Keep audio inside the Snap's interfaces. Do not force a host PulseAudio
-# socket: on PipeWire systems it can bypass snapd's pulseaudio proxy.
+# Let the GNOME desktop extension and snapd's pulseaudio interface configure
+# the host audio socket. Overriding ALSA_PLUGIN_DIR/ALSA_CONFIG_PATH here can
+# make Electron search for PulseAudio ALSA modules that are not in the Snap.
 SNAP_ROOT="${SNAP:-/snap/cutecut-pro/current}"
 export SNAP_DESKTOP_RUNTIME="$SNAP_ROOT"
 
-if [ -z "${PULSE_SERVER:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ] && [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then
-  export PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native"
-fi
-
-# Only use the bundled ALSA configuration when it is complete. An invalid
-# ALSA_CONFIG_PATH makes Chromium/Electron silently lose audio output.
-if [ -f "$SNAP_ROOT/usr/share/alsa/alsa.conf" ]; then
-  export ALSA_CONFIG_PATH="$SNAP_ROOT/usr/share/alsa/alsa.conf"
-fi
-if [ -d "$SNAP_ROOT/usr/lib/x86_64-linux-gnu/alsa-lib" ]; then
-  export ALSA_PLUGIN_DIR="$SNAP_ROOT/usr/lib/x86_64-linux-gnu/alsa-lib"
-  export LD_LIBRARY_PATH="$SNAP_ROOT/usr/lib/x86_64-linux-gnu/alsa-lib:$SNAP_ROOT/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
-fi
-
-# Electron flags required for audio in a strictly confined Snap.
+# Electron flags for a strictly confined Snap. Disable GPU initialization on
+# systems where ANGLE/GLX is unavailable; this is independent of audio but
+# otherwise causes repeated GPU-process failures during startup.
 EXTRA_FLAGS=(
   --no-sandbox
   --disable-gpu-sandbox
+  --disable-gpu
   --ozone-platform-hint=auto
   --disable-features=AudioServiceSandbox
   --try-supported-channel-layouts
