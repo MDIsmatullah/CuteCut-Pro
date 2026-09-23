@@ -64,6 +64,7 @@ jobs:
             libcups2-dev || true || true
           sudo snap install snapcraft --classic || true
           sudo snap install core22 || true
+          sudo snap install gnome-42-2204 || true
           sudo snap install gtk-common-themes || true
           echo "/snap/bin" >> $GITHUB_PATH
 

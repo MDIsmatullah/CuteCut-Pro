@@ -103,3 +103,14 @@ if (content.includes('const isDestructiveMode = process.env.SNAP_DESTRUCTIVE_MOD
 
 fs.writeFileSync(targetPath, content, 'utf8');
 console.log('Successfully patched coreLegacy.js.');
+
+// 4. Patch snapcraft.yaml template so modern Ubuntu 22.04 runners don't fail trying to install dead gnome-3-28-1804
+const templateYamlPath = path.join(__dirname, '../node_modules/app-builder-lib/templates/snap/snapcraft.yaml');
+if (fs.existsSync(templateYamlPath)) {
+  let yamlContent = fs.readFileSync(templateYamlPath, 'utf8');
+  if (yamlContent.includes('gnome-3-28-1804')) {
+    yamlContent = yamlContent.replace(/gnome-3-28-1804/g, 'gnome-42-2204');
+    fs.writeFileSync(templateYamlPath, yamlContent, 'utf8');
+    console.log('Successfully updated gnome plug from gnome-3-28-1804 to gnome-42-2204 in snapcraft.yaml template.');
+  }
+}
