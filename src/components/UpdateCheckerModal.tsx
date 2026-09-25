@@ -40,7 +40,7 @@ export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({ isOpen, 
         setChecked(true);
       }, 1600);
     } catch (err) {
-      log('[Error] Failed to fetch remote tag, using local manifest build v2.4.2.');
+      log('[Error] Failed to fetch remote tag, using local manifest build v2.5.0.');
       setChecking(false);
       setChecked(true);
     }

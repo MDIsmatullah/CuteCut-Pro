@@ -18,6 +18,8 @@ import {
   ChevronDown,
   Info
 } from 'lucide-react';
+import { CuteCutProPaywallModal } from './CuteCutProPaywallModal';
+import { ProLicenseService } from '../services/proLicenseService';
 
 export type ChatRoleType = 'general' | 'director' | 'fast_editor';
 
@@ -109,6 +111,8 @@ export const GeminiChatbotModal: React.FC<GeminiChatbotModalProps> = ({
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const licenseService = ProLicenseService.getInstance();
 
   // Initial welcome message per role
   const getInitialMessages = (role: ChatRoleType): ChatMessage[] => [
@@ -180,6 +184,11 @@ export const GeminiChatbotModal: React.FC<GeminiChatbotModalProps> = ({
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || inputMessage).trim();
     if (!query || isLoading) return;
+
+    if (!licenseService.hasAccess()) {
+      setShowPaywall(true);
+      return;
+    }
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -524,6 +533,12 @@ export const GeminiChatbotModal: React.FC<GeminiChatbotModalProps> = ({
           </div>
         </div>
       </div>
+
+      <CuteCutProPaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureName="Gemini AI Copilot"
+      />
     </div>
   );
 };

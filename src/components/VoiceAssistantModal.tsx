@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Volume2, VolumeX, X, Sparkles, Radio, Zap, Brain, MessageSquare, Play, Send, CheckCircle2, ChevronRight } from 'lucide-react';
+import { CuteCutProPaywallModal } from './CuteCutProPaywallModal';
+import { ProLicenseService } from '../services/proLicenseService';
 
 interface VoiceAssistantModalProps {
   isOpen: boolean;
@@ -26,6 +28,8 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [inputText, setInputText] = useState('');
   const [transcript, setTranscript] = useState('');
+  const [showPaywall, setShowPaywall] = useState(false);
+  const licenseService = ProLicenseService.getInstance();
   const [messages, setMessages] = useState<MessageItem[]>([
     {
       id: 'welcome',
@@ -167,6 +171,11 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
 
   const handleSendMessage = async (textToSend: string) => {
     if (!textToSend.trim() || isThinking) return;
+
+    if (!licenseService.hasAccess()) {
+      setShowPaywall(true);
+      return;
+    }
 
     const userMsg: MessageItem = {
       id: `user-${Date.now()}`,
@@ -413,6 +422,12 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
         </div>
 
       </div>
+
+      <CuteCutProPaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureName="Gemini Live Voice Assistant"
+      />
     </div>
   );
 };

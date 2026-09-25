@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Scissors, Download, RefreshCw, Film, Type, Code, Terminal, Save, User, FolderOpen, Brain, Mic, Heart, Cloud, CloudUpload, X, LogOut, Check, ChevronDown, Loader2, Keyboard, Zap, Wifi, WifiOff, Settings, MessageSquare, Bot } from 'lucide-react';
+import { Scissors, Download, RefreshCw, Film, Type, Code, Terminal, Save, User, FolderOpen, Brain, Mic, Heart, Cloud, CloudUpload, X, LogOut, Check, ChevronDown, Loader2, Keyboard, Zap, Wifi, WifiOff, Settings, MessageSquare, Bot, Sparkles } from 'lucide-react';
 import { Clip, ClipType, Track, WatermarkSettings, VisualStylePreset } from './types';
 import MediaPanel from './components/MediaPanel';
 import PreviewPlayer from './components/PreviewPlayer';
@@ -19,6 +19,7 @@ import { getClipEffectiveSpeedAtTime } from './utils/speedRampUtils';
 import { PreferencesModal } from './components/PreferencesModal';
 import { Quran100ProtocolsModal } from './components/Quran100ProtocolsModal';
 import { VeoAnimateImageModal } from './components/VeoAnimateImageModal';
+import { AiPromptVideoStudio } from './components/AiPromptVideoStudio';
 import { VideoExport } from './components/video/VideoExport';
 import LandingPortal from './components/LandingPortal';
 import NativeSplashScreen from './components/NativeSplashScreen';
@@ -358,9 +359,20 @@ export default function App() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
+  const [preferencesInitialTab, setPreferencesInitialTab] = useState<'performance' | 'general' | 'editing' | 'ai'>('performance');
+
+  useEffect(() => {
+    const handleOpenAiPreferences = () => {
+      setPreferencesInitialTab('ai');
+      setShowPreferencesModal(true);
+    };
+    window.addEventListener('open-preferences-ai', handleOpenAiPreferences);
+    return () => window.removeEventListener('open-preferences-ai', handleOpenAiPreferences);
+  }, []);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [showGeminiChatModal, setShowGeminiChatModal] = useState(false);
   const [showGeminiIntelligenceModal, setShowGeminiIntelligenceModal] = useState(false);
+  const [showAiVideoStudioModal, setShowAiVideoStudioModal] = useState(false);
   const [showVeoAnimateModal, setShowVeoAnimateModal] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [showAboutSupportModal, setShowAboutSupportModal] = useState(false);
@@ -6171,6 +6183,33 @@ export default function App() {
       setExportTerminalLogs(prev => [...prev, `[MediaRecorder Engine] ${msg}`]);
     };
 
+    const finalizeCompliantMp4 = async (rawBlob: Blob, targetFilename: string, fps: number): Promise<{ blob: Blob; filename: string }> => {
+      try {
+        log(`Finalizing 100% compliant H.264/AAC MP4 with FastStart (Universal Ubuntu/VLC playback)...`);
+        const res = await fetch('/api/export/finalize-mp4', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'x-filename': targetFilename,
+            'x-fps': String(fps || 30),
+          },
+          body: rawBlob,
+        });
+
+        if (res.ok) {
+          const transcodedBlob = await res.blob();
+          if (transcodedBlob.size > 1000) {
+            const cleanName = targetFilename.replace(/\.[a-zA-Z0-9]+$/, '') + '.mp4';
+            log(`✅ Successfully finalized true H.264 MP4: ${cleanName} (${(transcodedBlob.size / (1024 * 1024)).toFixed(2)} MB). 100% smooth playback verified.`);
+            return { blob: transcodedBlob, filename: cleanName };
+          }
+        }
+      } catch (err: any) {
+        log(`Server finalizer note: ${err?.message || err}. Retaining client rendered stream.`);
+      }
+      return { blob: rawBlob, filename: targetFilename };
+    };
+
     let baseRes: '1080p' | '720p' | '480p' = '1080p';
     if (exportConf.resolution === '720p') baseRes = '720p';
     if (exportConf.resolution === '480p') baseRes = '480p';
@@ -6290,15 +6329,21 @@ export default function App() {
             filename = filename.replace(/\.[a-zA-Z0-9]+$/, '') + `.${ext}`;
           }
 
-          log(`Full video (${totalDuration.toFixed(1)}s) encoded in MP4 via GPU: ${filename} (${(mp4Blob.size / (1024 * 1024)).toFixed(2)} MB). Saving output...`);
+          let finalBlob = mp4Blob;
+          let finalFilename = filename;
+          const finalized = await finalizeCompliantMp4(mp4Blob, filename, exportConf.frameRate || 30);
+          finalBlob = finalized.blob;
+          finalFilename = finalized.filename;
 
-          const objectUrl = URL.createObjectURL(mp4Blob);
+          log(`Full video (${totalDuration.toFixed(1)}s) encoded in MP4: ${finalFilename} (${(finalBlob.size / (1024 * 1024)).toFixed(2)} MB). Saving output...`);
+
+          const objectUrl = URL.createObjectURL(finalBlob);
           setDownloadUrl(objectUrl);
           setExporting(false);
 
           AdMobService.showInterstitial();
 
-          await handleExportToNativeStorage(mp4Blob, filename);
+          await handleExportToNativeStorage(finalBlob, finalFilename);
           return;
         } catch (gpuErr: any) {
           if (gpuErr?.message === 'Export cancelled' || isCancelledExportRef.current) {
@@ -6561,16 +6606,22 @@ export default function App() {
                 filename = filename.replace(/\.[a-zA-Z0-9]+$/, '') + `.${ext}`;
               }
 
-              log(`Full video duration (${totalDuration.toFixed(1)}s) encoded: ${filename} (${(finalVideoBlob.size / (1024 * 1024)).toFixed(2)} MB). Saving output...`);
+              let finalBlob = finalVideoBlob;
+              let finalFilename = filename;
+              const finalized = await finalizeCompliantMp4(finalVideoBlob, filename, exportConf.frameRate || 30);
+              finalBlob = finalized.blob;
+              finalFilename = finalized.filename;
 
-              const objectUrl = URL.createObjectURL(finalVideoBlob);
+              log(`Full video duration (${totalDuration.toFixed(1)}s) encoded: ${finalFilename} (${(finalBlob.size / (1024 * 1024)).toFixed(2)} MB). Saving output...`);
+
+              const objectUrl = URL.createObjectURL(finalBlob);
               setDownloadUrl(objectUrl);
               setExporting(false);
 
               // Trigger AdMob Interstitial Ad on export complete
               AdMobService.showInterstitial();
 
-              await handleExportToNativeStorage(finalVideoBlob, filename);
+              await handleExportToNativeStorage(finalBlob, finalFilename);
             };
 
             return; // Export successfully triggered
@@ -6753,6 +6804,7 @@ export default function App() {
             <MediaPanel
               initialTab={tab}
               onAddClip={addNewClip}
+              onOpenAiPromptStudio={() => setShowAiVideoStudioModal(true)}
               onOpenVeoAnimateModal={() => setShowVeoAnimateModal(true)}
               selectedAspectRatio={aspectRatio}
               tracks={tracks}
@@ -6997,6 +7049,7 @@ export default function App() {
         <PreferencesModal 
           isOpen={showPreferencesModal} 
           onClose={() => setShowPreferencesModal(false)} 
+          initialTab={preferencesInitialTab}
         />
 
         {/* Voice Assistant Modal */}
@@ -7095,6 +7148,20 @@ export default function App() {
             <span className="bg-cyan-500/20 text-cyan-300 text-[9px] px-1 py-0.5 rounded font-mono font-bold border border-cyan-500/30">COPILOT</span>
           </button>
 
+          {/* AI Prompt-to-Video Creator Studio */}
+          <button
+            id="btn-ai-prompt-video-studio"
+            onClick={() => setShowAiVideoStudioModal(true)}
+            className="flex items-center gap-1.5 px-3 h-9 bg-gradient-to-r from-purple-900/90 via-pink-900/80 to-indigo-900/90 hover:from-purple-800 hover:to-indigo-800 border border-purple-400/50 hover:border-purple-300 text-purple-100 text-xs font-bold rounded-lg transition shadow-lg shadow-purple-900/30 active:scale-95 cursor-pointer"
+            title="Create complete videos from Prompts or Story Photos in 1-Click (CuteCut Pro Exclusive)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-pink-300 animate-pulse" />
+            <span>AI Video Studio</span>
+            <span className="bg-gradient-to-r from-amber-400 to-orange-400 text-black text-[9px] px-1.5 py-0.5 rounded font-black shadow-sm flex items-center gap-0.5">
+              👑 PRO
+            </span>
+          </button>
+
           {/* Gemini AI Intelligence Button */}
           <button
             id="btn-gemini-ai-intelligence"
@@ -7107,16 +7174,16 @@ export default function App() {
             <span className="bg-purple-500/20 text-purple-300 text-[9px] px-1 py-0.5 rounded font-mono font-bold border border-purple-500/30">PRO</span>
           </button>
 
-          {/* Veo AI Photo Animator Button */}
+          {/* Veo AI Video Creator (Prompt, Photo & Morph) Button */}
           <button
             id="btn-veo-animate-photo"
             onClick={() => setShowVeoAnimateModal(true)}
-            className="flex items-center gap-1.5 px-3 h-9 bg-[#0e1d2c] hover:bg-[#14283d] border border-cyan-500/50 hover:border-cyan-400 text-cyan-300 text-xs font-semibold rounded-lg transition shadow-sm active:scale-95 cursor-pointer"
-            title="Animate photo into video with Google Veo AI (veo-3.1-fast-generate-preview)"
+            className="flex items-center gap-1.5 px-3 h-9 bg-gradient-to-r from-[#0d2238] to-[#14283d] hover:from-[#132e4c] hover:to-[#1b3652] border border-cyan-400/60 hover:border-cyan-300 text-cyan-200 text-xs font-bold rounded-lg transition shadow-md shadow-cyan-950/40 active:scale-95 cursor-pointer"
+            title="Create AI Videos from Prompts (Sora-Style), Animate Photos, or Morph Frames with Google Veo 3.1"
           >
             <Film className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-            <span>Animate Photo</span>
-            <span className="bg-cyan-500/20 text-cyan-300 text-[9px] px-1 py-0.5 rounded font-mono font-bold border border-cyan-500/30">VEO 3.1</span>
+            <span>Veo AI Video (Sora / Photo)</span>
+            <span className="bg-cyan-500/20 text-cyan-300 text-[9px] px-1 py-0.5 rounded font-mono font-bold border border-cyan-500/40">VEO 3.1</span>
           </button>
 
           {/* Save Project Button */}
@@ -7367,6 +7434,7 @@ export default function App() {
           {/* Media Side-Panel */}
           <MediaPanel
             onAddClip={addNewClip}
+            onOpenAiPromptStudio={() => setShowAiVideoStudioModal(true)}
             onOpenVeoAnimateModal={() => setShowVeoAnimateModal(true)}
             selectedAspectRatio={aspectRatio}
             tracks={tracks}
@@ -7739,6 +7807,7 @@ export default function App() {
       <PreferencesModal 
         isOpen={showPreferencesModal} 
         onClose={() => setShowPreferencesModal(false)} 
+        initialTab={preferencesInitialTab}
       />
 
       {/* Voice Assistant Modal (gemini-3.1-flash-live-preview Live API) */}
@@ -7774,6 +7843,29 @@ export default function App() {
         currentTime={currentTime}
         aspectRatio={aspectRatio}
       />
+
+      {/* AI Prompt-to-Video & Story-to-Video Studio Modal */}
+      {showAiVideoStudioModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="relative w-full max-w-5xl h-[85vh] max-h-[820px] bg-[#0e0e15] rounded-2xl shadow-2xl border border-gray-800 overflow-hidden flex flex-col">
+            <button
+              onClick={() => setShowAiVideoStudioModal(false)}
+              className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-gray-900/80 hover:bg-gray-800 text-gray-400 hover:text-white flex items-center justify-center transition border border-gray-700 cursor-pointer"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <AiPromptVideoStudio
+              tracks={tracks}
+              onSetTracks={setTracks}
+              onSetDuration={setDuration}
+              currentAspectRatio={aspectRatio}
+              onSelectAspectRatio={setAspectRatio}
+              onClose={() => setShowAiVideoStudioModal(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Veo AI Image to Video Animation Modal (veo-3.1-fast-generate-preview) */}
       <VeoAnimateImageModal

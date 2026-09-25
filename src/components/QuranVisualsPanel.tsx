@@ -19,12 +19,15 @@ import {
   Plus,
   Download,
   Search,
-  Check
+  Check,
+  Crown
 } from 'lucide-react';
 import { Track, Clip, ClipType } from '../types';
 import { extractAyahNumberFromClip, getSafeMediaUrl } from '../utils/editorUtils';
 import { SURAHS } from './MediaPanel';
 import { getTranslationOptionById } from '../utils/quranTranslations';
+import { ProLicenseService, ProLicenseState } from '../services/proLicenseService';
+import { CuteCutProPaywallModal } from './CuteCutProPaywallModal';
 import {
   smartAnalyzeAyahVisualTheme,
   CURATED_STOCK_CATALOG,
@@ -214,6 +217,18 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
   quranTranslation = 'ur-jalandhry',
   currentTime = 0,
 }) => {
+  const licenseService = ProLicenseService.getInstance();
+  const [proState, setProState] = useState<ProLicenseState>(licenseService.getState());
+  const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
+
+  const refreshLicense = () => {
+    setProState(licenseService.getState());
+  };
+
+  useEffect(() => {
+    refreshLicense();
+  }, []);
+
   const [sourceMode, setSourceMode] = useState<'timeline' | 'surah'>('timeline');
   const [syncTimingMode, setSyncTimingMode] = useState<'exact' | 'continuous'>('exact');
   const [selectedSurah, setSelectedSurah] = useState<number>(1);
@@ -640,6 +655,16 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
 
   // Generate Visuals for Ayahs directly from Pexels, Pixabay or Curated 150+ Library
   const handleGenerateVisuals = async () => {
+    // 2-Time Free Trial / CuteCut Pro License Check
+    if (!licenseService.hasQuranAccess()) {
+      setShowPaywallModal(true);
+      return;
+    }
+
+    // Deduct 1 credit if not on Pro
+    licenseService.consumeQuranCredit();
+    refreshLicense();
+
     setIsGenerating(true);
     setGenerationProgress(15);
 
@@ -1021,7 +1046,7 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
   return (
     <div className="flex flex-col h-full bg-[#18181c] text-gray-200 overflow-y-auto custom-scrollbar p-4 space-y-4">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-emerald-950/60 via-[#1e2329] to-cyan-950/50 border border-emerald-500/30 rounded-xl p-3.5 shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-r from-emerald-950/60 via-[#1e2329] to-cyan-950/50 border border-emerald-500/30 rounded-xl p-3.5 shadow-lg relative overflow-hidden flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-black font-extrabold shadow-md shadow-emerald-500/20">
             <Sparkles className="w-5 h-5 text-gray-900" />
@@ -1038,6 +1063,27 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
             </p>
           </div>
         </div>
+
+        {/* Golden PRO / Credits Pill */}
+        <button
+          onClick={() => setShowPaywallModal(true)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow cursor-pointer shrink-0 ${
+            proState.isPro
+              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-black border border-amber-400 shadow-amber-500/20'
+              : 'bg-[#15231c] hover:bg-[#1b3026] text-emerald-300 border border-emerald-500/40 hover:border-emerald-400'
+          }`}
+          title="Manage CuteCut Pro License & Credits"
+        >
+          <Crown className={`w-3.5 h-3.5 ${proState.isPro ? 'fill-black text-black' : 'text-amber-400'}`} />
+          <span>
+            {proState.isPro ? 'PRO UNLIMITED' : `${proState.quranCreditsRemaining}/2 Free Syncs`}
+          </span>
+          {!proState.isPro && (
+            <span className="bg-amber-400 text-black text-[9px] px-1 rounded font-extrabold ml-0.5">
+              PRO
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Toast Notification */}
@@ -1835,6 +1881,13 @@ export const QuranVisualsPanel: React.FC<QuranVisualsPanelProps> = ({
           </div>
         </div>
       )}
+
+      {/* CuteCut Pro Paywall Modal */}
+      <CuteCutProPaywallModal
+        isOpen={showPaywallModal}
+        onClose={() => setShowPaywallModal(false)}
+        onActivated={refreshLicense}
+      />
     </div>
   );
 };

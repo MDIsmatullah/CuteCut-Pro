@@ -35,10 +35,10 @@ class QariTimingService {
       // Endpoint: GET /chapter_recitations/:reciter_id/:chapter_number?segments=true
       const url = `https://api.quran.com/api/v4/chapter_recitations/${reciterId}/${surahNumber}?segments=true`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
-      if (!response.ok) throw new Error(`Failed to fetch timing for Surah ${surahNumber}`);
+      if (!response.ok) return [];
 
       const data = await response.json();
       const audioFile = data.audio_file;
@@ -94,7 +94,7 @@ class QariTimingService {
       this.timingCache.set(cacheKey, timings);
       return timings;
     } catch (error) {
-      console.error('Error fetching timing from Quran Foundation:', error);
+      console.warn('Notice fetching timing from Quran Foundation:', error);
       return [];
     }
   }

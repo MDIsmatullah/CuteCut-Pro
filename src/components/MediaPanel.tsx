@@ -488,8 +488,10 @@ interface MediaPanelProps {
   setQuranKaraokeSyncOffsetMs?: (offsetMs: number) => void;
   // Veo AI Video Generation Callback
   onOpenVeoAnimateModal?: () => void;
+  // AI Prompt-to-Video Studio Callback
+  onOpenAiPromptStudio?: () => void;
   // Controlled tab selection
-  initialTab?: 'upload' | 'video' | 'audio' | 'sfx' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark';
+  initialTab?: 'ai-studio' | 'upload' | 'video' | 'audio' | 'sfx' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark';
 }
 
 export default function MediaPanel({
@@ -498,6 +500,7 @@ export default function MediaPanel({
   tracks,
   initialTab,
   onOpenVeoAnimateModal,
+  onOpenAiPromptStudio,
   onAlignQuran,
   aligningStatus,
   quranArabicFont,
@@ -666,7 +669,7 @@ export default function MediaPanel({
   onAddBismillahCard,
   onAddSadaqallahCard,
 }: MediaPanelProps) {
-  const [activeTab, setActiveTab] = useState<'upload' | 'video' | 'audio' | 'sfx' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark'>(initialTab || 'upload');
+  const [activeTab, setActiveTab] = useState<'ai-studio' | 'upload' | 'video' | 'audio' | 'sfx' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark'>(initialTab || 'upload');
 
   useEffect(() => {
     if (initialTab) {
@@ -1735,20 +1738,21 @@ export default function MediaPanel({
       {/* CapCut Top Horizontal Tab Navigation Menu Bar (Icon on Top, Text Below) */}
       <div className="border-b border-[#23232b] bg-[#121216] px-2 py-1 flex items-center gap-1 overflow-x-auto custom-scrollbar flex-shrink-0">
         {[
-          { id: 'upload', label: 'Media', icon: Upload, isAmber: false, isEmerald: false },
-          { id: 'video', label: 'Stock', icon: Film, isAmber: false, isEmerald: false },
-          { id: 'audio', label: 'Audio', icon: Music, isAmber: false, isEmerald: false },
-          { id: 'sfx', label: 'Sound FX', icon: Bell, isAmber: false, isEmerald: false },
-          { id: 'text', label: 'Text', icon: Type, isAmber: false, isEmerald: false },
-          { id: 'stickers', label: 'Stickers', icon: Smile, isAmber: false, isEmerald: false },
-          { id: 'effects', label: 'Effects', icon: Wand2, isAmber: false, isEmerald: false },
-          { id: 'transitions', label: 'Transitions', icon: Blend, isAmber: false, isEmerald: false },
-          { id: 'filters', label: 'Filters', icon: Palette, isAmber: false, isEmerald: false },
-          { id: 'adjustment', label: 'Adjust', icon: Sliders, isAmber: false, isEmerald: false },
-          { id: 'quran', label: 'Quran AI', icon: BookOpen, isAmber: true, isEmerald: false },
-          { id: 'quran-visuals', label: 'Visuals', icon: Sparkles, isAmber: false, isEmerald: true },
-          { id: 'background', label: 'Free BG', icon: Globe, isAmber: false, isEmerald: false },
-          { id: 'watermark', label: 'Branding', icon: Shield, isAmber: false, isEmerald: false },
+          { id: 'ai-studio', label: 'AI Video', icon: Sparkles, isPurple: true, isAmber: false, isEmerald: false },
+          { id: 'upload', label: 'Media', icon: Upload, isPurple: false, isAmber: false, isEmerald: false },
+          { id: 'video', label: 'Stock', icon: Film, isPurple: false, isAmber: false, isEmerald: false },
+          { id: 'audio', label: 'Audio', icon: Music, isPurple: false, isAmber: false, isEmerald: false },
+          { id: 'sfx', label: 'Sound FX', icon: Bell, isPurple: false, isAmber: false, isEmerald: false },
+          { id: 'text', label: 'Text', icon: Type, isPurple: false, isAmber: false, isEmerald: false },
+          { id: 'stickers', label: 'Stickers', icon: Smile, isPurple: false, isAmber: false, isEmerald: false },
+          { id: 'effects', label: 'Effects', icon: Wand2, isPurple: false, isAmber: false, isEmerald: false },
+          { id: 'transitions', label: 'Transitions', icon: Blend, isPurple: false, isAmber: false, isEmerald: false },
+          { id: 'filters', label: 'Filters', icon: Palette, isPurple: false, isAmber: false, isEmerald: false },
+          { id: 'adjustment', label: 'Adjust', icon: Sliders, isPurple: false, isAmber: false, isEmerald: false },
+          { id: 'quran', label: 'Quran AI', icon: BookOpen, isPurple: false, isAmber: true, isEmerald: false },
+          { id: 'quran-visuals', label: 'Visuals', icon: Sparkles, isPurple: false, isAmber: false, isEmerald: true },
+          { id: 'background', label: 'Free BG', icon: Globe, isPurple: false, isAmber: false, isEmerald: false },
+          { id: 'watermark', label: 'Branding', icon: Shield, isPurple: false, isAmber: false, isEmerald: false },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1756,7 +1760,10 @@ export default function MediaPanel({
           let activeStyles = 'text-cyan-400 bg-[#20202a] font-bold border-b-2 border-cyan-400';
           let inactiveStyles = 'text-gray-400 hover:text-gray-200 hover:bg-[#181820] border-b-2 border-transparent';
           
-          if (tab.isAmber) {
+          if (tab.isPurple) {
+            activeStyles = 'text-purple-300 bg-purple-950/50 font-bold border-b-2 border-purple-400';
+            inactiveStyles = 'text-purple-400/80 hover:text-purple-200 hover:bg-purple-950/20 border-b-2 border-transparent';
+          } else if (tab.isAmber) {
             activeStyles = 'text-amber-300 bg-amber-950/40 font-bold border-b-2 border-amber-400';
             inactiveStyles = 'text-amber-400/80 hover:text-amber-200 hover:bg-amber-950/20 border-b-2 border-transparent';
           } else if (tab.isEmerald) {
@@ -1780,6 +1787,94 @@ export default function MediaPanel({
 
       {/* Content Area */}
       <div className={`flex-1 min-h-0 flex flex-col ${['video', 'audio', 'sfx', 'text', 'stickers', 'effects', 'transitions', 'filters', 'adjustment', 'upload'].includes(activeTab) ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 custom-scrollbar'}`}>
+        {activeTab === 'ai-studio' && (
+          <div className="flex flex-col h-full overflow-y-auto p-4 space-y-4 custom-scrollbar">
+            {/* AI Studio Hero Banner */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-950/80 via-[#1a1226] to-[#0d0914] border border-purple-500/40 p-5 shadow-xl">
+              <div className="relative z-10 space-y-3">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-purple-900/60 border border-purple-400/40 text-[10px] font-bold text-purple-200">
+                  <Sparkles className="w-3.5 h-3.5 text-pink-400 animate-pulse" />
+                  <span>AI Video Director & Story Studio</span>
+                </div>
+                <h3 className="text-lg font-black text-white tracking-tight">
+                  Turn Prompts & Photos into Complete Videos
+                </h3>
+                <p className="text-xs text-purple-200/80 leading-relaxed max-w-md">
+                  CuteCut Pro automatically writes scripts, generates synchronized voiceover, designs visual scenes, and places them directly onto your 4 timeline tracks!
+                </p>
+                <div className="pt-2 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      if (onOpenAiPromptStudio) onOpenAiPromptStudio();
+                    }}
+                    className="px-4 py-2.5 bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-500 hover:to-pink-500 text-white font-extrabold text-xs rounded-xl transition shadow-lg shadow-purple-900/40 flex items-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <Wand2 className="w-4 h-4" />
+                    <span>Open AI Prompt-to-Video Studio</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (onOpenVeoAnimateModal) onOpenVeoAnimateModal();
+                    }}
+                    className="px-4 py-2.5 bg-[#201733] hover:bg-[#2c2045] text-purple-200 border border-purple-500/30 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <Film className="w-4 h-4 text-cyan-400" />
+                    <span>Veo 3.1 Photo Animator</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div
+                onClick={() => {
+                  if (onOpenAiPromptStudio) onOpenAiPromptStudio();
+                }}
+                className="p-3.5 bg-[#171722] hover:bg-[#1f1f30] border border-gray-800 hover:border-purple-500/50 rounded-xl transition cursor-pointer space-y-2 group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-purple-900/40 border border-purple-500/40 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
+                  <Wand2 className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-white">Prompt to Full Video</h4>
+                <p className="text-[11px] text-gray-400 leading-normal">
+                  Give any topic and AI builds the storyboard, visuals, audio narration, and subtitles.
+                </p>
+              </div>
+
+              <div
+                onClick={() => {
+                  if (onOpenAiPromptStudio) onOpenAiPromptStudio();
+                }}
+                className="p-3.5 bg-[#171722] hover:bg-[#1f1f30] border border-gray-800 hover:border-purple-500/50 rounded-xl transition cursor-pointer space-y-2 group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-indigo-900/40 border border-indigo-500/40 flex items-center justify-center text-indigo-300 group-hover:scale-110 transition-transform">
+                  <ImageIcon className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-white">Story Photos to Motion</h4>
+                <p className="text-[11px] text-gray-400 leading-normal">
+                  Upload photos or comic panels; AI weaves a narration story with camera motion and BGM.
+                </p>
+              </div>
+
+              <div
+                onClick={() => {
+                  if (onOpenAiPromptStudio) onOpenAiPromptStudio();
+                }}
+                className="p-3.5 bg-[#171722] hover:bg-[#1f1f30] border border-gray-800 hover:border-amber-500/50 rounded-xl transition cursor-pointer space-y-2 group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-amber-900/40 border border-amber-500/40 flex items-center justify-center text-amber-300 group-hover:scale-110 transition-transform">
+                  <Film className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-white">Islamic 1-Click Reels</h4>
+                <p className="text-[11px] text-gray-400 leading-normal">
+                  Generate 9:16 Shorts/Reels with Quranic calligraphy, recitation, and Urdu/English translation.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'video' && (
           <div className="flex flex-row h-full overflow-hidden">
             {/* CapCut Left Sidebar for Stock Categories */}

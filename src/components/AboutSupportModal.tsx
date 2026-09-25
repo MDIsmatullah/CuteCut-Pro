@@ -15,8 +15,10 @@ import {
   Share2,
   Video,
   Music,
-  Code2
+  Code2,
+  Crown
 } from 'lucide-react';
+import { GUMROAD_PURCHASE_URL } from '../services/proLicenseService';
 
 interface AboutSupportModalProps {
   isOpen: boolean;
@@ -88,7 +90,7 @@ export const AboutSupportModal: React.FC<AboutSupportModalProps> = ({
 
             <div className="hidden sm:flex items-center gap-2">
               <span className="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
-                v2.4.2 Pro
+                v2.5.0 Pro
               </span>
             </div>
           </div>
@@ -159,9 +161,21 @@ export const AboutSupportModal: React.FC<AboutSupportModalProps> = ({
 
               {/* Action Buttons */}
               <div className="flex flex-col w-full sm:w-auto gap-2 shrink-0">
+                <a
+                  href={GUMROAD_PURCHASE_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-black font-extrabold text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition cursor-pointer"
+                  title="Buy CuteCut Pro Lifetime License on Gumroad"
+                >
+                  <Crown className="w-4 h-4 fill-black text-black" />
+                  <span>Get CuteCut Pro License</span>
+                  <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
+                </a>
+
                 <button
                   onClick={onSupportClick}
-                  className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#FFDD00] hover:bg-[#FFE338] text-black font-extrabold text-xs shadow-lg shadow-yellow-500/20 active:scale-95 transition cursor-pointer"
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#FFDD00] hover:bg-[#FFE338] text-black font-extrabold text-xs shadow-lg shadow-yellow-500/20 active:scale-95 transition cursor-pointer"
                   title="Buy Me a Coffee"
                 >
                   <Coffee className="w-4 h-4 fill-black stroke-[2]" />

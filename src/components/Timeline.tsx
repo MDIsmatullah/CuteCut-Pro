@@ -1903,6 +1903,12 @@ export default function Timeline({
                     </button>
                   </div>
 
+                  {/* 100% Free Guarantee Banner */}
+                  <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-lg p-1.5 px-2 text-[10px] text-emerald-300 flex items-center justify-between">
+                    <span className="font-bold flex items-center gap-1">✨ 100% Free Feature</span>
+                    <span className="text-[9px] bg-emerald-500/20 px-1.5 py-0.5 rounded text-emerald-200">No License Required</span>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -2048,6 +2054,29 @@ export default function Timeline({
                       </div>
                     </button>
                   )}
+
+                  {/* BYOK Free Gemini Key quick setup */}
+                  <div className="pt-1.5 border-t border-gray-800/80 mt-1">
+                    <button
+                      type="button"
+                      id="btn-timeline-enter-gemini-key"
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('open-preferences-ai'));
+                        setShowAutoSegmentMenu(false);
+                      }}
+                      className="w-full text-left p-1.5 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/30 text-cyan-200 transition cursor-pointer flex items-center gap-2"
+                      title="Add your free Google Gemini API Key in Settings"
+                    >
+                      <span className="text-sm">🔑</span>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-bold text-[10px] leading-tight text-cyan-300">Enter Free Gemini Key</p>
+                          <span className="text-[8px] bg-cyan-500/20 text-cyan-200 px-1 py-0.2 rounded">BYOK</span>
+                        </div>
+                        <p className="text-[8.5px] text-gray-400">Add free API key for auto-segment</p>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

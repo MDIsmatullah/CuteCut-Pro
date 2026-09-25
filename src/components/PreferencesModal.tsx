@@ -7,10 +7,11 @@ import {
 interface PreferencesModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: 'performance' | 'general' | 'editing' | 'ai';
 }
 
-export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'performance' | 'general' | 'editing' | 'ai'>('performance');
+export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose, initialTab = 'performance' }) => {
+  const [activeTab, setActiveTab] = useState<'performance' | 'general' | 'editing' | 'ai'>(initialTab);
   const [saved, setSaved] = useState(false);
 
   // Gemini API key state
@@ -24,8 +25,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
       setSaved(false);
       setUserApiKey(localStorage.getItem('user_gemini_api_key') || '');
       setTestStatus('idle');
+      if (initialTab) {
+        setActiveTab(initialTab);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, initialTab]);
 
   if (!isOpen) return null;
 
@@ -240,6 +244,25 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
             {/* AI & API Key Tab */}
             {activeTab === 'ai' && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200 text-left">
+                {/* Auto-Segment Free Feature Banner */}
+                <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-3 flex items-start gap-3 text-emerald-200">
+                  <div className="p-1.5 bg-emerald-500/20 rounded-lg text-emerald-300 mt-0.5">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-emerald-300">Auto-Segment is 100% Free Forever!</h4>
+                      <span className="text-[9px] bg-emerald-500/30 text-emerald-100 font-extrabold px-1.5 py-0.5 rounded">NO LICENSE REQUIRED</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-200/80 leading-tight">
+                      Add your free Google Gemini API Key below to run intelligent Quran verse auto-segmentation & audio alignment at zero cost.
+                    </p>
+                    <p className="text-[10px] text-emerald-300/80 pt-0.5 font-medium dir-rtl">
+                      آٹو سیگمنٹ مکمل مفت ہے! نیچے اپنی مفت جیمنائی کی لگا کر لامحدود آٹو سیگمنٹ چلائیں۔
+                    </p>
+                  </div>
+                </div>
+
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
                     <Key className="w-4 h-4 text-cyan-400" /> Personal Gemini API Key

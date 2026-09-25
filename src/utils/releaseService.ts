@@ -27,22 +27,22 @@ export interface ReleaseInfo {
   };
 }
 
-const DEFAULT_TAG = 'v2.4.2';
+const DEFAULT_TAG = 'v2.5.0';
 const REPO_OWNER = 'MDIsmatullah';
 const REPO_NAME = 'CuteCut-Pro';
 
 export const fallbackReleaseInfo: ReleaseInfo = {
   tagName: DEFAULT_TAG,
-  version: '2.4.2',
-  name: 'CuteCut Pro V2.4.2',
+  version: '2.5.0',
+  name: 'CuteCut Pro V2.5.0 (Universal Native Engine)',
   publishedAt: new Date().toISOString(),
   htmlUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/tag/${DEFAULT_TAG}`,
   assets: {
-    windowsExe: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro.Setup.2.4.2.exe`,
-    macDmg: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro-2.4.2-arm64.dmg`,
-    linuxAppImage: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro-2.4.2.AppImage`,
-    linuxDeb: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/cutecut-pro_2.4.2_amd64.deb`,
-    androidApk: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut-Pro-v2.4.2.apk`,
+    windowsExe: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro.Setup.2.5.0.exe`,
+    macDmg: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro-2.5.0-arm64.dmg`,
+    linuxAppImage: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro-2.5.0.AppImage`,
+    linuxDeb: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/cutecut-pro_2.5.0_amd64.deb`,
+    androidApk: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut-Pro-v2.5.0.apk`,
     flatpak: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/org.guldasta.cutecutpro.flatpak`,
   }
 };

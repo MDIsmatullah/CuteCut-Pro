@@ -92,20 +92,24 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
 // Connection Validation on Boot
 export async function testFirestoreConnection(): Promise<boolean> {
+  if (typeof window === 'undefined' || !navigator.onLine) {
+    return false;
+  }
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-    console.log('[Firebase Firestore] Cloud database connection verified.');
-    return true;
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('[Firebase Firestore] Please check your Firebase connection / network state.');
-    }
+    const testDoc = await getDoc(doc(db, 'test', 'connection'));
+    return testDoc.exists();
+  } catch (error: any) {
+    // Firestore operates in offline mode automatically; silent swallow
     return false;
   }
 }
 
-// Auto-run connection probe in background
-testFirestoreConnection();
+// Run connection check only when window is online
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    testFirestoreConnection().catch(() => {});
+  });
+}
 
 export interface FirestoreTimelinePayload {
   id?: string;

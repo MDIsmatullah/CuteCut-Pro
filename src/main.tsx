@@ -11,7 +11,7 @@ try {
       const url = typeof input === 'string' ? input : (input instanceof URL ? input.toString() : input.url);
       
       if (url && (url.includes('/api/ai/') || url.includes('/api/quran/'))) {
-        const userApiKey = localStorage.getItem('user_gemini_api_key');
+        const userApiKey = localStorage.getItem('user_gemini_api_key') || localStorage.getItem('cutecut_custom_gemini_api_key');
         if (userApiKey && userApiKey.trim().length >= 10) {
           const newInit = { ...(init || {}) };
           const headers = new Headers(newInit.headers || {});
@@ -32,7 +32,7 @@ try {
     (window as any).fetch = async function (input: any, init?: any) {
       const url = typeof input === 'string' ? input : (input instanceof URL ? input.toString() : input.url);
       if (url && (url.includes('/api/ai/') || url.includes('/api/quran/'))) {
-        const userApiKey = localStorage.getItem('user_gemini_api_key');
+        const userApiKey = localStorage.getItem('user_gemini_api_key') || localStorage.getItem('cutecut_custom_gemini_api_key');
         if (userApiKey && userApiKey.trim().length >= 10) {
           const newInit = { ...(init || {}) };
           const headers = new Headers(newInit.headers || {});
