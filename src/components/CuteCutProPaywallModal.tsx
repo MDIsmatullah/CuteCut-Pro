@@ -267,28 +267,6 @@ export const CuteCutProPaywallModal: React.FC<CuteCutProPaywallModalProps> = ({
               {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
               <span>Activate Pro License</span>
             </button>
-
-            {/* Developer / Creator Quick Test Unlock */}
-            <div className="text-center pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setLicenseKeyInput('CUTECUT-CREATOR-VIP-PASS');
-                  const res = licenseService.activateLicense('CUTECUT-CREATOR-VIP-PASS');
-                  if (res.success) {
-                    setActivationMsg({ text: '🎉 Creator/Owner VIP Pass Activated! Testing is now UNLIMITED.', isError: false });
-                    if (onActivated) onActivated();
-                    setTimeout(() => {
-                      onClose();
-                    }, 900);
-                  }
-                }}
-                className="text-[10px] text-gray-400 hover:text-amber-400 transition underline cursor-pointer inline-flex items-center gap-1"
-                title="Creator/Developer Testing Pass"
-              >
-                <span>🛠️ Creator / Developer Test Mode (One-Click Unlock)</span>
-              </button>
-            </div>
           </div>
         )}
 

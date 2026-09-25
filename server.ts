@@ -335,10 +335,11 @@ async function generateLocalMotionVideo(params: {
           // If still no photo, search curated catalog
           if (!photoUrl) {
             const lowerWords = cleanQuery.toLowerCase().split(/\s+/);
-            const matchedItem = CURATED_STOCK_CATALOG.find(c => 
+            const allStockItems = Object.values(CURATED_STOCK_CATALOG).flat();
+            const matchedItem = allStockItems.find(c => 
               lowerWords.some(w => w.length > 3 && (c.title.toLowerCase().includes(w) || (c.category && c.category.toLowerCase().includes(w))))
-            ) || CURATED_STOCK_CATALOG[0];
-            photoUrl = matchedItem.url;
+            ) || allStockItems[0];
+            photoUrl = matchedItem?.url || 'https://images.pexels.com/photos/1624496/pexels-photo-1624496.jpeg?auto=compress&cs=tinysrgb&w=1920';
           }
 
           console.log(`[CuteCut Motion Engine] Animating high-res prompt matching photography: ${photoUrl}`);
