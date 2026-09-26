@@ -122,7 +122,45 @@ sudo snap remove cutecut-pro
 # Or uninstall Debian package (.deb)
 sudo apt remove cutecut-pro
 ```
+# CuteCut Pro v2.3 ✂️
+> **Professional Desktop Video Editor & Quran AI Studio**
 
+[![Snap Store](https://img.shields.io/badge/Snap_Store-v2.3-blue?style=for-the-badge&logo=ubuntu)](https://snapcraft.io/cutecut-pro)
+[![Buy on Gumroad](https://img.shields.io/badge/Get_Pro_License-Gumroad-FF90E8?style=for-the-badge&logo=gumroad)](https://8327535504967.gumroad.com/l/cutecut-pro)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows-brightgreen?style=for-the-badge)](#)
+
+---
+
+### 🛒 [Click Here to Buy CuteCut Pro Lifetime License on Gumroad](https://8327535504967.gumroad.com/l/cutecut-pro)
+
+---
+
+## 🌟 Overview
+
+**CuteCut Pro v2.3** is a high-performance desktop video editing application engineered specifically for video creators, social media editors, and Islamic content producers. It combines a lightweight multi-track timeline UI with the all-new **Quran AI Studio** to automate verse alignment, subtitling, and audio visualizer creation.
+
+---
+
+## ✨ Key Features
+
+* 🎬 **Multi-Track Timeline:** Frame-accurate cuts, dynamic transitions, ripple editing, and precision speed adjustments.
+* 📖 **Quran AI Studio:** Automated Quranic verse alignment, multi-language subtitle generation, and recitation analysis.
+* 🎵 **Real-Time Audio Visualizers:** Built-in frequency spectrum, peak dB meters, and silence marker overlays.
+* ⚡ **Hardware Acceleration:** GPU-optimized engine supporting fast 1080p and high-bitrate 4K exports.
+* 🎨 **Clean Modern UI:** Responsive dark mode designed for smooth editing workflows.
+
+---
+
+## 🚀 Installation & Downloads
+
+### 1. Official Pro License (Gumroad)
+To unlock full lifetime features, 4K rendering capabilities, and the complete Quran AI Studio module:
+👉 **[Get CuteCut Pro Lifetime License on Gumroad](https://8327535504967.gumroad.com/l/cutecut-pro)**
+
+### 2. Snap Package (Linux)
+You can install the official Snap package on Linux using terminal:
+```bash
+sudo snap install cutecut-pro
 ---
 
 ## 🌟 Key Features
