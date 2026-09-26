@@ -146,3 +146,7 @@ CuteCut Pro is **Source-Available under a Strict Non-Commercial License** (Copyr
 - ✅ **Permitted:** Anyone may clone, study, inspect, fork, and use this software for **personal and educational non-commercial purposes**.
 - ❌ **Strictly Prohibited:** Selling, reselling, sublicensing, repackaging for paid distribution, or commercially monetizing this codebase or its binaries without express written authorization from the Author.
 - See full terms in the [LICENSE](LICENSE) file.
+
+## 🔍 Search & SEO Keywords
+
+CuteCut Pro is a lightweight, high-performance **desktop video editor** and **CapCut / Filmora alternative** designed for Linux and Windows. Features include multi-track timeline editing, real-time audio spectrum visualizers, and a native **Quran AI Studio** for automated transcription and verse alignment.
