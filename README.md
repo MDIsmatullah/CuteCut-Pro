@@ -96,14 +96,20 @@ Email: aasmatallah@gmail.com
 
 📜 License & Usage Policy
 CuteCut Pro is Source-Available under a Strict Non-Commercial License (Copyright © 2026 Asmatullah Developer).
-✅ Permitted: Anyone may clone, study, inspect, fork, and use this software for personal and educational non-commercial purposes.
-❌ Strictly Prohibited: Selling, reselling, sublicensing, repackaging for paid distribution, or commercially monetizing this codebase or its binaries without express written authorization from the Author.
+✅ Permitted: Anyone may clone, study, inspect, fork, and use this software for personal and educational
+non-commercial purposes.
+❌ Strictly Prohibited: Selling, reselling, sublicensing, repackaging for paid distribution, or commercially
+ monetizing this codebase or its binaries without express written authorization from the Author.
 See full terms in the LICENSE file.
 
 🔍 Search & SEO Keywords
-CuteCut Pro is a lightweight, high-performance desktop video editor, CapCut alternative, and Filmora alternative engineered for Linux (Ubuntu, Debian, Fedora, Arch), Windows 10/11, macOS, and Web browsers.
+CuteCut Pro is a lightweight, high-performance desktop video editor, CapCut alternative, and Filmora
+ alternative engineered for Linux (Ubuntu, Debian, Fedora, Arch), Windows 10/11, macOS, and Web browsers.
 
 Key Discovery Categories:
-Video Editing: video-editor-linux, capcut-for-pc, filmora-alternative, free-video-editor, multi-track-timeline, 4k-video-editor, 60fps-video-renderer, chroma-key-editor.
-Quran & Islamic Media: quran-video-maker, quran-ayah-sync, islamic-reels-generator, uthmani-quran-calligraphy, automated-quran-subtitles, audio-waveform-visualizer.
-Cross-Platform Formats: appimage-video-editor, snapcraft-video-editor, flatpak-video-editor, windows-exe-video-editor, pwa-video-editor.
+Video Editing: video-editor-linux, capcut-for-pc, filmora-alternative, free-video-editor, multi-track-timeline,
+ 4k-video-editor, 60fps-video-renderer, chroma-key-editor.
+Quran & Islamic Media: quran-video-maker, quran-ayah-sync, islamic-reels-generator, uthmani-quran-calligraphy,
+ automated-quran-subtitles, audio-waveform-visualizer.
+Cross-Platform Formats: appimage-video-editor, snapcraft-video-editor, flatpak-video-editor,
+windows-exe-video-editor, pwa-video-editor.
