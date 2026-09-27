@@ -27,10 +27,7 @@ sudo snap install cutecut-pro
 
 # (Optional) For testing edge/nightly builds
 sudo snap install cutecut-pro --edge
-```
 
-#### Connect Necessary Hardware Permissions:
-```bash
 # Allow audio capture & microphone
 sudo snap connect cutecut-pro:audio-record
 
@@ -39,55 +36,25 @@ sudo snap connect cutecut-pro:camera
 
 # Allow removable storage / USB access (optional)
 sudo snap connect cutecut-pro:removable-media
-```
 
----
-
-### 📦 2. Linux Debian / Ubuntu (.deb Package)
-
-Download the latest `.deb` file from [GitHub Releases](https://github.com/MDIsmatullah/CuteCut-Pro/releases/latest):
-
-```bash
 # Download the latest .deb installer
-wget https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/cutecut-pro_2.4.1_amd64.deb
+wget https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.5.0/cutecut-pro_2.5.0_amd64.deb
 
 # Install the package
-sudo dpkg -i cutecut-pro_2.4.1_amd64.deb
+sudo dpkg -i cutecut-pro_2.5.0_amd64.deb
 
 # Fix any missing dependencies if prompted
 sudo apt-get install -f
-```
 
----
-
-### 🚀 3. Universal Linux AppImage (No Installation Required)
-
-Download and run directly on any Linux distribution without root privileges:
-
-```bash
 # Download latest AppImage
-wget https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.4.1/CUTECUT.PRO-2.4.1.AppImage
+wget https://github.com/MDIsmatullah/CuteCut-Pro/releases/download/v2.5.0/CuteCut.Pro-2.5.0-x86_64.AppImage
 
 # Make it executable
-chmod +x CUTECUT.PRO-2.4.1.AppImage
+chmod +x CuteCut.Pro-2.5.0-x86_64.AppImage
 
 # Run CUTECUT PRO
-./CUTECUT.PRO-2.4.1.AppImage
-```
+./CuteCut.Pro-2.5.0-x86_64.AppImage
 
----
-
-### 🪟 4. Windows Installation (.exe)
-
-1. Go to [Latest GitHub Releases](https://github.com/MDIsmatullah/CuteCut-Pro/releases/latest).
-2. Download `CUTECUT.PRO.Setup.2.4.1.exe` (Installer) or `CUTECUT-PRO-2.4.1-win-portable.zip` (Portable).
-3. Double-click the installer and launch CUTECUT PRO from your Start Menu.
-
----
-
-### 💻 5. Build and Run from Source (Developers)
-
-```bash
 # Clone the repository
 git clone https://github.com/MDIsmatullah/CuteCut-Pro.git
 
@@ -102,89 +69,38 @@ npm run dev
 
 # Build production desktop installers
 npm run dist:all
-```
 
----
-
-## 🔄 Updating & Uninstallation
-
-### To Update:
-```bash
 # Update Snap package to the latest version
 sudo snap refresh cutecut-pro
-```
 
-### To Uninstall:
-```bash
-# Uninstall Snap package
-sudo snap remove cutecut-pro
 
-# Or uninstall Debian package (.deb)
-sudo apt remove cutecut-pro
-```
-# CuteCut Pro v2.3 ✂️
-> **Professional Desktop Video Editor & Quran AI Studio**
+----
 
-[![Snap Store](https://img.shields.io/badge/Snap_Store-v2.3-blue?style=for-the-badge&logo=ubuntu)](https://snapcraft.io/cutecut-pro)
-[![Buy on Gumroad](https://img.shields.io/badge/Get_Pro_License-Gumroad-FF90E8?style=for-the-badge&logo=gumroad)](https://8327535504967.gumroad.com/l/cutecut-pro)
-[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows-brightgreen?style=for-the-badge)](#)
-
----
-
-### 🛒 [Click Here to Buy CuteCut Pro Lifetime License on Gumroad](https://8327535504967.gumroad.com/l/cutecut-pro)
-
----
-
-## 🌟 Overview
-
-**CuteCut Pro v2.3** is a high-performance desktop video editing application engineered specifically for video creators, social media editors, and Islamic content producers. It combines a lightweight multi-track timeline UI with the all-new **Quran AI Studio** to automate verse alignment, subtitling, and audio visualizer creation.
-
----
-
-## ✨ Key Features
-
-* 🎬 **Multi-Track Timeline:** Frame-accurate cuts, dynamic transitions, ripple editing, and precision speed adjustments.
-* 📖 **Quran AI Studio:** Automated Quranic verse alignment, multi-language subtitle generation, and recitation analysis.
-* 🎵 **Real-Time Audio Visualizers:** Built-in frequency spectrum, peak dB meters, and silence marker overlays.
-* ⚡ **Hardware Acceleration:** GPU-optimized engine supporting fast 1080p and high-bitrate 4K exports.
-* 🎨 **Clean Modern UI:** Responsive dark mode designed for smooth editing workflows.
-
----
-
-## 🚀 Installation & Downloads
-
-### 1. Official Pro License (Gumroad)
+🛒 Official Pro License (Gumroad)
 To unlock full lifetime features, 4K rendering capabilities, and the complete Quran AI Studio module:
-👉 **[Get CuteCut Pro Lifetime License on Gumroad](https://8327535504967.gumroad.com/l/cutecut-pro)**
+👉 Get CuteCut Pro Lifetime License on Gumroad
+✨ Key Features & Capabilities
+Multitrack Timeline: Layer video, audio, text overlays, keyframes, dynamic transitions, and speed curves.
+Quran AI & Micro-Sync: Arabic Uthmani typography with Urdu & English synchronized verse alignment.
+5 Dynamic Audio Visualizers: Real-time audio waveform spectrum generation for podcasts and recitations.
+Cinematic Filters & FX: Chroma key (Green Screen), VHS Retro, Glitch, Vignette, and Color Grading.
+Hardware-Accelerated Engine: GPU-optimized rendering supporting 1080p and high-bitrate 4K 60 FPS exports.
+Offline & Private: 100% in-browser / on-device FFmpeg & WebCodecs rendering with zero cloud dependency.
+🤝 Support & Community
+Official Website: CuteCutPro.com
+Bug Reports & Feature Requests: GitHub Issues
+Snap Store Listing: snapcraft.io/cutecut-pro
+AppImageHub Catalog: AppImageHub
+Email: aasmatallah@gmail.com
+📜 License & Usage Policy
+CuteCut Pro is Source-Available under a Strict Non-Commercial License (Copyright © 2026 Asmatullah Developer).
+✅ Permitted: Anyone may clone, study, inspect, fork, and use this software for personal and educational non-commercial purposes.
+❌ Strictly Prohibited: Selling, reselling, sublicensing, repackaging for paid distribution, or commercially monetizing this codebase or its binaries without express written authorization from the Author.
+See full terms in the LICENSE file.
+🔍 Search & SEO Keywords
+CuteCut Pro is a lightweight, high-performance desktop video editor, CapCut alternative, and Filmora alternative engineered for Linux (Ubuntu, Debian, Fedora, Arch), Windows 10/11, macOS, and Web browsers.
+Key Discovery Categories:
+Video Editing: video-editor-linux, capcut-for-pc, filmora-alternative, free-video-editor, multi-track-timeline, 4k-video-editor, 60fps-video-renderer, chroma-key-editor.
+Quran & Islamic Media: quran-video-maker, quran-ayah-sync, islamic-reels-generator, uthmani-quran-calligraphy, automated-quran-subtitles, audio-waveform-visualizer.
+Cross-Platform Formats: appimage-video-editor, snapcraft-video-editor, flatpak-video-editor, windows-exe-video-editor, pwa-video-editor.
 
-### 2. Snap Package (Linux)
-You can install the official Snap package on Linux using terminal:
-```bash
-sudo snap install cutecut-pro
----
-
-## 🌟 Key Features
-- **Multitrack Timeline:** Layer video, audio, text overlays, keyframes, and transitions.
-- **Quran AI & Micro-Sync:** Arabic Uthmani typography with Urdu & English synced subtitles.
-- **5 Dynamic Audio Visualizers:** Real-time audio waveform spectrum generation for recitations.
-- **Cinematic Filters & FX:** Chroma key (Green Screen), VHS Retro, Glitch, Vignette, and Color Grading.
-- **Offline & Private:** 100% in-browser / on-device FFmpeg rendering with zero cloud dependency.
-
----
-
-## 🤝 Support & Community
-- **Bug Reports & Feature Requests:** [GitHub Issues](https://github.com/MDIsmatullah/CuteCut-Pro/issues)
-- **Snap Store Listing:** [snapcraft.io/cutecut-pro](https://snapcraft.io/cutecut-pro)
-- **Email:** `guldastaislamorquran@gmail.com`
-
----
-
-## 📜 License & Usage Policy
-CuteCut Pro is **Source-Available under a Strict Non-Commercial License** (Copyright © 2026 Asmatullah Developer).
-- ✅ **Permitted:** Anyone may clone, study, inspect, fork, and use this software for **personal and educational non-commercial purposes**.
-- ❌ **Strictly Prohibited:** Selling, reselling, sublicensing, repackaging for paid distribution, or commercially monetizing this codebase or its binaries without express written authorization from the Author.
-- See full terms in the [LICENSE](LICENSE) file.
-
-## 🔍 Search & SEO Keywords
-
-CuteCut Pro is a lightweight, high-performance **desktop video editor** and **CapCut / Filmora alternative** designed for Linux and Windows. Features include multi-track timeline editing, real-time audio spectrum visualizers, and a native **Quran AI Studio** for automated transcription and verse alignment.
