@@ -41,6 +41,7 @@ interface VeoAnimateImageModalProps {
   tracks?: Track[];
   currentTime?: number;
   availableImages?: { id: string; name: string; url: string }[];
+  initialMode?: VeoStudioMode;
 }
 
 export type VeoStudioMode = 'prompt_to_video' | 'image_to_video' | 'first_last_frame';
@@ -158,9 +159,10 @@ export const VeoAnimateImageModal: React.FC<VeoAnimateImageModalProps> = ({
   tracks = [],
   currentTime = 0,
   availableImages = [],
+  initialMode,
 }) => {
-  // Modes: Prompt-to-video (Sora style), Image-to-video (photo animation), First-to-last-frame
-  const [studioMode, setStudioMode] = useState<VeoStudioMode>('prompt_to_video');
+  // Modes: Prompt-to-video (Veo AI Video), Image-to-video (Sora Photo), First-to-last-frame
+  const [studioMode, setStudioMode] = useState<VeoStudioMode>(initialMode || 'prompt_to_video');
 
   const licenseService = ProLicenseService.getInstance();
   const [proState, setProState] = useState<ProLicenseState>(licenseService.getState());
@@ -173,8 +175,11 @@ export const VeoAnimateImageModal: React.FC<VeoAnimateImageModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       refreshLicense();
+      if (initialMode) {
+        setStudioMode(initialMode);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, initialMode]);
 
   // Input states
   const [prompt, setPrompt] = useState<string>(SORA_PROMPT_PRESETS[0].items[0].prompt);
@@ -535,20 +540,40 @@ export const VeoAnimateImageModal: React.FC<VeoAnimateImageModalProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#232333] flex items-center justify-between bg-gradient-to-r from-[#141824] via-[#10141f] to-[#0c1322]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-cyan-950">
-              <Film className="w-5 h-5 animate-pulse" />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg transition-colors ${
+              studioMode === 'image_to_video'
+                ? 'bg-gradient-to-tr from-rose-500 via-pink-600 to-purple-600 shadow-rose-950'
+                : 'bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 shadow-cyan-950'
+            }`}>
+              {studioMode === 'image_to_video' ? (
+                <Sparkles className="w-5 h-5 animate-pulse text-rose-200" />
+              ) : (
+                <Film className="w-5 h-5 animate-pulse" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-white tracking-wide">
-                  AI Video Creator Studio
+                  {studioMode === 'image_to_video'
+                    ? 'Sora Photo Video Studio'
+                    : studioMode === 'first_last_frame'
+                    ? 'Veo First & Last Frame Morph'
+                    : 'Veo AI Video Studio'}
                 </h2>
-                <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold border border-cyan-500/40">
-                  Google Veo 3.1 & Sora-Style
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                  studioMode === 'image_to_video'
+                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                    : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                }`}>
+                  {studioMode === 'image_to_video' ? 'SORA PHOTO' : 'VEO 3.1'}
                 </span>
               </div>
               <p className="text-xs text-gray-400">
-                Generate high-definition AI videos from text prompts, animate photos, or create multi-frame morphs
+                {studioMode === 'image_to_video'
+                  ? 'Animate photos and portraits into realistic cinematic video clips with Sora-style motion dynamics'
+                  : studioMode === 'first_last_frame'
+                  ? 'Morph smoothly between initial and final frames with temporal video consistency'
+                  : 'Generate high-definition cinematic videos directly from text prompts with Google Veo 3.1'}
               </p>
             </div>
           </div>
@@ -599,7 +624,7 @@ export const VeoAnimateImageModal: React.FC<VeoAnimateImageModalProps> = ({
               }`}
             >
               <Wand2 className="w-3.5 h-3.5 text-cyan-300" />
-              <span>Prompt to Video (Text-to-Video)</span>
+              <span>Veo AI Video (Text-to-Video)</span>
             </button>
 
             <button
@@ -609,12 +634,12 @@ export const VeoAnimateImageModal: React.FC<VeoAnimateImageModalProps> = ({
               }}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 ${
                 studioMode === 'image_to_video'
-                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
+                  ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-md'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              <ImageIcon className="w-3.5 h-3.5 text-blue-300" />
-              <span>Image to Video (Animate Photo)</span>
+              <Sparkles className="w-3.5 h-3.5 text-rose-300" />
+              <span>Sora Photo (Animate Photo)</span>
             </button>
 
             <button

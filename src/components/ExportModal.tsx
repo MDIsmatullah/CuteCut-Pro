@@ -5,7 +5,7 @@ import {
   Film, Music, Clock, Square, Play, Pause, FolderOpen,
   Sliders, Sparkles, FileVideo, RotateCcw, AlertTriangle,
   Cloud, ExternalLink, Loader2, Eye, Shield, Check,
-  Smartphone, Monitor, Scan, Tv, Layers, Zap
+  Smartphone, Monitor, Scan, Tv, Layers, Zap, Share2, ArrowRight
 } from 'lucide-react';
 import { formatTimeCode, getExportResolutionDimensions } from '../utils/editorUtils';
 import { Track, WatermarkSettings } from '../types';
@@ -152,15 +152,43 @@ export default function ExportModal({
     hardwareAcceleration: webCodecsSupport.supported,
   });
 
+  const [showInAppAd, setShowInAppAd] = useState(false);
+  const [adCountdown, setAdCountdown] = useState(5);
+
+  useEffect(() => {
+    let timer: any;
+    if (showInAppAd && adCountdown > 0) {
+      timer = setTimeout(() => {
+        setAdCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (showInAppAd && adCountdown <= 0) {
+      setShowInAppAd(false);
+      onStartExport(config);
+    }
+    return () => clearTimeout(timer);
+  }, [showInAppAd, adCountdown, config]);
+
+  const handleSkipInAppAd = () => {
+    setShowInAppAd(false);
+    onStartExport(config);
+  };
+
   const handleExportWithAd = async () => {
     if (isAdLoading || exporting) return;
     setIsAdLoading(true);
     try {
-      await AdMobService.showExportAd(() => {
-        setIsAdLoading(false);
-        onStartExport(config);
-      });
-    } catch (e) {
+      await AdMobService.showExportAd(
+        () => {
+          setIsAdLoading(false);
+          onStartExport(config);
+        },
+        () => {
+          setIsAdLoading(false);
+          setShowInAppAd(true);
+          setAdCountdown(5);
+        }
+      );
+    } catch {
       setIsAdLoading(false);
       onStartExport(config);
     }
@@ -478,7 +506,63 @@ export default function ExportModal({
 
   return (
     <div className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-3 md:p-4 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="bg-[#1c1c23] border border-[#32323e] rounded-xl w-full max-w-[820px] shadow-2xl overflow-hidden flex flex-col max-h-[94vh] select-none text-gray-200">
+      <div className="bg-[#1c1c23] border border-[#32323e] rounded-xl w-full max-w-[820px] shadow-2xl overflow-hidden flex flex-col max-h-[94vh] select-none text-gray-200 relative">
+        
+        {/* SPONSORED IN-APP AD OVERLAY BEFORE EXPORT */}
+        {showInAppAd && (
+          <div className="absolute inset-0 z-50 bg-[#0c0c14]/95 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 text-center animate-in fade-in zoom-in-95 duration-200">
+            <div className="max-w-md w-full bg-[#161622] border border-cyan-500/40 rounded-2xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-amber-400 to-teal-400 animate-pulse" />
+              
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-mono tracking-widest uppercase bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 px-2 py-0.5 rounded font-bold">
+                  Sponsored • Ad
+                </span>
+                <span className="text-xs font-mono font-bold text-amber-400">
+                  Export in {adCountdown}s
+                </span>
+              </div>
+
+              {/* Sponsor Creative Banner */}
+              <div className="bg-gradient-to-br from-cyan-950/50 via-[#10101c] to-amber-950/30 border border-[#2b2b40] rounded-xl p-4 sm:p-5 mb-5 text-left">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-5 h-5 text-cyan-300" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">CuteCut Pro • 4K Video Studio</h4>
+                    <p className="text-[11px] text-gray-300">Offline-First Video & Quran Synchronization</p>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-300 leading-relaxed mb-3">
+                  Thank you for using CuteCut Pro! Sponsored partners keep high-bitrate 4K encoding and real-time audio visualization 100% free and open for creators worldwide.
+                </p>
+                <div className="flex items-center gap-2 text-[10px] text-cyan-400 font-mono">
+                  <span>Google AdSense & AdMob Partner Network</span>
+                </div>
+              </div>
+
+              {/* Countdown & Action Buttons */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[11px] text-gray-400 text-left">
+                  {adCountdown > 0 ? (
+                    <span>Auto-starting export in <strong className="text-cyan-300 font-mono">{adCountdown}</strong>s...</span>
+                  ) : (
+                    <span className="text-emerald-400 font-semibold">Ready to compile!</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSkipInAppAd}
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 text-slate-950 font-bold text-xs rounded-lg transition shadow-md cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>{adCountdown <= 2 ? 'Skip & Start Export' : `Wait (${adCountdown}s)`}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Modal Title Bar */}
         <div className="h-11 px-4 flex items-center justify-between border-b border-[#282834] bg-[#22222a] shrink-0">
@@ -1281,7 +1365,29 @@ export default function ExportModal({
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 text-slate-950 font-bold text-xs rounded-lg transition shadow-lg shadow-cyan-500/20 cursor-pointer animate-in fade-in zoom-in duration-300"
                   >
                     <Download className="w-4 h-4 text-slate-950" />
-                    <span>Save / Download {formattedFilename}</span>
+                    <span>Save to Phone / Storage</span>
+                  </button>
+
+                  {/* Direct Browser Download Link for Android Chrome / Mobile */}
+                  <a
+                    href={downloadUrl}
+                    download={formattedFilename}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#171722] hover:bg-[#20202e] border border-cyan-500/40 text-cyan-300 hover:text-cyan-200 font-bold text-xs rounded-lg transition cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 text-cyan-400" />
+                    <span>Direct Download (.MP4)</span>
+                  </a>
+
+                  {/* Mobile Share Sheet / Gallery Export */}
+                  <button
+                    type="button"
+                    onClick={() => onSaveToNativeStorage(downloadUrl, formattedFilename)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-500/40 text-emerald-300 hover:text-emerald-200 font-bold text-xs rounded-lg transition cursor-pointer"
+                  >
+                    <Share2 className="w-4 h-4 text-emerald-400" />
+                    <span>Share / Save to Gallery</span>
                   </button>
 
                   {/* Google Drive Upload Trigger */}

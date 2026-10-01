@@ -32,6 +32,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="2.5.1" date="2026-10-01">
+      <description>
+        <p>Production release v2.5.1 featuring official custom domain cutecutpro.com support routing, active Cloudflare DNS/SSL hardening, automated package manager parity for Microsoft WinGet, F-Droid, and AppImageHub catalogs, and updated responsive timeline controls.</p>
+      </description>
+    </release>
     <release version="2.4.5" date="2026-09-24">
       <description>
         <p>Production release with launcher script POSIX formatting fix, window auto-maximize on startup, PulseAudio/PipeWire auto-routing, and interactive searchable Surah picker.</p>

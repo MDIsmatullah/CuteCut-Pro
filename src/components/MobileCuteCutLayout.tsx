@@ -5,7 +5,7 @@ import {
   FolderOpen, Sparkles, SlidersHorizontal, Image as ImageIcon,
   Check, Volume2, Split, Trash2, Copy, Zap, ArrowLeft,
   Ratio, Smile, Move, Eye, RotateCw, ZoomIn, Mic, Film,
-  AlignLeft, Sun, MessageSquare, Gauge, Bell
+  AlignLeft, Sun, MessageSquare, Gauge, Bell, BookOpen
 } from 'lucide-react';
 import { Clip } from '../types';
 
@@ -13,6 +13,8 @@ export type GlobalMobileTab =
   | 'media' 
   | 'audio' 
   | 'sfx'
+  | 'quran'
+  | 'visuals'
   | 'text' 
   | 'overlay' 
   | 'effects' 
@@ -105,6 +107,8 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
     { id: 'media', label: 'Media', icon: Layers },
     { id: 'audio', label: 'Audio', icon: Music },
     { id: 'sfx', label: 'Sound FX', icon: Bell },
+    { id: 'quran', label: 'Quran AI', icon: BookOpen },
+    { id: 'visuals', label: 'Visuals', icon: Sparkles },
     { id: 'text', label: 'Text', icon: Type },
     { id: 'overlay', label: 'Overlay', icon: ImageIcon },
     { id: 'effects', label: 'Effects', icon: Wand2 },
@@ -207,8 +211,8 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
         </div>
       </header>
 
-      {/* 2. PREVIEW PLAYER STAGE (~35vh) */}
-      <div className="relative h-[35vh] w-full bg-[#050508] flex items-center justify-center p-2 shrink-0 overflow-hidden">
+      {/* 2. PREVIEW PLAYER STAGE (~35vh on mobile, 40vh on tablet) */}
+      <div className="relative h-[35vh] md:h-[40vh] w-full bg-[#050508] flex items-center justify-center p-2 shrink-0 overflow-hidden">
         {renderPreviewPlayer()}
       </div>
 
@@ -243,7 +247,7 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
 
       {/* 5. SLIDE-UP DRAWER (Dynamic for Main Tabs or Inspector Controls) */}
       {(activeGlobalDrawer || activeClipDrawer) && (
-        <div className="absolute inset-x-0 bottom-16 max-h-[72vh] bg-[#12121b] border-t-2 border-cyan-500/60 rounded-t-2xl shadow-2xl z-40 flex flex-col animate-in slide-in-from-bottom duration-200">
+        <div className="absolute inset-x-0 bottom-16 max-h-[72vh] md:max-h-[60vh] md:max-w-2xl md:mx-auto bg-[#12121b] border-t-2 border-cyan-500/60 md:border md:border-cyan-500/40 md:rounded-2xl rounded-t-2xl shadow-2xl z-40 flex flex-col animate-in slide-in-from-bottom duration-200">
           
           {/* Drawer Header */}
           <div className="flex items-center justify-between px-4 py-2.5 bg-[#171724] border-b border-[#252538] rounded-t-2xl">
@@ -251,6 +255,9 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
               <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
                 {activeGlobalDrawer === 'media' && <Layers className="w-3.5 h-3.5" />}
                 {activeGlobalDrawer === 'audio' && <Music className="w-3.5 h-3.5" />}
+                {activeGlobalDrawer === 'sfx' && <Bell className="w-3.5 h-3.5" />}
+                {activeGlobalDrawer === 'quran' && <BookOpen className="w-3.5 h-3.5 text-amber-400" />}
+                {activeGlobalDrawer === 'visuals' && <Sparkles className="w-3.5 h-3.5 text-emerald-400" />}
                 {activeGlobalDrawer === 'text' && <Type className="w-3.5 h-3.5" />}
                 {activeGlobalDrawer === 'overlay' && <ImageIcon className="w-3.5 h-3.5" />}
                 {activeGlobalDrawer === 'effects' && <Wand2 className="w-3.5 h-3.5" />}
@@ -267,6 +274,12 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
                   ? 'AI Auto-Sync & Segmentation Studio'
                   : activeGlobalDrawer === 'media'
                   ? 'Media & Assets Library'
+                  : activeGlobalDrawer === 'quran'
+                  ? 'Quran AI Studio'
+                  : activeGlobalDrawer === 'visuals'
+                  ? 'Islamic Visuals & Effects'
+                  : activeGlobalDrawer === 'sfx'
+                  ? 'Sound FX Library'
                   : `${activeGlobalDrawer} Studio`}
               </span>
             </div>
@@ -384,6 +397,7 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
                   activeGlobalDrawer === 'media' ? 'upload' :
                   activeGlobalDrawer === 'overlay' ? 'video' :
                   activeGlobalDrawer === 'canvas' ? 'background' :
+                  activeGlobalDrawer === 'visuals' ? 'quran-visuals' :
                   activeGlobalDrawer
                 )}
               </div>
@@ -560,7 +574,7 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
           </div>
         ) : (
           /* CASE B: NO CLIP IS SELECTED -> SHOW GLOBAL CAPCUT TOOLBAR */
-          <div className="flex items-center gap-2 overflow-x-auto touch-pan-x no-scrollbar px-3 py-1 w-full">
+          <div className="flex items-center gap-2 md:justify-center overflow-x-auto touch-pan-x no-scrollbar px-3 py-1 w-full">
             {globalNavItems.map(item => {
               const Icon = item.icon;
               const isActive = activeGlobalDrawer === item.id;

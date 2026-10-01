@@ -7,6 +7,15 @@
  * - Rewarded Ad ID: ca-app-pub-8898043565822840/5391253975
  */
 
+import { Capacitor } from '@capacitor/core';
+import {
+  AdMob,
+  BannerAdPosition,
+  BannerAdSize,
+  InterstitialAdPluginEvents,
+  RewardAdPluginEvents,
+} from '@capacitor-community/admob';
+
 export interface AdMobConfig {
   appId: string;
   bannerId: string;
@@ -21,7 +30,7 @@ export const ADMOB_CREDENTIALS: AdMobConfig = {
   rewardedId: 'ca-app-pub-8898043565822840/5391253975',
 };
 
-// Official Google AdMob Test Unit IDs (Use during local dev to protect AdMob account)
+// Official Google AdMob Test Unit IDs
 export const ADMOB_TEST_IDS: AdMobConfig = {
   appId: 'ca-app-pub-3940256099942544~3347511713',
   bannerId: 'ca-app-pub-3940256099942544/6300978111',
@@ -35,8 +44,7 @@ export class AdMobService {
 
   public static isNativeAndroid(): boolean {
     if (typeof window === 'undefined') return false;
-    const win = window as any;
-    return !!(win.Capacitor && win.Capacitor.isNativePlatform && win.Capacitor.isNativePlatform());
+    return Capacitor.isNativePlatform();
   }
 
   public static setTestingMode(enable: boolean) {
@@ -50,15 +58,14 @@ export class AdMobService {
   public static async initialize(): Promise<void> {
     if (this.isInitialized) return;
     try {
-      const win = window as any;
-      if (win.Capacitor?.Plugins?.AdMob) {
-        await win.Capacitor.Plugins.AdMob.initialize({
+      if (Capacitor.isNativePlatform()) {
+        await AdMob.initialize({
           testingDevices: ['EMULATOR'],
           initializeForTesting: this.isTestingMode,
         });
         console.log('[AdMob] Native Android SDK initialized with App ID:', ADMOB_CREDENTIALS.appId);
       } else {
-        console.log('[AdMob] Web / Mobile Ready with credentials');
+        console.log('[AdMob] Web / Mobile Platform ready with credentials');
       }
       this.isInitialized = true;
     } catch (err) {
@@ -74,13 +81,12 @@ export class AdMobService {
     try {
       await this.initialize();
       const config = this.getActiveConfig();
-      const win = window as any;
 
-      if (win.Capacitor?.Plugins?.AdMob) {
-        await win.Capacitor.Plugins.AdMob.showBanner({
+      if (Capacitor.isNativePlatform()) {
+        await AdMob.showBanner({
           adId: config.bannerId,
-          adSize: 'ADAPTIVE_BANNER',
-          position: 'BOTTOM_CENTER',
+          adSize: BannerAdSize.ADAPTIVE_BANNER,
+          position: BannerAdPosition.BOTTOM_CENTER,
           margin: 0,
           isTesting: this.isTestingMode,
         });
@@ -93,11 +99,10 @@ export class AdMobService {
 
   public static async hideBanner(): Promise<void> {
     try {
-      const win = window as any;
-      if (win.Capacitor?.Plugins?.AdMob) {
-        await win.Capacitor.Plugins.AdMob.hideBanner();
+      if (Capacitor.isNativePlatform()) {
+        await AdMob.hideBanner();
       }
-    } catch (err) {
+    } catch {
       // Ignored
     }
   }
@@ -109,14 +114,13 @@ export class AdMobService {
     try {
       await this.initialize();
       const config = this.getActiveConfig();
-      const win = window as any;
 
-      if (win.Capacitor?.Plugins?.AdMob) {
-        await win.Capacitor.Plugins.AdMob.prepareInterstitial({
+      if (Capacitor.isNativePlatform()) {
+        await AdMob.prepareInterstitial({
           adId: config.interstitialId,
           isTesting: this.isTestingMode,
         });
-        await win.Capacitor.Plugins.AdMob.showInterstitial();
+        await AdMob.showInterstitial();
         console.log('[AdMob] Interstitial ad shown after export:', config.interstitialId);
       } else {
         console.log('[AdMob Simulated] Interstitial Ad triggered for export completion:', config.interstitialId);
@@ -128,10 +132,12 @@ export class AdMobService {
 
   /**
    * 3. Pre-Export Full-Screen Ad
-   * Plays automatically when user taps "Export Video" on Android/Mobile.
-   * Once the ad is closed or finished, onComplete is called to start the export.
+   * Displays Google AdMob interstitial on Native Android or triggers the in-app ad modal on web/mobile.
    */
-  public static async showExportAd(onComplete: () => void): Promise<void> {
+  public static async showExportAd(
+    onComplete: () => void,
+    onShowInAppAd?: () => void
+  ): Promise<void> {
     let completed = false;
     const finish = () => {
       if (!completed) {
@@ -140,19 +146,17 @@ export class AdMobService {
       }
     };
 
-    // Safety timeout: if ad network takes too long or device is offline, proceed after 3.5 seconds
+    // Safety timeout: 4 seconds maximum wait for native ad
     const fallbackTimer = setTimeout(() => {
       console.log('[AdMob] Pre-export ad fallback timer reached, starting export.');
       finish();
-    }, 3500);
+    }, 4500);
 
     try {
       await this.initialize();
       const config = this.getActiveConfig();
-      const win = window as any;
 
-      if (win.Capacitor?.Plugins?.AdMob) {
-        // Prepare listeners
+      if (Capacitor.isNativePlatform()) {
         let dismissListener: any;
         let failListener: any;
 
@@ -162,8 +166,8 @@ export class AdMobService {
           if (failListener && typeof failListener.remove === 'function') failListener.remove();
         };
 
-        dismissListener = await win.Capacitor.Plugins.AdMob.addListener(
-          'onInterstitialDismissed',
+        dismissListener = await AdMob.addListener(
+          InterstitialAdPluginEvents.Dismissed,
           () => {
             cleanup();
             console.log('[AdMob] Pre-export ad dismissed by user. Starting export.');
@@ -171,31 +175,42 @@ export class AdMobService {
           }
         );
 
-        failListener = await win.Capacitor.Plugins.AdMob.addListener(
-          'onInterstitialFailedToShow',
+        failListener = await AdMob.addListener(
+          InterstitialAdPluginEvents.FailedToShow,
           () => {
             cleanup();
-            console.warn('[AdMob] Ad failed to show, starting export directly.');
-            finish();
+            console.warn('[AdMob] Native ad failed to show, launching in-app sponsor ad or export.');
+            if (onShowInAppAd) {
+              onShowInAppAd();
+            } else {
+              finish();
+            }
           }
         );
 
-        await win.Capacitor.Plugins.AdMob.prepareInterstitial({
+        await AdMob.prepareInterstitial({
           adId: config.interstitialId,
           isTesting: this.isTestingMode,
         });
 
-        await win.Capacitor.Plugins.AdMob.showInterstitial();
+        await AdMob.showInterstitial();
       } else {
-        console.log('[AdMob Simulated] Pre-export Interstitial Ad shown:', config.interstitialId);
         clearTimeout(fallbackTimer);
-        // Small delay in web to simulate ad trigger
-        setTimeout(finish, 800);
+        // On web/mobile browser, trigger in-app ad experience so user actually sees an ad
+        if (onShowInAppAd) {
+          onShowInAppAd();
+        } else {
+          setTimeout(finish, 800);
+        }
       }
     } catch (err) {
       console.warn('[AdMob] showExportAd notice:', err);
       clearTimeout(fallbackTimer);
-      finish();
+      if (onShowInAppAd) {
+        onShowInAppAd();
+      } else {
+        finish();
+      }
     }
   }
 
@@ -206,11 +221,10 @@ export class AdMobService {
     try {
       await this.initialize();
       const config = this.getActiveConfig();
-      const win = window as any;
 
-      if (win.Capacitor?.Plugins?.AdMob) {
-        const listener = await win.Capacitor.Plugins.AdMob.addListener(
-          'onRewarded',
+      if (Capacitor.isNativePlatform()) {
+        const listener = await AdMob.addListener(
+          RewardAdPluginEvents.Rewarded,
           () => {
             console.log('[AdMob] Rewarded video completed! Unlocking Pro features.');
             onRewardGranted();
@@ -220,11 +234,11 @@ export class AdMobService {
           }
         );
 
-        await win.Capacitor.Plugins.AdMob.prepareRewardVideoAd({
+        await AdMob.prepareRewardVideoAd({
           adId: config.rewardedId,
           isTesting: this.isTestingMode,
         });
-        await win.Capacitor.Plugins.AdMob.showRewardVideoAd();
+        await AdMob.showRewardVideoAd();
       } else {
         console.log('[AdMob Simulated] Rewarded Video watched:', config.rewardedId);
         onRewardGranted();

@@ -487,9 +487,13 @@ interface MediaPanelProps {
   quranKaraokeSyncOffsetMs?: number;
   setQuranKaraokeSyncOffsetMs?: (offsetMs: number) => void;
   // Veo AI Video Generation Callback
-  onOpenVeoAnimateModal?: () => void;
+  onOpenVeoAnimateModal?: (mode?: 'prompt_to_video' | 'image_to_video' | 'first_last_frame') => void;
   // AI Prompt-to-Video Studio Callback
   onOpenAiPromptStudio?: () => void;
+  // Gemini AI Intelligence Modal Callback
+  onOpenGeminiIntelligenceModal?: () => void;
+  // Sora Photo Modal Callback
+  onOpenSoraPhotoModal?: () => void;
   // Controlled tab selection
   initialTab?: 'ai-studio' | 'upload' | 'video' | 'audio' | 'sfx' | 'image' | 'text' | 'stickers' | 'effects' | 'transitions' | 'filters' | 'adjustment' | 'quran-visuals' | 'quran' | 'background' | 'watermark';
 }
@@ -501,6 +505,8 @@ export default function MediaPanel({
   initialTab,
   onOpenVeoAnimateModal,
   onOpenAiPromptStudio,
+  onOpenGeminiIntelligenceModal,
+  onOpenSoraPhotoModal,
   onAlignQuran,
   aligningStatus,
   quranArabicFont,
@@ -1743,14 +1749,14 @@ export default function MediaPanel({
           { id: 'video', label: 'Stock', icon: Film, isPurple: false, isAmber: false, isEmerald: false },
           { id: 'audio', label: 'Audio', icon: Music, isPurple: false, isAmber: false, isEmerald: false },
           { id: 'sfx', label: 'Sound FX', icon: Bell, isPurple: false, isAmber: false, isEmerald: false },
+          { id: 'quran', label: 'Quran AI', icon: BookOpen, isPurple: false, isAmber: true, isEmerald: false },
+          { id: 'quran-visuals', label: 'Visuals', icon: Sparkles, isPurple: false, isAmber: false, isEmerald: true },
           { id: 'text', label: 'Text', icon: Type, isPurple: false, isAmber: false, isEmerald: false },
           { id: 'stickers', label: 'Stickers', icon: Smile, isPurple: false, isAmber: false, isEmerald: false },
           { id: 'effects', label: 'Effects', icon: Wand2, isPurple: false, isAmber: false, isEmerald: false },
           { id: 'transitions', label: 'Transitions', icon: Blend, isPurple: false, isAmber: false, isEmerald: false },
           { id: 'filters', label: 'Filters', icon: Palette, isPurple: false, isAmber: false, isEmerald: false },
           { id: 'adjustment', label: 'Adjust', icon: Sliders, isPurple: false, isAmber: false, isEmerald: false },
-          { id: 'quran', label: 'Quran AI', icon: BookOpen, isPurple: false, isAmber: true, isEmerald: false },
-          { id: 'quran-visuals', label: 'Visuals', icon: Sparkles, isPurple: false, isAmber: false, isEmerald: true },
           { id: 'background', label: 'Free BG', icon: Globe, isPurple: false, isAmber: false, isEmerald: false },
           { id: 'watermark', label: 'Branding', icon: Shield, isPurple: false, isAmber: false, isEmerald: false },
         ].map((tab) => {
@@ -1807,19 +1813,45 @@ export default function MediaPanel({
                     onClick={() => {
                       if (onOpenAiPromptStudio) onOpenAiPromptStudio();
                     }}
-                    className="px-4 py-2.5 bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-500 hover:to-pink-500 text-white font-extrabold text-xs rounded-xl transition shadow-lg shadow-purple-900/40 flex items-center gap-2 cursor-pointer active:scale-95"
+                    className="px-3.5 py-2 bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl transition shadow-lg shadow-purple-900/40 flex items-center gap-2 cursor-pointer active:scale-95"
                   >
                     <Wand2 className="w-4 h-4" />
-                    <span>Open AI Prompt-to-Video Studio</span>
+                    <span>AI Video Studio</span>
+                    <span className="text-[9px] bg-purple-900/60 px-1 py-0.5 rounded font-mono font-bold">PRO</span>
                   </button>
+
                   <button
                     onClick={() => {
-                      if (onOpenVeoAnimateModal) onOpenVeoAnimateModal();
+                      if (onOpenGeminiIntelligenceModal) onOpenGeminiIntelligenceModal();
                     }}
-                    className="px-4 py-2.5 bg-[#201733] hover:bg-[#2c2045] text-purple-200 border border-purple-500/30 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer active:scale-95"
+                    className="px-3.5 py-2 bg-[#1d1828] hover:bg-[#272038] text-purple-200 border border-purple-500/40 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <Brain className="w-4 h-4 text-purple-400" />
+                    <span>Gemini AI Intelligence</span>
+                    <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1 py-0.5 rounded font-mono font-bold border border-purple-500/30">PRO</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onOpenVeoAnimateModal) onOpenVeoAnimateModal('prompt_to_video');
+                    }}
+                    className="px-3.5 py-2 bg-[#0e1d2c] hover:bg-[#152a3f] text-cyan-200 border border-cyan-500/40 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer active:scale-95"
                   >
                     <Film className="w-4 h-4 text-cyan-400" />
-                    <span>Veo 3.1 Photo Animator</span>
+                    <span>Veo AI Video</span>
+                    <span className="text-[9px] bg-cyan-500/20 text-cyan-300 px-1 py-0.5 rounded font-mono font-bold border border-cyan-500/30">VEO 3.1</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onOpenSoraPhotoModal) onOpenSoraPhotoModal();
+                      else if (onOpenVeoAnimateModal) onOpenVeoAnimateModal('image_to_video');
+                    }}
+                    className="px-3.5 py-2 bg-[#261520] hover:bg-[#381c2d] text-rose-200 border border-rose-500/40 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <Sparkles className="w-4 h-4 text-rose-400" />
+                    <span>Sora Photo</span>
+                    <span className="text-[9px] bg-rose-500/20 text-rose-300 px-1 py-0.5 rounded font-mono font-bold border border-rose-500/30">SORA</span>
                   </button>
                 </div>
               </div>
