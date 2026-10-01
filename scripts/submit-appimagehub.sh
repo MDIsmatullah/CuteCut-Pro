@@ -74,7 +74,7 @@ gh pr create \
 
 - **Application Name**: CuteCut Pro
 - **GitHub Repository**: https://github.com/MDIsmatullah/CuteCut-Pro
-- **Releases Page**: https://github.com/MDIsmatullah/CuteCut-Pro/releases/tag/v2.4.1
+- **Releases Page**: https://github.com/MDIsmatullah/CuteCut-Pro/releases
 - **License**: MIT
 - **Summary**: Professional offline-first multitrack video editor with Quranic audio-to-text synchronization.
 
