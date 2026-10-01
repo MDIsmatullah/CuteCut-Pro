@@ -460,6 +460,18 @@ async function startServer() {
     return null;
   }
 
+  app.set('trust proxy', true);
+
+  // Auto redirect HTTP to HTTPS for custom domains
+  app.use((req, res, next) => {
+    const proto = req.headers['x-forwarded-proto'];
+    const host = req.get('host') || '';
+    if (proto === 'http' && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+      return res.redirect(301, `https://${host}${req.originalUrl}`);
+    }
+    next();
+  });
+
   // Enable CORS & Range support for all assets and media streaming
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
