@@ -75,7 +75,7 @@ jobs:
 
       - name: Install Node dependencies
         run: |
-          npm ci --include=optional --no-audit
+          npm ci --include=optional --no-audit --legacy-peer-deps || npm install --include=optional --no-audit --legacy-peer-deps
           echo "Verifying Tailwind Oxide native binding loading..."
           node -e "require('@tailwindcss/oxide'); console.log('Tailwind Oxide verified successfully!');"
           echo "Verifying lightningcss native binding loading..."

@@ -40,7 +40,7 @@ jobs:
       # 5. Install NPM dependencies
       - name: Install NPM Dependencies
         run: |
-          npm install --include=optional --no-audit
+          npm install --include=optional --no-audit --legacy-peer-deps
 
       # 6. Build Web / Vite distribution bundle
       - name: Build Web Application

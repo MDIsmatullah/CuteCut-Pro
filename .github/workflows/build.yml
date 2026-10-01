@@ -48,7 +48,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm install --include=optional --no-audit
+          npm install --include=optional --no-audit --legacy-peer-deps
           npm rebuild esbuild rollup lightningcss || true
           node -e "try { require('lightningcss'); console.log('lightningcss ready'); } catch(e) { console.log('Fetching platform lightningcss...'); require('child_process').execSync('npm install --no-save --no-audit lightningcss @rollup/rollup'); }"
 
@@ -275,7 +275,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Install NPM Dependencies
-        run: npm install --include=optional --no-audit
+        run: npm install --include=optional --no-audit --legacy-peer-deps
 
       - name: Build Web Application Bundle
         run: npm run build
@@ -353,7 +353,7 @@ jobs:
 
       - name: Install Dependencies and Build Web Core
         run: |
-          npm install --include=optional --no-audit
+          npm install --include=optional --no-audit --legacy-peer-deps
           npm run build
           node scripts/generate-icons.cjs || true
 
