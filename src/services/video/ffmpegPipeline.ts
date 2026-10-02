@@ -5,6 +5,7 @@ import * as path from 'path';
 
 import { LayoutEngine } from './layoutEngine';
 import { HighlightPlanner } from './highlightPlanner';
+import { PerformanceManager } from '../performance/PerformanceManager';
 
 export interface RenderProgress {
   frame: number;
@@ -33,6 +34,35 @@ export class FFmpegPipeline {
     const fps = Number(timeline.fps || 30);
     if (!Number.isFinite(fps) || fps <= 0) return 30;
     return Math.min(60, Math.max(1, Math.round(fps)));
+  }
+
+  private static getFastEncodeArgs(): string[] {
+    const runtime = PerformanceManager.getInstance();
+    const optimization = runtime.getOptimization();
+    const encoders = spawnSync('ffmpeg', ['-encoders'], { encoding: 'utf8' });
+    const list = encoders.stdout || '';
+
+    if (list.includes('h264_nvenc') && optimization.useHardwareAccel) {
+      return ['-c:v', 'h264_nvenc', '-preset', 'p4', '-rc', 'constqp', '-qp', '23'];
+    }
+    if (list.includes('h264_qsv') && optimization.useHardwareAccel) {
+      return ['-c:v', 'h264_qsv', '-preset', 'veryfast'];
+    }
+    if (list.includes('h264_vaapi') && optimization.useHardwareAccel) {
+      return ['-c:v', 'h264_vaapi', '-qp', '23'];
+    }
+    if (list.includes('h264_v4l2m2m') && optimization.useHardwareAccel) {
+      return ['-c:v', 'h264_v4l2m2m', '-preset', 'veryfast'];
+    }
+
+    const presetMap: Record<string, string> = {
+      ultrafast: 'ultrafast',
+      veryfast: 'veryfast',
+      fast: 'fast',
+      medium: 'medium'
+    };
+
+    return ['-c:v', 'libx264', '-preset', presetMap[optimization.exportPreset] || 'veryfast', '-crf', optimization.exportPreset === 'medium' ? '18' : '20', '-threads', String(Math.max(1, optimization.threadsToUse))];
   }
 
   private static validateRenderOutput(outputPath: string): { isValid: boolean; message: string; details?: Record<string, unknown> } {
@@ -72,22 +102,15 @@ export class FFmpegPipeline {
     }
   }
 
-  /**
-   * Generates a complex FFmpeg filter graph for Quran video rendering.
-   * This is the core synthesis logic with proper video stream generation.
-   */
   static generateFilterGraph(timeline: RenderTimeline): string {
     const filters: string[] = [];
     const safeDuration = this.getSafeDuration(timeline);
     const { width, height } = timeline.resolution;
 
-    // 1. Create color background (generates a valid video stream)
     filters.push(`color=c=black:s=${width}x${height}:d=${safeDuration}[bg]`);
 
-    // Get layout config based on selection
     const layoutConfig = LayoutEngine.getLayoutConfig(timeline.scenes?.[0]?.layout || 'centered-quran', timeline.resolution);
 
-    // 2. Scene processing loop
     let lastOutput = 'bg';
     const safeScenes = Array.isArray(timeline.scenes) ? timeline.scenes : [];
 
@@ -118,9 +141,6 @@ export class FFmpegPipeline {
     return filters.join(';');
   }
 
-  /**
-   * Executes the FFmpeg command with proper video + audio muxing.
-   */
   static async render(
     timeline: RenderTimeline,
     outputPath: string,
@@ -139,6 +159,8 @@ export class FFmpegPipeline {
 
     const filterGraph = this.generateFilterGraph(timeline);
     const lastVideoLabel = timeline.scenes?.length ? `s${timeline.scenes.length - 1}` : 'bg';
+    const videoCodecArgs = this.getFastEncodeArgs();
+    const optimization = PerformanceManager.getInstance().getOptimization();
 
     const args = [
       '-y',
@@ -146,9 +168,7 @@ export class FFmpegPipeline {
       '-filter_complex', filterGraph,
       '-map', `[${lastVideoLabel}]`,
       '-map', '0:a',
-      '-c:v', 'libx264',
-      '-preset', 'medium',
-      '-crf', '18',
+      ...videoCodecArgs,
       '-pix_fmt', 'yuv420p',
       '-r', String(safeFps),
       '-c:a', 'aac',
@@ -160,6 +180,10 @@ export class FFmpegPipeline {
       '-fflags', '+genpts',
       outputPath
     ];
+
+    if (optimization.previewQuality < 0.75) {
+      args.splice(args.indexOf('-r') + 1, 0, String(Math.min(safeFps, 24)));
+    }
 
     return new Promise((resolve, reject) => {
       const process = spawn('ffmpeg', args);
