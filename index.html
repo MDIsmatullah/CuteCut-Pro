@@ -2,21 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Force HTTPS Redirection for custom domain -->
+    <!-- Force HTTPS & Auto-Redirect .web.app / .firebaseapp.com to official cutecutpro.com -->
     <script>
-      if (window.location.protocol === 'http:' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
-        window.location.replace('https://' + window.location.host + window.location.pathname + window.location.search + window.location.hash);
-      }
+      (function() {
+        var h = window.location.hostname;
+        var p = window.location.protocol;
+        if (h.endsWith('.web.app') || h.endsWith('.firebaseapp.com')) {
+          window.location.replace('https://cutecutpro.com' + window.location.pathname + window.location.search + window.location.hash);
+          return;
+        }
+        if (p === 'http:' && !h.includes('localhost') && !h.includes('127.0.0.1')) {
+          window.location.replace('https://' + h + window.location.pathname + window.location.search + window.location.hash);
+        }
+      })();
     </script>
     <link rel="icon" type="image/png" href="/icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- Primary Meta Tags -->
     <link rel="preload" href="/fonts/hafs-uthmanic-v14-full.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
-    <title>CuteCut Pro Video Editor</title>
-    <meta name="title" content="CuteCut Pro Video Editor" />
-    <meta name="description" content="Free online video editor & modern alternative to CapCut Pro and Filmora. Features multi-track timeline, blade splitting, speed curves, 4K export, and AI Quran video synthesis without watermark." />
-    <meta name="keywords" content="cutecut pro, capcut pro, capcut online, filmora, filmora online, filmora video editor, video editor, free video editor, online video editor, best free video editor, capcut alternative, filmora alternative, quran video editor, quran video maker, multi-track video editor, video editor without watermark, video editing online" />
+    <title>CuteCut Pro - Video & Audio Editor | AI Quran Captions</title>
+    <meta name="title" content="CuteCut Pro - Video & Audio Editor | AI Quran Captions" />
+    <meta name="description" content="Free online video and audio editor with AI Quran auto-captions, word-by-word subtitles, multi-track audio mixing, waveform editing, voiceover recording, speed curves, and 4K export without watermark." />
+    <meta name="keywords" content="cutecut pro, capcut pro, capcut online, filmora, filmora online, filmora video editor, capcut alternative, filmora alternative, video editor, free video editor, online video editor, best free video editor, multi-track video editor, video editor without watermark, video editing online, quran captions, quran caption generator, quran subtitles, quran auto caption, quran video editor with captions, quran status maker with subtitles, word by word quran captions, quran video editor, quran video maker, audio editing, audio editor, online audio editor, audio cutter, multi-track audio editor, audio waveform editor, voiceover recorder, sound mixing" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="author" content="CuteCut Pro" />
     <meta name="theme-color" content="#0e0e14" />
@@ -24,18 +32,18 @@
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="CuteCut Pro Video Editor" />
+    <meta property="og:site_name" content="CuteCut Pro Video & Audio Editor" />
     <meta property="og:url" content="https://cutecutpro.com/" />
-    <meta property="og:title" content="CuteCut Pro Video Editor" />
-    <meta property="og:description" content="Free online video editor & modern alternative to CapCut Pro and Filmora. Features multi-track timeline, blade splitting, speed curves, 4K export, and AI Quran video synthesis without watermark." />
+    <meta property="og:title" content="CuteCut Pro - Video & Audio Editor | AI Quran Captions" />
+    <meta property="og:description" content="Professional video and multi-track audio editor with automated Quran captions, word-by-word subtitles, audio waveform mixing, and 4K export without watermark." />
     <meta property="og:image" content="https://cutecutpro.com/icon.png" />
-    <meta property="og:image:alt" content="CuteCut Pro Video Editor Studio" />
+    <meta property="og:image:alt" content="CuteCut Pro Video and Audio Editor Studio" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://cutecutpro.com/" />
-    <meta property="twitter:title" content="CuteCut Pro Video Editor" />
-    <meta property="twitter:description" content="Free online video editor & modern alternative to CapCut Pro and Filmora. Features multi-track timeline, blade splitting, speed curves, 4K export, and AI Quran video synthesis without watermark." />
+    <meta property="twitter:title" content="CuteCut Pro - Video & Audio Editor | AI Quran Captions" />
+    <meta property="twitter:description" content="Professional video and multi-track audio editor with automated Quran captions, word-by-word subtitles, audio waveform mixing, and 4K export without watermark." />
     <meta property="twitter:image" content="https://cutecutpro.com/icon.png" />
 
     <!-- Schema.org JSON-LD Structured Data for Google Search -->
@@ -46,30 +54,33 @@
         {
           "@type": "WebApplication",
           "@id": "https://cutecutpro.com/#webapp",
-          "name": "CuteCut Pro Video Editor",
+          "name": "CuteCut Pro - Video & Audio Editor",
           "alternateName": [
             "CuteCut Pro",
+            "Quran Caption Maker",
+            "Quran Auto Subtitle Generator",
+            "Multi-Track Audio Editor",
             "CapCut Pro Alternative",
-            "Filmora Online Alternative",
-            "CuteCut Video Editor"
+            "Filmora Online Alternative"
           ],
           "url": "https://cutecutpro.com/",
           "applicationCategory": "MultimediaApplication",
           "operatingSystem": "All, Windows, macOS, Linux, Android, iOS, Web",
-          "description": "Powerful multi-track online video editor and modern alternative to CapCut Pro and Filmora. Features blade splitting, speed velocity curves, color grading, audio synchronization, and Quran video synthesis.",
+          "description": "Comprehensive video and audio editor featuring automated Quran caption generator, word-by-word Arabic subtitles, multi-track audio waveform mixing, voiceover recording, speed curves, and 4K export without watermark.",
           "offers": {
             "@type": "Offer",
             "price": "0",
             "priceCurrency": "USD"
           },
           "featureList": [
-            "Multi-track timeline video editing",
-            "CapCut Pro and Filmora style precision workflow",
-            "Frame-accurate blade splitting and trimming",
-            "Speed velocity curve adjustments",
+            "AI Quran auto-caption and word-by-word subtitle generator",
+            "Arabic calligraphy and Hafs Uthmanic font overlays",
+            "Multi-track audio editor, mixer, and waveform visualizer",
+            "Voiceover microphone recording with live hardware audio meter",
+            "CapCut Pro and Filmora style timeline precision workflow",
+            "Frame-accurate blade splitting, trimming, and audio detaching",
+            "Speed velocity curve adjustments and slow-motion",
             "4K and 1080p video export without watermark",
-            "Quran AI ayah recitation and auto subtitle synchronization",
-            "Real-time audio visualizer and hardware meters",
             "Green screen chroma keying and background removal"
           ]
         },
@@ -79,26 +90,26 @@
           "mainEntity": [
             {
               "@type": "Question",
+              "name": "How do I create Quran recitation videos with auto captions and subtitles?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "CuteCut Pro provides a dedicated Quran engine where you select the Surah, Ayah range, and reciter. The AI engine automatically synchronizes the Arabic text word-by-word and applies animated typography captions to your video."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I edit audio and add voiceovers in CuteCut Pro?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes! CuteCut Pro includes a complete audio editing studio with multi-track waveforms, volume envelopes, audio trimming, live voiceover microphone recording, and hardware volume meters."
+              }
+            },
+            {
+              "@type": "Question",
               "name": "Is CuteCut Pro a free alternative to CapCut Pro and Filmora?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Yes! CuteCut Pro provides a high-performance multi-track video editing experience in the browser with blade splitting, speed controls, transitions, filters, and 4K export without watermarks."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "Can I edit videos online without installing heavy software?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Yes, CuteCut Pro works directly in Google Chrome, Safari, Edge, and mobile browsers with hardware acceleration and cloud synchronization."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "Does CuteCut Pro support Quran recitation videos with auto sync?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Yes, CuteCut Pro features a dedicated Quran AI engine with 60+ reciters, word-by-word karaoke synchronization, and Arabic calligraphy overlays."
+                "text": "Yes! CuteCut Pro provides a high-performance multi-track video and audio editing experience in the browser with blade splitting, speed controls, transitions, filters, and 4K export without watermarks."
               }
             }
           ]
