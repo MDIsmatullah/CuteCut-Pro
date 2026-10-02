@@ -95,7 +95,7 @@ export const NativeSplashScreen: React.FC<NativeSplashScreenProps> = ({
           <ShieldCheck className="w-3 h-3 text-cyan-400" />
           <span>{platformName}</span>
           <span className="text-gray-600">•</span>
-          <span className="text-teal-400 font-bold">v2.4.2</span>
+          <span className="text-teal-400 font-bold">v2.5.2</span>
         </div>
       </div>
     </div>

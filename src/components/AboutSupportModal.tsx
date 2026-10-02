@@ -90,7 +90,7 @@ export const AboutSupportModal: React.FC<AboutSupportModalProps> = ({
 
             <div className="hidden sm:flex items-center gap-2">
               <span className="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
-                v2.5.1 Pro
+                v2.5.2 Pro
               </span>
             </div>
           </div>
@@ -175,11 +175,13 @@ export const AboutSupportModal: React.FC<AboutSupportModalProps> = ({
 
                 <button
                   onClick={onSupportClick}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#FFDD00] hover:bg-[#FFE338] text-black font-extrabold text-xs shadow-lg shadow-yellow-500/20 active:scale-95 transition cursor-pointer"
-                  title="Buy Me a Coffee"
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF424D] hover:bg-[#ff5a64] text-white font-extrabold text-xs shadow-lg shadow-[#FF424D]/25 active:scale-95 transition cursor-pointer"
+                  title="Support CuteCut Pro on Patreon"
                 >
-                  <Coffee className="w-4 h-4 fill-black stroke-[2]" />
-                  <span>Buy Me a Coffee</span>
+                  <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
+                    <path d="M14.82 2.41a7.22 7.22 0 0 0-7.22 7.22 7.22 7.22 0 0 0 7.22 7.22 7.22 7.22 0 0 0 7.22-7.22 7.22 7.22 0 0 0-7.22-7.22zM1.96 2.41v19.18H5.6V2.41H1.96z" />
+                  </svg>
+                  <span>Support on Patreon</span>
                   <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
                 </button>
 

@@ -54,6 +54,7 @@ import {
   Info,
   Mail,
   Lock,
+  Menu,
   X
 } from 'lucide-react';
 import { UserProfile } from './AuthModal';
@@ -62,6 +63,7 @@ import { fetchLatestRelease, fallbackReleaseInfo, ReleaseInfo } from '../utils/r
 import { getUserNamedProjects, deleteUserNamedProject } from '../utils/firebaseConfig';
 import { ProLicenseService } from '../services/proLicenseService';
 import LegalPagesModal, { LegalTab } from './legal/LegalPagesModal';
+import { PWAInstallButton } from './PWAInstallButton';
 
 export interface LandingPortalProps {
   user: UserProfile | null;
@@ -377,6 +379,9 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
   const [isPlayingQuranAudio, setIsPlayingQuranAudio] = useState(false);
   const [quranAudioRef, setQuranAudioRef] = useState<HTMLAudioElement | null>(null);
 
+  // Mobile Drawer State
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   // Auto Reframe State
   const [reframeRatio, setReframeRatio] = useState<'9:16' | '16:9' | '1:1'>('9:16');
   const [reframeMode, setReframeMode] = useState<'smart_crop' | 'blur_padding' | 'pan_scan'>('smart_crop');
@@ -586,304 +591,373 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
     return `${String(m).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
   };
 
+  // Render sidebar contents (shared across desktop permanent sidebar & mobile drawer)
+  const renderSidebarContent = (isMobile: boolean = false) => (
+    <>
+      {/* Top: Logo & User Profile & Navigation */}
+      <div className="p-4 space-y-4">
+        {/* Brand Logo Header */}
+        <div className="flex items-center justify-between px-1 pt-1">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-500 p-0.5 shadow-lg shadow-cyan-500/20 flex items-center justify-center shrink-0">
+              <div className="w-full h-full bg-[#0d0d16] rounded-[10px] flex items-center justify-center">
+                <Scissors className="w-4 h-4 text-cyan-400 rotate-90" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-base tracking-tight text-white">CuteCut</span>
+                <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-400 to-orange-500 text-black shadow-sm">
+                  PRO
+                </span>
+              </div>
+              <div className="text-[10px] text-gray-400 font-mono flex items-center gap-1">
+                <span>v2.5.2</span>
+                <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
+                <span className="text-emerald-400">Native Engine</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Close button for mobile drawer */}
+          {isMobile && (
+            <button
+              onClick={() => setIsMobileSidebarOpen(false)}
+              className="p-1.5 rounded-xl bg-[#141422] hover:bg-[#1f1f32] text-gray-400 hover:text-white transition cursor-pointer border border-[#242438]"
+              title="Close Menu"
+              aria-label="Close Menu"
+            >
+              <X className="w-5 h-5 text-gray-300" />
+            </button>
+          )}
+        </div>
+
+        {/* User Sign-In / Profile Card */}
+        <div className="bg-[#141422] border border-[#242438] rounded-2xl p-3 shadow-md">
+          {user ? (
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-3">
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt="Avatar"
+                    className="w-10 h-10 rounded-full border border-cyan-400/50 object-cover shadow-sm shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-sm text-sm shrink-0">
+                    {user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-white truncate">
+                    {user.displayName || 'CuteCut Creator'}
+                  </div>
+                  <div className="text-[10px] text-gray-400 truncate font-mono">
+                    {user.email || 'Cloud Account'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1 border-t border-[#202034] text-[10px]">
+                <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Cloud Synced
+                </span>
+                {onSignOut ? (
+                  <button
+                    onClick={() => {
+                      if (isMobile) setIsMobileSidebarOpen(false);
+                      onSignOut();
+                    }}
+                    className="text-gray-400 hover:text-red-400 flex items-center gap-1 transition cursor-pointer"
+                    title="Sign Out"
+                  >
+                    <LogOut className="w-3 h-3" />
+                    <span>Sign out</span>
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-white">
+                <div className="w-5 h-5 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-[10px]">
+                  G
+                </div>
+                <span>Google Account Sync</span>
+              </div>
+              <p className="text-[11px] text-gray-400 leading-snug">
+                Sign in with Google to backup & sync your video drafts across web and desktop.
+              </p>
+              <button
+                onClick={() => {
+                  if (isMobile) setIsMobileSidebarOpen(false);
+                  if (onDirectGoogleSignIn) onDirectGoogleSignIn();
+                  else if (onOpenAuth) onOpenAuth();
+                }}
+                className="w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs rounded-xl shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>Sign in with Google</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation Items (CapCut Style) */}
+        <nav className="space-y-1 pt-1">
+          <button
+            onClick={() => {
+              setActiveNav('home');
+              if (isMobile) setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+              activeNav === 'home'
+                ? 'bg-gradient-to-r from-cyan-500/15 to-transparent text-cyan-400 border-l-2 border-cyan-400'
+                : 'text-gray-400 hover:bg-[#161626] hover:text-white'
+            }`}
+          >
+            <Layout className="w-4 h-4" />
+            <span className="flex-1 text-left">Home / Studio</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveNav('templates');
+              if (isMobile) setIsMobileSidebarOpen(false);
+              const el = document.getElementById('capcut-templates-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+              activeNav === 'templates'
+                ? 'bg-gradient-to-r from-amber-500/15 to-transparent text-amber-400 border-l-2 border-amber-400'
+                : 'text-gray-400 hover:bg-[#161626] hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span className="flex-1 text-left">Templates (ٹیمپلیٹس)</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              CapCut
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveNav('projects');
+              if (isMobile) setIsMobileSidebarOpen(false);
+              const el = document.getElementById('recent-projects-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+              activeNav === 'projects'
+                ? 'bg-gradient-to-r from-cyan-500/15 to-transparent text-cyan-400 border-l-2 border-cyan-400'
+                : 'text-gray-400 hover:bg-[#161626] hover:text-white'
+            }`}
+          >
+            <FolderOpen className="w-4 h-4" />
+            <span className="flex-1 text-left">My Projects</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#202034] text-gray-300">
+              {savedProjects.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (isMobile) setIsMobileSidebarOpen(false);
+              if (onOpenAiPromptStudio) onOpenAiPromptStudio();
+              else onOpenEditor();
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-purple-300 transition cursor-pointer group"
+          >
+            <Wand2 className="w-4 h-4 text-purple-400 group-hover:rotate-12 transition" />
+            <span className="flex-1 text-left">AI Video Studio</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              PRO
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (isMobile) setIsMobileSidebarOpen(false);
+              if (onOpenGeminiIntelligence) onOpenGeminiIntelligence();
+              else onOpenEditor();
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-indigo-300 transition cursor-pointer group"
+          >
+            <Brain className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition" />
+            <span className="flex-1 text-left">Gemini AI Intelligence</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              PRO
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (isMobile) setIsMobileSidebarOpen(false);
+              if (onOpenVeoAnimate) onOpenVeoAnimate();
+              else onOpenEditor();
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-cyan-300 transition cursor-pointer group"
+          >
+            <Film className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition" />
+            <span className="flex-1 text-left">Veo AI Video</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              VEO 3.1
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (isMobile) setIsMobileSidebarOpen(false);
+              if (onOpenSoraPhoto) onOpenSoraPhoto();
+              else if (onOpenVeoAnimate) onOpenVeoAnimate();
+              else onOpenEditor();
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-rose-300 transition cursor-pointer group"
+          >
+            <Sparkles className="w-4 h-4 text-rose-400 group-hover:scale-110 transition" />
+            <span className="flex-1 text-left">Sora Photo</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+              SORA
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (isMobile) setIsMobileSidebarOpen(false);
+              setShowQuranStudioModal(true);
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-emerald-300 transition cursor-pointer group"
+          >
+            <BookOpen className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition" />
+            <span className="flex-1 text-left">Quran 4K Studio</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              Free
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (isMobile) setIsMobileSidebarOpen(false);
+              onOpenProjectModal();
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-white transition cursor-pointer"
+          >
+            <HardDrive className="w-4 h-4 text-cyan-400" />
+            <span className="flex-1 text-left">Project Save & Export</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (isMobile) setIsMobileSidebarOpen(false);
+              setLegalModalTab('privacy');
+              setShowLegalModal(true);
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-cyan-300 transition cursor-pointer"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span className="flex-1 text-left">Privacy & Legal</span>
+            <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              AdSense
+            </span>
+          </button>
+        </nav>
+      </div>
+
+      {/* Bottom Banner */}
+      <div className="p-4">
+        <div className="rounded-2xl p-3.5 bg-gradient-to-br from-indigo-950/60 via-[#161628] to-[#121220] border border-indigo-500/30 shadow-lg relative overflow-hidden group">
+          <div className="absolute -top-6 -right-6 w-16 h-16 bg-cyan-500/20 rounded-full blur-xl pointer-events-none" />
+          <div className="flex items-center gap-2 mb-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-cyan-300">
+              Recommended
+            </span>
+          </div>
+          <div className="text-xs font-bold text-white mb-0.5">
+            CuteCut Pro v2.5.2
+          </div>
+          <p className="text-[10px] text-gray-400 leading-tight mb-2.5">
+            Filmora & CapCut Speed • 60 FPS Native FFmpeg • 100% Free & Open
+          </p>
+          <div className="flex items-center justify-between text-[10px] text-cyan-400 font-medium">
+            <span className="flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+              Offline-First Ready
+            </span>
+            <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-white transition" />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex h-screen w-screen bg-[#0a0a10] text-gray-100 font-sans overflow-hidden select-none">
       
       {/* ========================================================= */}
-      {/* 1. LEFT SIDEBAR (CAPCUT-STYLE WITH LUXURY GLASS FINISH)   */}
+      {/* 1. LEFT SIDEBAR (DESKTOP: PERMANENT, LG+ SCREENS)          */}
       {/* ========================================================= */}
-      <aside className="w-64 md:w-72 bg-[#0e0e18] border-r border-[#1e1e2e] flex flex-col justify-between shrink-0 z-20 shadow-2xl">
-        
-        {/* Top: Logo & User Profile */}
-        <div className="p-4 space-y-4">
-          
-          {/* Brand Logo Header */}
-          <div className="flex items-center justify-between px-1 pt-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-500 p-0.5 shadow-lg shadow-cyan-500/20 flex items-center justify-center">
-                <div className="w-full h-full bg-[#0d0d16] rounded-[10px] flex items-center justify-center">
-                  <Scissors className="w-4 h-4 text-cyan-400 rotate-90" />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-base tracking-tight text-white">CuteCut</span>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-400 to-orange-500 text-black shadow-sm">
-                    PRO
-                  </span>
-                </div>
-                <div className="text-[10px] text-gray-400 font-mono flex items-center gap-1">
-                  <span>v2.5.1</span>
-                  <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
-                  <span className="text-emerald-400">Native Engine</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* User Sign-In / Profile Card (Matching Screenshot Left Column) */}
-          <div className="bg-[#141422] border border-[#242438] rounded-2xl p-3 shadow-md">
-            {user ? (
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-3">
-                  {user.photoURL ? (
-                    <img
-                      src={user.photoURL}
-                      alt="Avatar"
-                      className="w-10 h-10 rounded-full border border-cyan-400/50 object-cover shadow-sm"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-sm text-sm">
-                      {user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-white truncate">
-                      {user.displayName || 'CuteCut Creator'}
-                    </div>
-                    <div className="text-[10px] text-gray-400 truncate font-mono">
-                      {user.email || 'Cloud Account'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1 border-t border-[#202034] text-[10px]">
-                  <span className="flex items-center gap-1 text-emerald-400 font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Cloud Synced
-                  </span>
-                  {onSignOut ? (
-                    <button
-                      onClick={onSignOut}
-                      className="text-gray-400 hover:text-red-400 flex items-center gap-1 transition cursor-pointer"
-                      title="Sign Out"
-                    >
-                      <LogOut className="w-3 h-3" />
-                      <span>Sign out</span>
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-white">
-                  <div className="w-5 h-5 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-[10px]">
-                    G
-                  </div>
-                  <span>Google Account Sync</span>
-                </div>
-                <p className="text-[11px] text-gray-400 leading-snug">
-                  Sign in with Google to backup & sync your video drafts across web and desktop.
-                </p>
-                <button
-                  onClick={onDirectGoogleSignIn || onOpenAuth}
-                  className="w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs rounded-xl shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 transition cursor-pointer"
-                >
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>Sign in with Google</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation Items (CapCut Style) */}
-          <nav className="space-y-1 pt-1">
-            <button
-              onClick={() => setActiveNav('home')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                activeNav === 'home'
-                  ? 'bg-gradient-to-r from-cyan-500/15 to-transparent text-cyan-400 border-l-2 border-cyan-400'
-                  : 'text-gray-400 hover:bg-[#161626] hover:text-white'
-              }`}
-            >
-              <Layout className="w-4 h-4" />
-              <span className="flex-1 text-left">Home / Studio</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveNav('templates');
-                const el = document.getElementById('capcut-templates-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                activeNav === 'templates'
-                  ? 'bg-gradient-to-r from-amber-500/15 to-transparent text-amber-400 border-l-2 border-amber-400'
-                  : 'text-gray-400 hover:bg-[#161626] hover:text-white'
-              }`}
-            >
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span className="flex-1 text-left">Templates (ٹیمپلیٹس)</span>
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                CapCut
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveNav('projects');
-                const el = document.getElementById('recent-projects-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                activeNav === 'projects'
-                  ? 'bg-gradient-to-r from-cyan-500/15 to-transparent text-cyan-400 border-l-2 border-cyan-400'
-                  : 'text-gray-400 hover:bg-[#161626] hover:text-white'
-              }`}
-            >
-              <FolderOpen className="w-4 h-4" />
-              <span className="flex-1 text-left">My Projects</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#202034] text-gray-300">
-                {savedProjects.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                if (onOpenAiPromptStudio) onOpenAiPromptStudio();
-                else onOpenEditor();
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-purple-300 transition cursor-pointer group"
-            >
-              <Wand2 className="w-4 h-4 text-purple-400 group-hover:rotate-12 transition" />
-              <span className="flex-1 text-left">AI Video Studio</span>
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                PRO
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                if (onOpenGeminiIntelligence) onOpenGeminiIntelligence();
-                else onOpenEditor();
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-indigo-300 transition cursor-pointer group"
-            >
-              <Brain className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition" />
-              <span className="flex-1 text-left">Gemini AI Intelligence</span>
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                PRO
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                if (onOpenVeoAnimate) onOpenVeoAnimate();
-                else onOpenEditor();
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-cyan-300 transition cursor-pointer group"
-            >
-              <Film className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition" />
-              <span className="flex-1 text-left">Veo AI Video</span>
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                VEO 3.1
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                if (onOpenSoraPhoto) onOpenSoraPhoto();
-                else if (onOpenVeoAnimate) onOpenVeoAnimate();
-                else onOpenEditor();
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-rose-300 transition cursor-pointer group"
-            >
-              <Sparkles className="w-4 h-4 text-rose-400 group-hover:scale-110 transition" />
-              <span className="flex-1 text-left">Sora Photo</span>
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                SORA
-              </span>
-            </button>
-
-            <button
-              onClick={() => setShowQuranStudioModal(true)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-emerald-300 transition cursor-pointer group"
-            >
-              <BookOpen className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition" />
-              <span className="flex-1 text-left">Quran 4K Studio</span>
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Free
-              </span>
-            </button>
-
-            <button
-              onClick={onOpenProjectModal}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-white transition cursor-pointer"
-            >
-              <HardDrive className="w-4 h-4 text-cyan-400" />
-              <span className="flex-1 text-left">Project Save & Export</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setLegalModalTab('privacy');
-                setShowLegalModal(true);
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-cyan-300 transition cursor-pointer"
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span className="flex-1 text-left">Privacy & Legal</span>
-              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                AdSense
-              </span>
-            </button>
-          </nav>
-        </div>
-
-        {/* Bottom Banner (CapCut Recommended: Professional Video Editor) */}
-        <div className="p-4">
-          <div className="rounded-2xl p-3.5 bg-gradient-to-br from-indigo-950/60 via-[#161628] to-[#121220] border border-indigo-500/30 shadow-lg relative overflow-hidden group">
-            <div className="absolute -top-6 -right-6 w-16 h-16 bg-cyan-500/20 rounded-full blur-xl pointer-events-none" />
-            <div className="flex items-center gap-2 mb-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-cyan-300">
-                Recommended
-              </span>
-            </div>
-            <div className="text-xs font-bold text-white mb-0.5">
-              CuteCut Pro v2.5.1
-            </div>
-            <p className="text-[10px] text-gray-400 leading-tight mb-2.5">
-              Filmora & CapCut Speed • 60 FPS Native FFmpeg • 100% Free & Open
-            </p>
-            <div className="flex items-center justify-between text-[10px] text-cyan-400 font-medium">
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                Offline-First Ready
-              </span>
-              <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-white transition" />
-            </div>
-          </div>
-        </div>
+      <aside className="hidden lg:flex w-64 xl:w-72 bg-[#0e0e18] border-r border-[#1e1e2e] flex-col justify-between shrink-0 z-20 shadow-2xl overflow-y-auto custom-scrollbar">
+        {renderSidebarContent(false)}
       </aside>
+
+      {/* ========================================================= */}
+      {/* 1.B MOBILE / TABLET SLIDE-OUT DRAWER OVERLAY (< LG)       */}
+      {/* ========================================================= */}
+      {isMobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Dark Blurred Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity animate-fadeIn"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+          {/* Sliding Drawer Container */}
+          <aside className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#0e0e18] border-r border-[#1e1e2e] flex flex-col justify-between shadow-2xl overflow-y-auto custom-scrollbar animate-slideRight">
+            {renderSidebarContent(true)}
+          </aside>
+        </div>
+      )}
 
       {/* ========================================================= */}
       {/* 2. MAIN WORKSPACE / CAPCUT-GRADE DASHBOARD AREA           */}
       {/* ========================================================= */}
-      <main className="flex-1 flex flex-col h-full overflow-y-auto bg-[#0a0a12] custom-scrollbar">
+      <main className="flex-1 flex flex-col h-full overflow-y-auto bg-[#0a0a12] custom-scrollbar w-full min-w-0">
         
         {/* Top Header Controls Bar */}
-        <header className="h-16 border-b border-[#1c1c2c] px-6 flex items-center justify-between bg-[#0e0e18]/80 backdrop-blur-md sticky top-0 z-30">
-          <div className="flex items-center gap-4">
-            <h1 className="text-sm font-bold text-white flex items-center gap-2">
-              <span>Welcome to CuteCut Pro Studio</span>
-              <span className="text-gray-500">•</span>
-              <span className="text-xs font-normal text-gray-400">
+        <header className="h-14 sm:h-16 border-b border-[#1c1c2c] px-3 sm:px-6 flex items-center justify-between bg-[#0e0e18]/80 backdrop-blur-md sticky top-0 z-30 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {/* Mobile / Tablet Hamburger Menu Button */}
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl bg-[#141422] border border-[#26263a] text-cyan-400 hover:text-white transition cursor-pointer shrink-0"
+              title="Open Navigation Menu"
+              aria-label="Open Navigation Menu"
+            >
+              <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs sm:text-sm font-bold text-white truncate">
+                CuteCut Pro Studio
+              </span>
+              <span className="hidden sm:inline text-gray-500">•</span>
+              <span className="hidden md:inline text-xs font-normal text-gray-400 truncate">
                 {user?.displayName ? `Signed in as ${user.displayName}` : 'CuteCutPro.com'}
               </span>
-            </h1>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Quick Search */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search projects..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-48 sm:w-64 bg-[#141422] border border-[#26263a] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400 transition"
+                className="w-24 sm:w-40 md:w-60 bg-[#141422] border border-[#26263a] rounded-xl pl-7 sm:pl-8 pr-2.5 sm:pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400 transition"
               />
             </div>
 
@@ -891,7 +965,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             <button
               onClick={syncProjects}
               disabled={isSyncing}
-              className="p-2 rounded-xl bg-[#141422] border border-[#26263a] hover:border-cyan-400/50 text-gray-300 hover:text-white transition cursor-pointer flex items-center gap-1.5 text-xs font-medium"
+              className="p-1.5 sm:p-2 rounded-xl bg-[#141422] border border-[#26263a] hover:border-cyan-400/50 text-gray-300 hover:text-white transition cursor-pointer flex items-center gap-1 text-xs font-medium shrink-0"
               title="Sync Projects"
             >
               <RotateCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-cyan-400' : ''}`} />
@@ -902,18 +976,21 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             <a
               href={release.assets.windowsExe}
               download
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141422] border border-[#26263a] hover:border-emerald-400/50 text-xs font-semibold text-gray-300 hover:text-white transition cursor-pointer"
+              className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141422] border border-[#26263a] hover:border-emerald-400/50 text-xs font-semibold text-gray-300 hover:text-white transition cursor-pointer shrink-0"
               title="Download Windows App"
             >
               <Download className="w-3.5 h-3.5 text-emerald-400" />
               <span>Get Native App</span>
             </a>
 
+            {/* 1-Click PWA Desktop / Mobile Install Button */}
+            <PWAInstallButton />
+
             {/* Header User Profile or Google Sign In Button */}
             {user ? (
               <button
                 onClick={onOpenAuth}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#141422] border border-[#26263a] hover:border-cyan-400/50 text-xs text-white transition cursor-pointer"
+                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-[#141422] border border-[#26263a] hover:border-cyan-400/50 text-xs text-white transition cursor-pointer shrink-0"
                 title="Account Settings & Cloud Storage"
               >
                 {user.photoURL ? (
@@ -923,7 +1000,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                     {user.displayName ? user.displayName.charAt(0).toUpperCase() : 'G'}
                   </div>
                 )}
-                <span className="font-semibold hidden sm:inline max-w-[120px] truncate">{user.displayName || 'Guldasta Islam'}</span>
+                <span className="font-semibold hidden md:inline max-w-[100px] truncate">{user.displayName || 'Creator'}</span>
                 <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-cyan-400 text-black">PRO</span>
               </button>
             ) : (
@@ -932,7 +1009,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                   if (onDirectGoogleSignIn) onDirectGoogleSignIn();
                   else if (onOpenAuth) onOpenAuth();
                 }}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-slate-950 font-bold text-xs shadow-md hover:scale-[1.02] transition active:scale-95 cursor-pointer"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-slate-950 font-bold text-xs shadow-md hover:scale-[1.02] transition active:scale-95 cursor-pointer shrink-0"
                 title="Sign in with Google"
               >
                 <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
@@ -941,42 +1018,43 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                 </svg>
-                <span>Sign in with Google</span>
+                <span className="hidden sm:inline">Sign in with Google</span>
+                <span className="sm:hidden">Sign in</span>
               </button>
             )}
           </div>
         </header>
 
         {/* Dashboard Main Scrollable Content */}
-        <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto w-full">
+        <div className="p-3.5 sm:p-6 md:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto w-full min-w-0">
           
           {/* ========================================================= */}
           {/* 3. HERO BANNER: "+ CREATE PROJECT" (AURORA GLOW)          */}
           {/* ========================================================= */}
-          <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl p-6 sm:p-8 border border-white/[0.08] bg-gradient-to-r from-[#201040] via-[#102048] to-[#0c3848]">
+          <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl p-4 sm:p-6 md:p-8 border border-white/[0.08] bg-gradient-to-r from-[#201040] via-[#102048] to-[#0c3848]">
             {/* Ambient Background Aura Lights */}
             <div className="absolute -top-24 -left-20 w-80 h-80 bg-purple-600/30 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-24 -right-20 w-80 h-80 bg-cyan-500/25 rounded-full blur-3xl pointer-events-none" />
             
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="space-y-2 text-center md:text-left">
+              <div className="space-y-2 text-center md:text-left w-full md:w-auto">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-cyan-300 text-xs font-bold tracking-wide">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Next-Generation Filmora & CapCut Engine</span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-md">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-md">
                   Create Stunning Video in Seconds
                 </h2>
-                <p className="text-xs sm:text-sm text-gray-300 max-w-xl leading-relaxed">
+                <p className="text-xs sm:text-sm text-gray-300 max-w-xl leading-relaxed mx-auto md:mx-0">
                   Hardware-accelerated 60 FPS multi-track timeline, frame-accurate split/trim, instant Quran Ayah alignment, and neural script-to-video AI.
                 </p>
 
                 {/* Aspect Ratio Fast Selectors */}
-                <div className="pt-2 flex items-center justify-center md:justify-start gap-2 text-xs">
-                  <span className="text-gray-400 font-medium mr-1">Canvas Format:</span>
+                <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-1.5 sm:gap-2 text-xs">
+                  <span className="text-gray-400 font-medium mr-1 text-xs">Canvas Format:</span>
                   <button
                     onClick={() => setSelectedRatio('16:9')}
-                    className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer text-xs ${
                       selectedRatio === '16:9'
                         ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/30'
                         : 'bg-black/40 text-gray-300 hover:text-white border border-white/10'
@@ -988,7 +1066,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
 
                   <button
                     onClick={() => setSelectedRatio('9:16')}
-                    className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer text-xs ${
                       selectedRatio === '9:16'
                         ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
                         : 'bg-black/40 text-gray-300 hover:text-white border border-white/10'
@@ -1000,7 +1078,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
 
                   <button
                     onClick={() => setSelectedRatio('1:1')}
-                    className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer text-xs ${
                       selectedRatio === '1:1'
                         ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/30'
                         : 'bg-black/40 text-gray-300 hover:text-white border border-white/10'
@@ -1013,10 +1091,10 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               </div>
 
               {/* Magnificent Create Project Giant Button */}
-              <div className="shrink-0 flex flex-col items-center gap-2">
+              <div className="shrink-0 flex flex-col items-center gap-2 w-full md:w-auto">
                 <button
                   onClick={() => onOpenEditor(selectedRatio)}
-                  className="px-8 py-5 rounded-2xl bg-white hover:bg-gray-100 text-black font-black text-base shadow-2xl hover:shadow-cyan-400/40 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center gap-3 cursor-pointer group"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-5 rounded-2xl bg-white hover:bg-gray-100 text-black font-black text-sm sm:text-base shadow-2xl hover:shadow-cyan-400/40 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center gap-3 cursor-pointer group"
                 >
                   <div className="w-7 h-7 rounded-xl bg-black text-white flex items-center justify-center group-hover:rotate-90 transition duration-300">
                     <Plus className="w-5 h-5" />
@@ -1430,7 +1508,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                 </p>
               </div>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Universal v2.5.1
+                Universal v2.5.2
               </span>
             </div>
 
@@ -1439,7 +1517,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.windowsExe}
                 download
-                onClick={() => handleDownloadClick('Windows', 'CuteCut.Pro.Setup.2.5.1.exe')}
+                onClick={() => handleDownloadClick('Windows', 'CuteCut.Pro.Setup.2.5.2.exe')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-cyan-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download Windows 64-bit EXE (WinGet Supported)"
               >
@@ -1457,7 +1535,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.macDmg}
                 download
-                onClick={() => handleDownloadClick('macOS DMG', 'CuteCut.Pro-2.5.1-arm64.dmg')}
+                onClick={() => handleDownloadClick('macOS DMG', 'CuteCut.Pro-2.5.2-arm64.dmg')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-gray-300 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download macOS DMG (Apple Silicon & Intel)"
               >
@@ -1475,7 +1553,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.macPkg || release.assets.windowsExe}
                 download
-                onClick={() => handleDownloadClick('macOS PKG', 'CuteCut.Pro-2.5.1.pkg')}
+                onClick={() => handleDownloadClick('macOS PKG', 'CuteCut.Pro-2.5.2.pkg')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-amber-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download Native .PKG Installer"
               >
@@ -1493,7 +1571,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.linuxAppImage}
                 download
-                onClick={() => handleDownloadClick('Linux AppImage', 'CuteCut.Pro-2.5.1-x86_64.AppImage')}
+                onClick={() => handleDownloadClick('Linux AppImage', 'CuteCut.Pro-2.5.2-x86_64.AppImage')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-emerald-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download Linux AppImage (AppImageHub Supported)"
               >
@@ -1511,7 +1589,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.linuxDeb}
                 download
-                onClick={() => handleDownloadClick('Debian / Ubuntu', 'cutecut-pro_2.5.1_amd64.deb')}
+                onClick={() => handleDownloadClick('Debian / Ubuntu', 'cutecut-pro_2.5.2_amd64.deb')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-blue-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download Debian/Ubuntu .deb package"
               >
@@ -1529,7 +1607,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.linuxPkg || release.assets.linuxDeb}
                 download
-                onClick={() => handleDownloadClick('Linux Tar PKG', 'cutecut-pro-2.5.1.tar.gz')}
+                onClick={() => handleDownloadClick('Linux Tar PKG', 'cutecut-pro-2.5.2.tar.gz')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-teal-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download Linux Universal Tar / PKG"
               >
@@ -1547,7 +1625,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.androidApk || 'https://github.com/MDIsmatullah/CuteCut-Pro/releases/latest'}
                 download
-                onClick={() => handleDownloadClick('Android APK', 'CuteCut-Pro-v2.5.1.apk')}
+                onClick={() => handleDownloadClick('Android APK', 'CuteCut-Pro-v2.5.2.apk')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-green-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download Android APK Direct"
               >
@@ -1859,7 +1937,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                   </div>
                   <span className="font-extrabold text-white text-sm">CuteCut Pro Studio</span>
                   <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-400 text-black">
-                    v2.5.1
+                    v2.5.2
                   </span>
                 </div>
                 <p className="text-xs text-gray-400 leading-relaxed">
@@ -2678,7 +2756,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             </div>
             <div className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              <span>CuteCut Pro v2.5.1 Official Binary</span>
+              <span>CuteCut Pro v2.5.2 Official Binary</span>
             </div>
           </div>
           <button

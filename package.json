@@ -2,7 +2,7 @@
   "name": "cutecut-pro",
   "productName": "CuteCut Pro",
   "private": true,
-  "version": "2.5.1",
+  "version": "2.5.2",
   "license": "SEE LICENSE IN LICENSE",
   "description": "CuteCut Pro is a powerful desktop video editing application featuring multi-track timeline management, real-time audio visualization, and precise Quranic audio-to-text synchronization.",
   "homepage": "https://github.com/MDIsmatullah/CuteCut-Pro",
@@ -295,7 +295,8 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "vite-plugin-pwa": "^1.3.0"
   },
   "overrides": {
     "nanoid": "^3.3.8"

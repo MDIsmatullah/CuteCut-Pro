@@ -3790,15 +3790,17 @@ export default function PreviewPlayer({
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   <a
-                    href="https://buymeacoffee.com/asdevolper"
+                    href="https://www.patreon.com/cw/CuteCutPro/membership"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FFDD00] hover:bg-[#FFE338] text-black font-extrabold text-[11px] shadow-md shadow-yellow-500/20 active:scale-95 transition cursor-pointer"
-                    title="Support via Buy Me a Coffee"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF424D] hover:bg-[#ff5a64] text-white font-extrabold text-[11px] shadow-md shadow-[#FF424D]/25 active:scale-95 transition cursor-pointer"
+                    title="Support CuteCut Pro on Patreon"
                   >
-                    <Coffee className="w-3.5 h-3.5 fill-black stroke-[2]" />
-                    <span className="hidden sm:inline">Buy Me a Coffee</span>
-                    <span className="sm:hidden">Support</span>
+                    <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
+                      <path d="M14.82 2.41a7.22 7.22 0 0 0-7.22 7.22 7.22 7.22 0 0 0 7.22 7.22 7.22 7.22 0 0 0 7.22-7.22 7.22 7.22 0 0 0-7.22-7.22zM1.96 2.41v19.18H5.6V2.41H1.96z" />
+                    </svg>
+                    <span className="hidden sm:inline">Support on Patreon</span>
+                    <span className="sm:hidden">Patreon</span>
                     <ExternalLink className="w-3 h-3 ml-0.5" />
                   </a>
                 </div>

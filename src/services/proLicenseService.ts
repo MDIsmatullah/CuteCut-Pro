@@ -1,6 +1,6 @@
 // CuteCut Pro License & AI Credits Management Service
 
-export const GUMROAD_PURCHASE_URL = 'https://guldasta.gumroad.com/l/cutecut-pro';
+export const GUMROAD_PURCHASE_URL = 'https://8327535504967.gumroad.com/l/cutecut-pro';
 
 const STORAGE_KEY_PRO_LICENSE = 'cutecut_pro_license_key';
 const STORAGE_KEY_PRO_STATUS = 'cutecut_pro_is_activated';

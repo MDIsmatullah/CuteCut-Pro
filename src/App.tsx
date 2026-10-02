@@ -60,6 +60,8 @@ import { parseMixedAyahsString } from './utils/quranSurahData';
 import { auth, googleProvider, saveUserTimelineProject, getUserTimelineProject, syncUserProfileToFirestore } from './utils/firebaseConfig';
 import { getSystemSpecs, SystemSpecs } from './utils/systemPerformance';
 import { signInWithPopup, signOut, onAuthStateChanged, signInAnonymously, User as FirebaseUser } from 'firebase/auth';
+import { PWAInstallButton } from './components/PWAInstallButton';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 // Default initial timeline state with Zero Initial Tracks / Clips
 const INITIAL_TRACKS: Track[] = DEFAULT_INITIAL_TRACKS;
@@ -6148,7 +6150,7 @@ export default function App() {
 
   // ------------------ (D) DONATION & SUPPORT SYSTEM ------------------
   // EDITABLE DONATION LINK PLACEHOLDER: Replace URL with your exact page link
-  const DONATION_SUPPORT_URL = "https://buymeacoffee.com/asdevolper";
+  const DONATION_SUPPORT_URL = "https://www.patreon.com/cw/CuteCutPro/membership";
 
   /**
    * Dedicated async click event function for the "Sadqa-e-Jariyah" Support Project button.
@@ -7743,6 +7745,9 @@ export default function App() {
 
         {/* Top Header Action Buttons */}
         <div className="flex items-center gap-2">
+          {/* PWA 1-Click Install Button */}
+          <PWAInstallButton />
+
           {/* Home Portal Button (Always Enabled) */}
           <button
             id="btn-back-to-portal-header"
@@ -7930,7 +7935,7 @@ export default function App() {
                       </div>
                       <div>
                         <div className="font-semibold text-gray-200 group-hover:text-teal-300">Check for Updates</div>
-                        <div className="text-[10px] text-gray-400 leading-tight">v2.5.1 • Desktop releases</div>
+                        <div className="text-[10px] text-gray-400 leading-tight">v2.5.2 • Desktop releases</div>
                       </div>
                     </div>
                     <span className="text-[10px] font-mono text-teal-400 font-semibold">Latest</span>
@@ -8658,6 +8663,9 @@ export default function App() {
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         </button>
       )}
+
+      {/* Offline Connectivity Status Notice */}
+      <OfflineIndicator />
 
     </div>
   );

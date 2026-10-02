@@ -172,9 +172,9 @@ export const CuteCutProPaywallModal: React.FC<CuteCutProPaywallModalProps> = ({
                 <div>
                   <h3 className="text-sm font-black text-amber-300">Lifetime Studio Pro</h3>
                   <div className="flex items-baseline gap-1.5 mt-1">
-                    <span className="text-2xl font-black text-white">$29</span>
-                    <span className="text-xs text-gray-400 line-through">$89</span>
-                    <span className="text-[11px] text-amber-400 font-bold ml-1">One-time payment</span>
+                    <span className="text-2xl font-black text-white">$19</span>
+                    <span className="text-xs text-gray-400 line-through">$49</span>
+                    <span className="text-[11px] text-amber-400 font-bold ml-1">Launch Deal (One-time)</span>
                   </div>
                 </div>
                 <p className="text-[11px] text-gray-300">Pay once, own forever with lifetime updates & unlimited AI studio.</p>
