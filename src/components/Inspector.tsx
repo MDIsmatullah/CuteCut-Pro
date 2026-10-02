@@ -22,6 +22,26 @@ interface InspectorProps {
   currentTime?: number;
   onSeek?: (time: number) => void;
   onMergeClips?: () => void;
+  quranShowSurahHeader?: boolean;
+  setQuranShowSurahHeader?: (show: boolean) => void;
+  quranSurahHeaderStyle?: string;
+  setQuranSurahHeaderStyle?: (style: string) => void;
+  quranSurahHeaderFont?: string;
+  setQuranSurahHeaderFont?: (font: string) => void;
+  quranSurahHeaderSize?: number;
+  setQuranSurahHeaderSize?: (size: number) => void;
+  quranSurahHeaderColor?: string;
+  setQuranSurahHeaderColor?: (color: string) => void;
+  quranSurahHeaderY?: number;
+  setQuranSurahHeaderY?: (y: number) => void;
+  quranSurahHeaderFormat?: 'both' | 'arabic' | 'english' | 'numbered';
+  setQuranSurahHeaderFormat?: (format: 'both' | 'arabic' | 'english' | 'numbered') => void;
+  quranSurahHeaderBg?: 'none' | 'solid' | 'gradient' | 'blur' | boolean;
+  setQuranSurahHeaderBg?: (bg: 'none' | 'solid' | 'gradient' | 'blur') => void;
+  quranSurahHeaderBgColor?: string;
+  setQuranSurahHeaderBgColor?: (color: string) => void;
+  quranSurahHeaderBgOpacity?: number;
+  setQuranSurahHeaderBgOpacity?: (opacity: number) => void;
 }
 
 export default function Inspector({
@@ -36,6 +56,26 @@ export default function Inspector({
   currentTime,
   onSeek,
   onMergeClips,
+  quranShowSurahHeader,
+  setQuranShowSurahHeader,
+  quranSurahHeaderStyle,
+  setQuranSurahHeaderStyle,
+  quranSurahHeaderFont,
+  setQuranSurahHeaderFont,
+  quranSurahHeaderSize,
+  setQuranSurahHeaderSize,
+  quranSurahHeaderColor,
+  setQuranSurahHeaderColor,
+  quranSurahHeaderY,
+  setQuranSurahHeaderY,
+  quranSurahHeaderFormat,
+  setQuranSurahHeaderFormat,
+  quranSurahHeaderBg,
+  setQuranSurahHeaderBg,
+  quranSurahHeaderBgColor,
+  setQuranSurahHeaderBgColor,
+  quranSurahHeaderBgOpacity,
+  setQuranSurahHeaderBgOpacity,
 }: InspectorProps) {
   const [activeSubTab, setActiveSubTab] = useState<'capcut' | 'transform' | 'adjust' | 'speed' | 'chroma' | 'effects' | 'transitions' | 'ai' | 'keyframes'>('capcut');
   const [inspectorSpeedMode, setInspectorSpeedMode] = useState<'normal' | 'curve'>('normal');
@@ -511,7 +551,31 @@ export default function Inspector({
           {isAudio ? (
             <CuteCutAudioInspector clip={selectedClip} onUpdateClip={onUpdateClip} currentTime={currentTime} />
           ) : isText ? (
-            <CuteCutTextInspector clip={selectedClip} onUpdateClip={onUpdateClip} onGenerateTTS={onGenerateTTS} />
+            <CuteCutTextInspector
+              clip={selectedClip}
+              onUpdateClip={onUpdateClip}
+              onGenerateTTS={onGenerateTTS}
+              quranShowSurahHeader={quranShowSurahHeader}
+              setQuranShowSurahHeader={setQuranShowSurahHeader}
+              quranSurahHeaderStyle={quranSurahHeaderStyle}
+              setQuranSurahHeaderStyle={setQuranSurahHeaderStyle}
+              quranSurahHeaderFont={quranSurahHeaderFont}
+              setQuranSurahHeaderFont={setQuranSurahHeaderFont}
+              quranSurahHeaderSize={quranSurahHeaderSize}
+              setQuranSurahHeaderSize={setQuranSurahHeaderSize}
+              quranSurahHeaderColor={quranSurahHeaderColor}
+              setQuranSurahHeaderColor={setQuranSurahHeaderColor}
+              quranSurahHeaderY={quranSurahHeaderY}
+              setQuranSurahHeaderY={setQuranSurahHeaderY}
+              quranSurahHeaderFormat={quranSurahHeaderFormat}
+              setQuranSurahHeaderFormat={setQuranSurahHeaderFormat}
+              quranSurahHeaderBg={quranSurahHeaderBg}
+              setQuranSurahHeaderBg={setQuranSurahHeaderBg}
+              quranSurahHeaderBgColor={quranSurahHeaderBgColor}
+              setQuranSurahHeaderBgColor={setQuranSurahHeaderBgColor}
+              quranSurahHeaderBgOpacity={quranSurahHeaderBgOpacity}
+              setQuranSurahHeaderBgOpacity={setQuranSurahHeaderBgOpacity}
+            />
           ) : (
             <CuteCutVideoInspector clip={selectedClip} onUpdateClip={onUpdateClip} currentTime={currentTime} onSeek={onSeek} />
           )}

@@ -1,25 +1,114 @@
-import React, { useState } from 'react';
-import { Type, Sparkles, Wand2, AlignLeft, AlignCenter, AlignRight, AlignJustify, Bold, Italic, Underline, Volume2, MessageSquare, Play, Check, Crown, Move, Layers, Sliders, Palette } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Type, Sparkles, Wand2, AlignLeft, AlignCenter, AlignRight, AlignJustify, Bold, Italic, Underline, Volume2, MessageSquare, Play, Check, Crown, Move, Layers, Sliders, Palette, BookOpen, ChevronDown, Hash, Plus, Minus, Layout } from 'lucide-react';
 import { Clip } from '../types';
 import { LiveAnimationPreview } from './LiveAnimationPreview';
+import { ALL_114_SURAHS, getSurahMeta } from '../utils/quranSurahData';
 
 interface CuteCutTextInspectorProps {
   clip: Clip;
   onUpdateClip: (clipId: string, updates: Partial<Clip>) => void;
   onGenerateTTS: (text: string, voice: string) => Promise<void>;
+  quranShowSurahHeader?: boolean;
+  setQuranShowSurahHeader?: (show: boolean) => void;
+  quranSurahHeaderStyle?: string;
+  setQuranSurahHeaderStyle?: (style: string) => void;
+  quranSurahHeaderFont?: string;
+  setQuranSurahHeaderFont?: (font: string) => void;
+  quranSurahHeaderSize?: number;
+  setQuranSurahHeaderSize?: (size: number) => void;
+  quranSurahHeaderColor?: string;
+  setQuranSurahHeaderColor?: (color: string) => void;
+  quranSurahHeaderY?: number;
+  setQuranSurahHeaderY?: (y: number) => void;
+  quranSurahHeaderFormat?: 'both' | 'arabic' | 'english' | 'numbered';
+  setQuranSurahHeaderFormat?: (format: 'both' | 'arabic' | 'english' | 'numbered') => void;
+  quranSurahHeaderBg?: 'none' | 'solid' | 'gradient' | 'blur' | boolean;
+  setQuranSurahHeaderBg?: (bg: 'none' | 'solid' | 'gradient' | 'blur') => void;
+  quranSurahHeaderBgColor?: string;
+  setQuranSurahHeaderBgColor?: (color: string) => void;
+  quranSurahHeaderBgOpacity?: number;
+  setQuranSurahHeaderBgOpacity?: (opacity: number) => void;
 }
 
 export const CuteCutTextInspector: React.FC<CuteCutTextInspectorProps> = ({
   clip,
   onUpdateClip,
   onGenerateTTS,
+  quranShowSurahHeader = true,
+  setQuranShowSurahHeader,
+  quranSurahHeaderStyle = 'ornate',
+  setQuranSurahHeaderStyle,
+  quranSurahHeaderFont = 'Amiri',
+  setQuranSurahHeaderFont,
+  quranSurahHeaderSize = 24,
+  setQuranSurahHeaderSize,
+  quranSurahHeaderColor = '#E5C158',
+  setQuranSurahHeaderColor,
+  quranSurahHeaderY = 8,
+  setQuranSurahHeaderY,
+  quranSurahHeaderFormat = 'both',
+  setQuranSurahHeaderFormat,
+  quranSurahHeaderBg = 'gradient',
+  setQuranSurahHeaderBg,
+  quranSurahHeaderBgColor = '#000000',
+  setQuranSurahHeaderBgColor,
+  quranSurahHeaderBgOpacity = 50,
+  setQuranSurahHeaderBgOpacity,
 }) => {
-  const [mainTab, setMainTab] = useState<'text' | 'quran' | 'animation' | 'tracking' | 'tts'>('text');
+  // Auto-detect if this clip is a Quranic Arabic or Translation clip
+  const isQuranClip = Boolean(
+    clip.surahNumber ||
+    clip.ayahNumber ||
+    clip.ayahKey ||
+    (clip.verse_key && clip.verse_key.includes(':')) ||
+    (clip.text && (/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(clip.text) || /۝|۞|۩|﷽/.test(clip.text))) ||
+    (clip.name && (/surah|ayah|verse/i.test(clip.name) || /:\d+/.test(clip.name)))
+  );
+
+  const [mainTab, setMainTab] = useState<'text' | 'quran' | 'animation' | 'tracking' | 'tts'>(
+    isQuranClip ? 'quran' : 'text'
+  );
+
+  // Synchronize active tab whenever clip selection changes
+  useEffect(() => {
+    if (isQuranClip) {
+      setMainTab('quran');
+    }
+  }, [clip.id, isQuranClip]);
+
   const [textSubTab, setTextSubTab] = useState<'basic' | 'bubble' | 'effects'>('basic');
   const [effectCategory, setEffectCategory] = useState<'trending' | 'basic' | 'luminescence' | 'multicolor'>('trending');
   const [ttsVoice, setTtsVoice] = useState('Jessie');
   const [isGeneratingTts, setIsGeneratingTts] = useState(false);
-  const [ayahNumber, setAyahNumber] = useState('1');
+  const [ayahNumber, setAyahNumber] = useState<string>(() => {
+    if (clip.ayahNumber) return String(clip.ayahNumber);
+    if (clip.verse_key) {
+      const parts = clip.verse_key.split(':');
+      if (parts[1]) return parts[1];
+    }
+    const match = (clip.name || '').match(/:(\d+)/);
+    return match ? match[1] : '1';
+  });
+
+  // Determine current active Surah number (defaults to 1 - Al-Fatihah)
+  const currentSurahNumber: number = (() => {
+    if (clip.surahNumber && clip.surahNumber >= 1 && clip.surahNumber <= 114) {
+      return clip.surahNumber;
+    }
+    if (clip.verse_key) {
+      const parts = clip.verse_key.split(':');
+      const num = parseInt(parts[0], 10);
+      if (!isNaN(num) && num >= 1 && num <= 114) return num;
+    }
+    const match = (clip.name || '').match(/(\d+):/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num >= 1 && num <= 114) return num;
+    }
+    return 1;
+  })();
+
+  const currentSurahMeta = getSurahMeta(currentSurahNumber);
 
   // Available Fonts
   const FONTS = [
@@ -584,6 +673,266 @@ export const CuteCutTextInspector: React.FC<CuteCutTextInspectorProps> = ({
         {/* ================= QURAN & CAPTIONS TAB ================= */}
         {mainTab === 'quran' && (
           <div className="space-y-4">
+            
+            {/* 1. SURAH SELECTION & AYAH NAVIGATION PROPERTY */}
+            <div className="bg-gradient-to-b from-[#1c1b26] to-[#14141d] p-3.5 rounded-xl border border-amber-500/40 shadow-lg space-y-3.5">
+              <div className="flex items-center justify-between border-b border-[#2d2c3e] pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                    <BookOpen className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-amber-300 text-xs tracking-wide">Surah & Verse Selection</span>
+                    <span className="text-[10px] text-gray-400 block">Configure Surah metadata and active verse</span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/30">
+                  #{currentSurahNumber} {currentSurahMeta.revelation}
+                </span>
+              </div>
+
+              {/* Surah Selector Dropdown */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-semibold text-gray-300 flex items-center justify-between">
+                  <span>Selected Surah (114 Surahs):</span>
+                  <span className="font-arabic text-amber-300 text-xs">{currentSurahMeta.nameArabic}</span>
+                </label>
+                <div className="relative">
+                  <select
+                    value={currentSurahNumber}
+                    onChange={(e) => {
+                      const newSurahId = parseInt(e.target.value, 10);
+                      const sMeta = getSurahMeta(newSurahId);
+                      onUpdateClip(clip.id, {
+                        surahNumber: newSurahId,
+                        name: `${sMeta.nameEnglish} ${newSurahId}:${ayahNumber || '1'}`,
+                        verse_key: `${newSurahId}:${ayahNumber || '1'}`,
+                      });
+                    }}
+                    className="w-full bg-[#0e0e15] border border-amber-500/30 rounded-lg p-2 text-xs text-amber-200 focus:outline-none focus:border-amber-400 appearance-none pr-8 cursor-pointer"
+                  >
+                    {ALL_114_SURAHS.map((s) => (
+                      <option key={s.id} value={s.id} className="bg-[#12121b] text-white py-1">
+                        {s.id}. {s.nameEnglish} ({s.nameArabic}) — {s.totalAyahs} Ayahs
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-amber-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Ayah Stepper & Quick Navigator */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="bg-[#0e0e15] border border-gray-800 rounded-lg p-2 space-y-1">
+                  <span className="text-[10px] text-gray-400 block">Ayah Number:</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const current = parseInt(ayahNumber, 10) || 1;
+                        const nextNum = Math.max(1, current - 1);
+                        setAyahNumber(String(nextNum));
+                        onUpdateClip(clip.id, {
+                          ayahNumber: nextNum,
+                          verse_key: `${currentSurahNumber}:${nextNum}`,
+                          name: `${currentSurahMeta.nameEnglish} ${currentSurahNumber}:${nextNum}`,
+                        });
+                      }}
+                      className="w-6 h-6 rounded bg-[#1e1e2c] border border-gray-700 flex items-center justify-center text-gray-300 hover:text-white hover:border-gray-500 transition"
+                      title="Previous Ayah"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      max={currentSurahMeta.totalAyahs}
+                      value={ayahNumber}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAyahNumber(val);
+                        const num = parseInt(val, 10);
+                        if (!isNaN(num) && num >= 1) {
+                          onUpdateClip(clip.id, {
+                            ayahNumber: num,
+                            verse_key: `${currentSurahNumber}:${num}`,
+                            name: `${currentSurahMeta.nameEnglish} ${currentSurahNumber}:${num}`,
+                          });
+                        }
+                      }}
+                      className="flex-1 bg-[#14141e] border border-gray-700 rounded py-1 text-center font-mono font-bold text-xs text-amber-400 focus:outline-none focus:border-amber-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const current = parseInt(ayahNumber, 10) || 1;
+                        const nextNum = Math.min(currentSurahMeta.totalAyahs, current + 1);
+                        setAyahNumber(String(nextNum));
+                        onUpdateClip(clip.id, {
+                          ayahNumber: nextNum,
+                          verse_key: `${currentSurahNumber}:${nextNum}`,
+                          name: `${currentSurahMeta.nameEnglish} ${currentSurahNumber}:${nextNum}`,
+                        });
+                      }}
+                      className="w-6 h-6 rounded bg-[#1e1e2c] border border-gray-700 flex items-center justify-center text-gray-300 hover:text-white hover:border-gray-500 transition"
+                      title="Next Ayah"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-[#0e0e15] border border-gray-800 rounded-lg p-2 flex flex-col justify-center">
+                  <span className="text-[10px] text-gray-400">Total Verses in Surah:</span>
+                  <span className="text-sm font-bold text-gray-200 mt-0.5">
+                    {currentSurahMeta.totalAyahs} <span className="text-[10px] text-gray-500 font-normal">Ayahs ({currentSurahMeta.meaningEnglish})</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. SURAH HEADER OVERLAY BANNER PROPERTY */}
+            <div className="bg-[#1a1a24] p-3.5 rounded-xl border border-[#2e2d42] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                    <Layout className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-gray-100 text-xs">Surah Header Overlay Banner</span>
+                    <span className="text-[10px] text-gray-400 block">Display title at top of video frame</span>
+                  </div>
+                </div>
+                {setQuranShowSurahHeader && (
+                  <button
+                    onClick={() => setQuranShowSurahHeader(!quranShowSurahHeader)}
+                    className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center cursor-pointer ${
+                      quranShowSurahHeader ? 'bg-amber-500 justify-end' : 'bg-gray-700 justify-start'
+                    }`}
+                  >
+                    <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                  </button>
+                )}
+              </div>
+
+              {quranShowSurahHeader && (
+                <div className="space-y-3 pt-2 border-t border-[#292839] animate-in fade-in">
+                  
+                  {/* Format: Bilingual / Arabic / English / Numbered */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-gray-400 block">Header Display Format:</label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {[
+                        { id: 'both', label: 'Bilingual (Ar + En)', desc: 'Arabic top, English bottom' },
+                        { id: 'arabic', label: 'Arabic Only', desc: 'Calligraphic Arabic name' },
+                        { id: 'english', label: 'English Only', desc: 'Standard English title' },
+                        { id: 'numbered', label: 'Numbered', desc: 'Surah Name & Total Verses' },
+                      ].map((fmt) => (
+                        <button
+                          key={fmt.id}
+                          onClick={() => setQuranSurahHeaderFormat && setQuranSurahHeaderFormat(fmt.id as any)}
+                          className={`p-2 rounded-lg border text-left transition ${
+                            quranSurahHeaderFormat === fmt.id
+                              ? 'border-amber-400 bg-amber-950/40 text-amber-200'
+                              : 'border-gray-800 bg-[#12121b] text-gray-400 hover:border-gray-700 hover:text-white'
+                          }`}
+                        >
+                          <div className="font-bold text-[11px]">{fmt.label}</div>
+                          <div className="text-[9px] opacity-75 truncate">{fmt.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Header Font & Size */}
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-gray-400 block">Font Family:</span>
+                      <select
+                        value={quranSurahHeaderFont || 'Amiri'}
+                        onChange={(e) => setQuranSurahHeaderFont && setQuranSurahHeaderFont(e.target.value)}
+                        className="w-full bg-[#12121a] border border-gray-700 rounded-lg p-1.5 text-xs text-gray-200 focus:outline-none focus:border-amber-400 cursor-pointer"
+                      >
+                        <option value="Amiri">Amiri (Classical)</option>
+                        <option value="Scheherazade New">Scheherazade New (Uthmani)</option>
+                        <option value="Noto Naskh Arabic">Noto Naskh Arabic</option>
+                        <option value="Lateef">Lateef</option>
+                        <option value="Cairo">Cairo (Modern)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-gray-400">Font Size:</span>
+                        <span className="font-mono text-amber-400 font-bold">{quranSurahHeaderSize || 24}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="14"
+                        max="48"
+                        value={quranSurahHeaderSize || 24}
+                        onChange={(e) => setQuranSurahHeaderSize && setQuranSurahHeaderSize(parseInt(e.target.value, 10))}
+                        className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Header Color & Vertical Position */}
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-gray-400 block">Header Text Color:</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={quranSurahHeaderColor || '#E5C158'}
+                          onChange={(e) => setQuranSurahHeaderColor && setQuranSurahHeaderColor(e.target.value)}
+                          className="w-7 h-7 rounded border border-gray-700 bg-transparent cursor-pointer"
+                        />
+                        <span className="font-mono text-[11px] text-gray-300 uppercase">
+                          {quranSurahHeaderColor || '#E5C158'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-gray-400">Vertical Position (Y%):</span>
+                        <span className="font-mono text-cyan-400 font-bold">{quranSurahHeaderY ?? 8}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="2"
+                        max="40"
+                        value={quranSurahHeaderY ?? 8}
+                        onChange={(e) => setQuranSurahHeaderY && setQuranSurahHeaderY(parseInt(e.target.value, 10))}
+                        className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Header Background Container Style */}
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[10px] text-gray-400 block">Banner Background Container:</span>
+                    <div className="flex gap-2">
+                      {['none', 'solid', 'gradient', 'blur'].map((bg) => (
+                        <button
+                          key={bg}
+                          onClick={() => setQuranSurahHeaderBg && setQuranSurahHeaderBg(bg as any)}
+                          className={`px-3 py-1 rounded-lg border text-xs capitalize transition ${
+                            quranSurahHeaderBg === bg
+                              ? 'border-cyan-400 bg-cyan-950/40 text-cyan-300'
+                              : 'border-gray-800 bg-[#12121b] text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          {bg}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Calligraphic Ayah Ornaments */}
             <div className="bg-[#1a1a22] p-3.5 rounded-lg border border-[#262633] space-y-3">
               <div className="flex items-center justify-between">

@@ -3165,7 +3165,7 @@ export async function fixWebmDuration(blob: Blob, durationSeconds: number): Prom
 
     // Search for Segment Info element (0x15, 0x49, 0xA9, 0x66)
     let infoPos = -1;
-    for (let i = 0; i < Math.min(bytes.length - 4, 1024); i++) {
+    for (let i = 0; i < Math.min(bytes.length - 4, 2048); i++) {
       if (bytes[i] === 0x15 && bytes[i + 1] === 0x49 && bytes[i + 2] === 0xA9 && bytes[i + 3] === 0x66) {
         infoPos = i;
         break;
@@ -3173,14 +3173,14 @@ export async function fixWebmDuration(blob: Blob, durationSeconds: number): Prom
     }
 
     if (infoPos === -1) {
-      return blob; // Standard fallback
+      return blob; // Safe fallback
     }
 
     const durationMs = durationSeconds * 1000;
 
     // Search for existing Duration tag (0x44, 0x89) inside the Info section
     let durationPos = -1;
-    const searchLimit = Math.min(bytes.length - 6, infoPos + 256);
+    const searchLimit = Math.min(bytes.length - 6, infoPos + 512);
     for (let i = infoPos + 4; i < searchLimit; i++) {
       if (bytes[i] === 0x44 && bytes[i + 1] === 0x89) {
         durationPos = i;
@@ -3189,7 +3189,7 @@ export async function fixWebmDuration(blob: Blob, durationSeconds: number): Prom
     }
 
     if (durationPos !== -1) {
-      // Existing Duration element found
+      // Existing Duration element found - safe in-place patch without altering EBML length descriptors
       const lengthDescriptor = bytes[durationPos + 2];
       if (lengthDescriptor === 0x84) {
         // 4-byte Float32 (0x84 followed by 4 bytes)
@@ -3202,36 +3202,9 @@ export async function fixWebmDuration(blob: Blob, durationSeconds: number): Prom
       }
     }
 
-    // If duration tag was not pre-allocated, inject Duration element [0x44, 0x89, 0x88, ...8 bytes float64]
-    // Find TimecodeScale (0x2A, 0xD7, 0xB1)
-    let timecodeScalePos = -1;
-    for (let i = infoPos + 4; i < searchLimit; i++) {
-      if (bytes[i] === 0x2A && bytes[i + 1] === 0xD7 && bytes[i + 2] === 0xB1) {
-        timecodeScalePos = i;
-        break;
-      }
-    }
-
-    let insertPos = infoPos + 8; // fallback insertion
-    if (timecodeScalePos !== -1) {
-      const tcLen = bytes[timecodeScalePos + 3] & 0x7F;
-      insertPos = timecodeScalePos + 4 + tcLen;
-    }
-
-    // Build the 11-byte Duration element: [0x44, 0x89, 0x88, (8-byte float64 ms)]
-    const durationElement = new Uint8Array(11);
-    durationElement[0] = 0x44;
-    durationElement[1] = 0x89;
-    durationElement[2] = 0x88;
-    const durView = new DataView(durationElement.buffer);
-    durView.setFloat64(3, durationMs, false);
-
-    const newBuffer = new Uint8Array(bytes.length + 11);
-    newBuffer.set(bytes.subarray(0, insertPos), 0);
-    newBuffer.set(durationElement, insertPos);
-    newBuffer.set(bytes.subarray(insertPos), insertPos + 11);
-
-    return new Blob([newBuffer], { type: blob.type || 'video/webm' });
+    // Do NOT inject unaligned bytes into 0x1549A966 without updating parent EBML length,
+    // as that breaks strict GStreamer gst_matroska_demux in Ubuntu/Linux Totem players.
+    return blob;
   } catch (err) {
     console.warn('fixWebmDuration note:', err);
     return blob;

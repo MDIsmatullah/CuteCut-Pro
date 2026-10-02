@@ -3107,13 +3107,17 @@ export default function PreviewPlayer({
         ctx.restore();
       }
 
-      animId = requestAnimationFrame(render);
+      if (isPlaying) {
+        animId = requestAnimationFrame(render);
+      }
     };
 
     render();
 
     return () => {
-      cancelAnimationFrame(animId);
+      if (animId) {
+        cancelAnimationFrame(animId);
+      }
     };
   }, [tracks, currentTime, dimensions, isPlaying, videoNodes, showGrid, showSafeArea, selectedClip]);
 

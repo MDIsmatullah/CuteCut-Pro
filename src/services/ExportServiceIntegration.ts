@@ -163,7 +163,7 @@ export class ExportServiceIntegration {
       scenes: [],
       audioSource: config.timeline?.audioPath || '',
       totalDuration: config.timeline?.duration || 0,
-      resolution: { width: config.width, height: config.height },
+      resolution: { width: config.width, height: config.height, label: `${config.width}x${config.height}` },
       fps: config.fps,
       metadata: {
         surahName: config.timeline?.name || ''

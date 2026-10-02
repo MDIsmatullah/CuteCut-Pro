@@ -65,7 +65,16 @@ export class FFmpegPipeline {
     return ['-c:v', 'libx264', '-preset', presetMap[optimization.exportPreset] || 'veryfast', '-crf', optimization.exportPreset === 'medium' ? '18' : '20', '-threads', String(Math.max(1, optimization.threadsToUse))];
   }
 
-  private static validateRenderOutput(outputPath: string): { isValid: boolean; message: string; details?: Record<string, unknown> } {
+  static validateOutput(outputPath: string): { isValid: boolean; error?: string; details?: Record<string, unknown> } {
+    const result = this.validateRenderOutput(outputPath);
+    return {
+      isValid: result.isValid,
+      error: result.message,
+      details: result.details
+    };
+  }
+
+  static validateRenderOutput(outputPath: string): { isValid: boolean; message: string; details?: Record<string, unknown> } {
     try {
       if (!fs.existsSync(outputPath)) {
         return { isValid: false, message: 'Output file was not created.' };

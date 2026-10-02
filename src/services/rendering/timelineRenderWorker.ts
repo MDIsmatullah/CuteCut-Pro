@@ -25,7 +25,7 @@ self.onmessage = (event: MessageEvent<RenderMessage>) => {
   }
 
   // Send back to main thread
-  self.postMessage({
+  (self as any).postMessage({
     id,
     pixels: pixels.buffer,
     frameTime,

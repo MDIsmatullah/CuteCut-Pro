@@ -60,6 +60,16 @@ export const VideoExport: React.FC<VideoExportProps> = ({
   }, [renderId, isRendering]);
 
   const handleStartRender = async () => {
+    // Front-end validation guard clauses to prevent invalid submissions
+    if (!alignment || alignment.length === 0) {
+      alert('Error: No subtitle alignment segments are loaded on the timeline. Please align your verses first.');
+      return;
+    }
+    if (!audioSource || audioSource.trim() === '') {
+      alert('Error: No active audio track detected. Please load or record an audio file first.');
+      return;
+    }
+
     setIsRendering(true);
     setRenderId(null);
     setManifest(null);

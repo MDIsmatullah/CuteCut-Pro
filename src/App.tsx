@@ -3062,14 +3062,17 @@ export default function App() {
             if (isActive) {
               if (isPlayingActive || exporting) {
                 if (audio.paused) {
-                  audio.play().catch(() => {});
-                }
-                // Sync drift check with clamping - tightened to 200ms to eliminate visual/audio lag
-                if (shouldCheckDrift) {
                   const durationLimit = audio.duration || clip.duration || 999999;
                   const clampedTarget = Math.max(0, Math.min(durationLimit, targetSrcTime));
-                  if (Math.abs(audio.currentTime - clampedTarget) > 0.2) {
-                    audio.currentTime = clampedTarget;
+                  try { audio.currentTime = clampedTarget; } catch {}
+                  audio.play().catch(() => {});
+                } else {
+                  // Only re-seek if drift is massive (> 1.2s), NEVER micro-seek while playing
+                  // Micro-seeking while playing clears the audio DSP buffer and causes repeating stutter!
+                  const durationLimit = audio.duration || clip.duration || 999999;
+                  const clampedTarget = Math.max(0, Math.min(durationLimit, targetSrcTime));
+                  if (Math.abs(audio.currentTime - clampedTarget) > 1.2) {
+                    try { audio.currentTime = clampedTarget; } catch {}
                   }
                 }
                 syncAudioEffectsForClip(audio, clip);
@@ -3081,7 +3084,7 @@ export default function App() {
                 const durationLimit = audio.duration || clip.duration || 999999;
                 const clampedTarget = Math.max(0, Math.min(durationLimit, targetSrcTime));
                 if (Math.abs(audio.currentTime - clampedTarget) > 0.05) {
-                  audio.currentTime = clampedTarget;
+                  try { audio.currentTime = clampedTarget; } catch {}
                 }
               }
             } else {
@@ -3172,13 +3175,20 @@ export default function App() {
         });
       }
 
-      requestRef.current = requestAnimationFrame(tick);
+      if (isPlaying) {
+        requestRef.current = requestAnimationFrame(tick);
+      }
     };
 
-    requestRef.current = requestAnimationFrame(tick);
+    if (isPlaying) {
+      lastTimeRef.current = performance.now();
+      requestRef.current = requestAnimationFrame(tick);
+    }
 
     return () => {
-      cancelAnimationFrame(requestRef.current);
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
     };
   }, [isPlaying, duration]);
 
@@ -6679,6 +6689,7 @@ export default function App() {
             onLog: (msg) => log(msg),
             renderFrameAtTime: async (t: number) => {
               setCurrentTime(t);
+              const seekWaiters: Promise<void>[] = [];
               tracks.forEach(track => {
                 track.clips.forEach(clip => {
                   if (clip.type === ClipType.VIDEO) {
@@ -6691,13 +6702,31 @@ export default function App() {
                         const dur = el.duration || 999999;
                         const clamped = Math.max(0, Math.min(dur, targetSrcTime));
                         if (Math.abs(el.currentTime - clamped) > 0.04) {
-                          el.currentTime = clamped;
+                          const waitP = new Promise<void>((resolve) => {
+                            let settled = false;
+                            const onDone = () => {
+                              if (!settled) {
+                                settled = true;
+                                el.removeEventListener('seeked', onDone);
+                                resolve();
+                              }
+                            };
+                            el.addEventListener('seeked', onDone, { once: true });
+                            setTimeout(onDone, 60);
+                          });
+                          seekWaiters.push(waitP);
+                          try {
+                            el.currentTime = clamped;
+                          } catch {}
                         }
                       }
                     }
                   }
                 });
               });
+              if (seekWaiters.length > 0) {
+                await Promise.all(seekWaiters);
+              }
               await new Promise(r => requestAnimationFrame(r));
             },
             checkCancelled: () => isCancelledExportRef.current
@@ -6907,11 +6936,18 @@ export default function App() {
                     const el = audioElementRef.current[clip.id];
                     if (el) {
                       if (isActive) {
-                        if (el.paused) el.play().catch(() => {});
-                        const dur = el.duration || 999999;
-                        const clamped = Math.max(0, Math.min(dur, targetSrcTime));
-                        if (Math.abs(el.currentTime - clamped) > 0.15) {
-                          el.currentTime = clamped;
+                        if (el.paused) {
+                          const dur = el.duration || 999999;
+                          const clamped = Math.max(0, Math.min(dur, targetSrcTime));
+                          try { el.currentTime = clamped; } catch {}
+                          el.play().catch(() => {});
+                        } else {
+                          // While actively recording, NEVER micro-seek! Only resync if massive drift (> 1.2s)
+                          const dur = el.duration || 999999;
+                          const clamped = Math.max(0, Math.min(dur, targetSrcTime));
+                          if (Math.abs(el.currentTime - clamped) > 1.2) {
+                            try { el.currentTime = clamped; } catch {}
+                          }
                         }
                       } else {
                         if (!el.paused) el.pause();
@@ -6922,11 +6958,17 @@ export default function App() {
                     if (el instanceof HTMLVideoElement) {
                       if (isActive) {
                         el.playbackRate = Math.max(0.1, Math.min(16, currentSpeed || clip.playbackRate || 1.0));
-                        if (el.paused) el.play().catch(() => {});
-                        const dur = el.duration || 999999;
-                        const clamped = Math.max(0, Math.min(dur, targetSrcTime));
-                        if (Math.abs(el.currentTime - clamped) > 0.15) {
-                          el.currentTime = clamped;
+                        if (el.paused) {
+                          const dur = el.duration || 999999;
+                          const clamped = Math.max(0, Math.min(dur, targetSrcTime));
+                          try { el.currentTime = clamped; } catch {}
+                          el.play().catch(() => {});
+                        } else {
+                          const dur = el.duration || 999999;
+                          const clamped = Math.max(0, Math.min(dur, targetSrcTime));
+                          if (Math.abs(el.currentTime - clamped) > 1.2) {
+                            try { el.currentTime = clamped; } catch {}
+                          }
                         }
                       } else {
                         if (!el.paused) el.pause();
@@ -6946,7 +6988,7 @@ export default function App() {
                   recorder.stop();
                 }
               }
-            }, 100);
+            }, 33);
 
             activeRecordIntervalRef.current = recordInterval;
 
@@ -6993,17 +7035,24 @@ export default function App() {
                 }
               }
 
-              let ext = chosenMime.includes('mp4') ? 'mp4' : (exportConf.format || 'webm');
-              let filename = exportConf.filename?.trim() || `export_${exportConf.resolution}_${Date.now()}`;
-              if (!filename.toLowerCase().endsWith(`.${ext}`)) {
-                filename = filename.replace(/\.[a-zA-Z0-9]+$/, '') + `.${ext}`;
-              }
+              let isActualMp4 = chosenMime.toLowerCase().includes('mp4');
+              let baseName = exportConf.filename?.trim() || `export_${exportConf.resolution}_${Date.now()}`;
+              baseName = baseName.replace(/\.[a-zA-Z0-9]+$/, '');
 
               let finalBlob = finalVideoBlob;
-              let finalFilename = filename;
-              const finalized = await finalizeCompliantMp4(finalVideoBlob, filename, exportConf.frameRate || 30);
-              finalBlob = finalized.blob;
-              finalFilename = finalized.filename;
+              let finalFilename = `${baseName}.${isActualMp4 ? 'mp4' : (exportConf.format || 'webm')}`;
+
+              if (exportConf.format === 'mp4') {
+                log(`Converting recording to 100% compliant H.264/AAC MP4 with FastStart for universal Ubuntu/VLC playback...`);
+                const finalized = await finalizeCompliantMp4(finalVideoBlob, `${baseName}.mp4`, exportConf.frameRate || 30);
+                if (finalized && finalized.blob && finalized.blob.size > 1000) {
+                  finalBlob = finalized.blob;
+                  finalFilename = finalized.filename;
+                } else if (!isActualMp4) {
+                  finalFilename = `${baseName}.webm`;
+                  log(`Notice: Server finalizer offline. Saved as true .webm container to ensure flawless video player playback.`);
+                }
+              }
 
               log(`Full video duration (${totalDuration.toFixed(1)}s) encoded: ${finalFilename} (${(finalBlob.size / (1024 * 1024)).toFixed(2)} MB). Saving output...`);
 
@@ -7518,6 +7567,26 @@ export default function App() {
               currentTime={currentTime}
               onSeek={setCurrentTime}
               onMergeClips={mergeSelectedClips}
+              quranShowSurahHeader={quranShowSurahHeader}
+              setQuranShowSurahHeader={setQuranShowSurahHeader}
+              quranSurahHeaderStyle={quranSurahHeaderStyle}
+              setQuranSurahHeaderStyle={setQuranSurahHeaderStyle}
+              quranSurahHeaderFont={quranSurahHeaderFont}
+              setQuranSurahHeaderFont={setQuranSurahHeaderFont}
+              quranSurahHeaderSize={quranSurahHeaderSize}
+              setQuranSurahHeaderSize={setQuranSurahHeaderSize}
+              quranSurahHeaderColor={quranSurahHeaderColor}
+              setQuranSurahHeaderColor={setQuranSurahHeaderColor}
+              quranSurahHeaderY={quranSurahHeaderY}
+              setQuranSurahHeaderY={setQuranSurahHeaderY}
+              quranSurahHeaderFormat={quranSurahHeaderFormat}
+              setQuranSurahHeaderFormat={setQuranSurahHeaderFormat}
+              quranSurahHeaderBg={quranSurahHeaderBg}
+              setQuranSurahHeaderBg={setQuranSurahHeaderBg}
+              quranSurahHeaderBgColor={quranSurahHeaderBgColor}
+              setQuranSurahHeaderBgColor={setQuranSurahHeaderBgColor}
+              quranSurahHeaderBgOpacity={quranSurahHeaderBgOpacity}
+              setQuranSurahHeaderBgOpacity={setQuranSurahHeaderBgOpacity}
             />
           )}
         />
@@ -8410,6 +8479,26 @@ export default function App() {
             currentTime={currentTime}
             onSeek={setCurrentTime}
             onMergeClips={mergeSelectedClips}
+            quranShowSurahHeader={quranShowSurahHeader}
+            setQuranShowSurahHeader={setQuranShowSurahHeader}
+            quranSurahHeaderStyle={quranSurahHeaderStyle}
+            setQuranSurahHeaderStyle={setQuranSurahHeaderStyle}
+            quranSurahHeaderFont={quranSurahHeaderFont}
+            setQuranSurahHeaderFont={setQuranSurahHeaderFont}
+            quranSurahHeaderSize={quranSurahHeaderSize}
+            setQuranSurahHeaderSize={setQuranSurahHeaderSize}
+            quranSurahHeaderColor={quranSurahHeaderColor}
+            setQuranSurahHeaderColor={setQuranSurahHeaderColor}
+            quranSurahHeaderY={quranSurahHeaderY}
+            setQuranSurahHeaderY={setQuranSurahHeaderY}
+            quranSurahHeaderFormat={quranSurahHeaderFormat}
+            setQuranSurahHeaderFormat={setQuranSurahHeaderFormat}
+            quranSurahHeaderBg={quranSurahHeaderBg}
+            setQuranSurahHeaderBg={setQuranSurahHeaderBg}
+            quranSurahHeaderBgColor={quranSurahHeaderBgColor}
+            setQuranSurahHeaderBgColor={setQuranSurahHeaderBgColor}
+            quranSurahHeaderBgOpacity={quranSurahHeaderBgOpacity}
+            setQuranSurahHeaderBgOpacity={setQuranSurahHeaderBgOpacity}
           />
         </div>
 

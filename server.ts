@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import * as fs from 'fs';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type, ThinkingLevel, GenerateVideosOperation } from '@google/genai';
@@ -485,6 +485,7 @@ async function startServer() {
   });
 
   // Middleware
+  app.use(express.raw({ limit: '1000mb', type: ['application/octet-stream', 'video/*', 'application/x-matroska'] }));
   app.use(express.json({ limit: '500mb' }));
   app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
@@ -1184,25 +1185,42 @@ async function startServer() {
           job.status = 'rendering';
           job.progress = progress.percent;
         }
-      }).then(() => {
+      }).then(async () => {
         const job = renderJobs.get(renderId);
         if (job) {
-          job.status = 'completed';
-          job.progress = 100;
-          job.endTime = Date.now();
-          job.outputPath = `/renders/${renderId}.mp4`;
+          // Rigorous validation of output video streams (file existence, non-zero size, and active AV streams)
+          const validation = await FFmpegPipeline.validateOutput(outputPath);
           
-          // Basic validation
-          if (fs.existsSync(outputPath)) {
+          if (validation.isValid) {
+            job.status = 'completed';
+            job.progress = 100;
+            job.endTime = Date.now();
+            job.outputPath = `/renders/${renderId}.mp4`;
+            
             const stats = fs.statSync(outputPath);
             job.validationResult = {
-              isValid: stats.size > 0,
+              isValid: true,
               checks: {
                 fileCreated: true,
                 sizeCheck: stats.size > 0,
-                durationCheck: true
+                durationCheck: true,
+                streamVerification: true
               }
             };
+          } else {
+            console.warn(`[Render Validation Failed] Job ${renderId}:`, validation.error);
+            job.status = 'failed';
+            job.error = validation.error || "The generated video is invalid or corrupted.";
+            job.endTime = Date.now();
+            
+            // Clean up corrupt output file if any
+            try {
+              if (fs.existsSync(outputPath)) {
+                fs.unlinkSync(outputPath);
+              }
+            } catch (unlinkErr) {
+              console.warn('[Cleanup Warning] Failed to delete corrupted file:', unlinkErr);
+            }
           }
         }
       }).catch((err) => {
@@ -2806,45 +2824,80 @@ Voice Tone: ${voiceTone}`;
     const filename = (req.headers['x-filename'] as string) || 'exported_video.mp4';
     const targetFps = Math.max(15, Math.min(60, Number(req.headers['x-fps']) || 30));
 
-    // Handle binary stream (application/octet-stream)
-    const contentType = req.headers['content-type'] || '';
-    if (contentType.includes('octet-stream')) {
-      const fileStream = fs.createWriteStream(inPath);
-      req.pipe(fileStream);
-
-      fileStream.on('error', (err) => {
-        console.warn('[Export Finalizer] Write stream error:', err);
-        return res.status(500).json({ error: 'Failed to write video buffer' });
-      });
-
-      fileStream.on('finish', () => {
-        runFfmpegTranscode();
-      });
-    } else {
-      // Handle JSON base64 body
-      const { videoBase64 } = req.body || {};
-      if (!videoBase64) {
-        return res.status(400).json({ error: 'Missing video payload' });
-      }
-      let cleanBase64 = videoBase64;
-      if (cleanBase64.includes('base64,')) {
-        cleanBase64 = cleanBase64.split('base64,')[1];
-      }
-      fs.writeFileSync(inPath, Buffer.from(cleanBase64, 'base64'));
+    // Handle binary buffer from express.raw or streaming
+    if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+      fs.writeFileSync(inPath, req.body);
       runFfmpegTranscode();
+    } else {
+      const contentType = req.headers['content-type'] || '';
+      if (contentType.includes('octet-stream') || contentType.includes('video/')) {
+        const fileStream = fs.createWriteStream(inPath);
+        req.pipe(fileStream);
+
+        fileStream.on('error', (err) => {
+          console.warn('[Export Finalizer] Write stream error:', err);
+          return res.status(500).json({ error: 'Failed to write video buffer' });
+        });
+
+        fileStream.on('finish', () => {
+          runFfmpegTranscode();
+        });
+      } else {
+        // Handle JSON base64 body
+        const { videoBase64 } = req.body || {};
+        if (!videoBase64) {
+          return res.status(400).json({ error: 'Missing video payload' });
+        }
+        let cleanBase64 = videoBase64;
+        if (cleanBase64.includes('base64,')) {
+          cleanBase64 = cleanBase64.split('base64,')[1];
+        }
+        fs.writeFileSync(inPath, Buffer.from(cleanBase64, 'base64'));
+        runFfmpegTranscode();
+      }
     }
 
     function runFfmpegTranscode() {
       // libx264 High Profile, standard yuv420p, constant framerate, stereo AAC 44.1kHz 192k, faststart
-      const cmd = `ffmpeg -y -i "${inPath}" -c:v libx264 -preset veryfast -profile:v high -level 4.1 -pix_fmt yuv420p -r ${targetFps} -c:a aac -b:a 192k -ar 44100 -ac 2 -movflags +faststart "${outPath}"`;
+      const args = [
+        '-y',
+        '-nostats',
+        '-loglevel', 'error',
+        '-i', inPath,
+        '-c:v', 'libx264',
+        '-preset', 'veryfast',
+        '-profile:v', 'high',
+        '-level', '4.1',
+        '-pix_fmt', 'yuv420p',
+        '-r', String(targetFps),
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        '-ar', '44100',
+        '-ac', '2',
+        '-movflags', '+faststart',
+        outPath
+      ];
 
-      console.log(`[Export Finalizer] Converting exported stream to 100% compliant H.264 MP4 via FFmpeg...`);
-      exec(cmd, (err) => {
+      console.log(`[Export Finalizer] Converting exported stream to 100% compliant H.264 MP4 via FFmpeg (${filename})...`);
+      const ff = spawn('ffmpeg', args);
+
+      let errOutput = '';
+      ff.stderr.on('data', (d) => {
+        errOutput += d.toString();
+      });
+
+      ff.on('error', (err) => {
+        console.warn('[Export Finalizer] FFmpeg process spawn error:', err);
+        try { if (fs.existsSync(inPath)) fs.unlinkSync(inPath); } catch (e) {}
+        return res.status(500).json({ error: 'FFmpeg spawn failed' });
+      });
+
+      ff.on('close', (code) => {
         try { if (fs.existsSync(inPath)) fs.unlinkSync(inPath); } catch (e) {}
 
-        if (err || !fs.existsSync(outPath) || fs.statSync(outPath).size === 0) {
-          console.warn('[Export Finalizer] FFmpeg transcode error:', err?.message);
-          return res.status(500).json({ error: 'FFmpeg transcode failed' });
+        if (code !== 0 || !fs.existsSync(outPath) || fs.statSync(outPath).size === 0) {
+          console.warn('[Export Finalizer] FFmpeg transcode error (code ' + code + '):', errOutput);
+          return res.status(500).json({ error: 'FFmpeg transcode failed: ' + errOutput });
         }
 
         const stats = fs.statSync(outPath);

@@ -136,11 +136,11 @@ export default function ExportModal({
   const [pathMode, setPathMode] = useState<'auto' | 'manual'>('auto');
   const [isAdLoading, setIsAdLoading] = useState(false);
   
-  const [config, setConfig] = useState<ExportConfig>({
+  const [config, setConfig] = useState<ExportConfig>(() => ({
     filename: `CUTECUT_PRO_Video_${new Date().toISOString().slice(0, 10)}`,
     outputDirectory: initialSystemInfo.path,
     exportVideo: true,
-    resolution: '1080p',
+    resolution: webCodecsSupport.isMobile ? '720p' : '1080p',
     bitrateProfile: 'recommended',
     codec: 'h264',
     format: 'mp4',
@@ -150,7 +150,7 @@ export default function ExportModal({
     coverTimestamp: 0,
     engine: webCodecsSupport.supported ? 'webcodecs' : 'mediarecorder',
     hardwareAcceleration: webCodecsSupport.supported,
-  });
+  }));
 
   const [showInAppAd, setShowInAppAd] = useState(false);
   const [adCountdown, setAdCountdown] = useState(5);

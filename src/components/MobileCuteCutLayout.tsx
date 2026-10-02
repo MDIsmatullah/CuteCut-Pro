@@ -528,6 +528,15 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
             {selectedClip.type === 'text' && (
               <>
                 <button
+                  onClick={() => handleOpenClipControl('textStyle')}
+                  className="flex flex-col items-center justify-center shrink-0 min-w-[56px] px-2 py-1 rounded-xl bg-amber-950/40 border border-amber-500/50 hover:border-amber-400 text-amber-300 active:scale-95 transition shadow-sm"
+                  title="Surah & Ayah Properties"
+                >
+                  <BookOpen className="w-4 h-4 mb-0.5 text-amber-400" />
+                  <span className="text-[10px] font-bold">Surah</span>
+                </button>
+
+                <button
                   onClick={() => handleOpenClipControl('editText')}
                   className="flex flex-col items-center justify-center shrink-0 min-w-[56px] px-2 py-1 rounded-xl bg-[#141420] border border-[#222234] hover:border-cyan-500/40 text-gray-300 active:scale-95 transition"
                 >
