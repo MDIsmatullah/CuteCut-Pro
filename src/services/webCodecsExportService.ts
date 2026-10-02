@@ -22,9 +22,6 @@ export interface WebCodecsSupportInfo {
   gpuAccelerated: boolean;
 }
 
-/**
- * Check if the current browser environment supports the WebCodecs API
- */
 export function checkWebCodecsSupport(): WebCodecsSupportInfo {
   if (typeof window === 'undefined') {
     return { supported: false, hasVideoEncoder: false, hasAudioEncoder: false, gpuAccelerated: false };
@@ -41,21 +38,18 @@ export function checkWebCodecsSupport(): WebCodecsSupportInfo {
   };
 }
 
-/**
- * Find the optimal supported H.264 / AVC codec string for this GPU & browser
- */
 async function getSupportedVideoCodec(width: number, height: number, fps: number, bitrate: number): Promise<string> {
   const candidateCodecs = [
-    'avc1.640033', // H.264 High Profile Level 5.1 (4K 60fps NVENC / QuickSync / VideoToolbox)
-    'avc1.64002a', // H.264 High Profile Level 4.2 (1080p 60fps)
-    'avc1.4d002a', // H.264 Main Profile, Level 4.2 (ideal for 1080p60 / 4K)
-    'avc1.640028', // H.264 High Profile, Level 4.0
-    'avc1.42001f', // H.264 Baseline Profile, Level 3.1
-    'vp09.00.41.08', // VP9 Profile 0, Level 4.1 (4K Hardware)
-    'vp09.00.10.08', // VP9 Fallback
+    'avc1.640033',
+    'avc1.64002a',
+    'avc1.4d002a',
+    'avc1.640028',
+    'avc1.42001f',
+    'vp09.00.41.08',
+    'vp09.00.10.08',
   ];
 
-  if (typeof VideoEncoder.isConfigSupported === 'function') {
+  if (typeof VideoEncoder !== 'undefined' && typeof VideoEncoder.isConfigSupported === 'function') {
     for (const codec of candidateCodecs) {
       try {
         const support = await VideoEncoder.isConfigSupported({
@@ -70,18 +64,14 @@ async function getSupportedVideoCodec(width: number, height: number, fps: number
           return codec;
         }
       } catch {
-        // try next
+        // try next codec
       }
     }
   }
 
-  // Default standard H.264 codec string
   return 'avc1.4d002a';
 }
 
-/**
- * Mix all audio clips from timeline tracks into an offline AudioBuffer
- */
 async function renderTimelineAudioOffline(
   tracks: Track[],
   totalDuration: number,
@@ -106,9 +96,6 @@ async function renderTimelineAudioOffline(
       return null;
     }
 
-    onLog(`[WebCodecs Audio] Preparing offline audio mix for ${audioClips.length} track clips...`);
-
-    // Fetch and decode audio buffers for each clip
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const clipBuffers: { clip: Clip; buffer: AudioBuffer }[] = [];
 
@@ -129,7 +116,6 @@ async function renderTimelineAudioOffline(
       return null;
     }
 
-    // Render into OfflineAudioContext
     const totalSamples = Math.ceil(totalDuration * sampleRate);
     const offlineCtx = new OfflineAudioContext(2, Math.max(sampleRate, totalSamples), sampleRate);
 
@@ -145,16 +131,13 @@ async function renderTimelineAudioOffline(
       source.connect(gainNode);
       gainNode.connect(offlineCtx.destination);
 
-      const startTime = Math.max(0, clip.start);
+      const startTime = Math.max(0, clip.start || 0);
       const offset = Math.max(0, clip.sourceStart || 0);
       const clipDuration = clip.duration;
-
       source.start(startTime, offset, clipDuration);
     });
 
-    onLog(`[WebCodecs Audio] Rendering studio audio master (${sampleRate}Hz Stereo)...`);
     const rendered = await offlineCtx.startRendering();
-    onLog(`[WebCodecs Audio] Audio mix complete (${rendered.duration.toFixed(1)}s).`);
     return rendered;
   } catch (err) {
     onLog(`[WebCodecs Audio] Offline audio mix notice: ${err}`);
@@ -162,9 +145,6 @@ async function renderTimelineAudioOffline(
   }
 }
 
-/**
- * Execute GPU Hardware-Accelerated Video & Audio Export with WebCodecs
- */
 export async function exportWithWebCodecs(options: WebCodecsExportOptions): Promise<Blob> {
   const {
     canvas,
@@ -180,14 +160,24 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
     checkCancelled
   } = options;
 
+  if (!canvas || !renderFrameAtTime || typeof checkCancelled !== 'function') {
+    throw new Error('Invalid export options. Missing render canvas or callbacks.');
+  }
+
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw new Error('Invalid render duration.');
+  }
+
+  if (typeof window === 'undefined' || !('VideoEncoder' in window) || !('VideoFrame' in window)) {
+    throw new Error('WebCodecs is not supported in this browser.');
+  }
+
   const totalFrames = Math.max(1, Math.ceil(duration * fps));
   const chosenCodec = await getSupportedVideoCodec(width, height, fps, bitrate);
   const sampleRate = 44100;
 
-  onLog(`🚀 Activating WebCodecs Hardware Engine (GPU Prefer-Hardware)...`);
-  onLog(`Codec Profile: ${chosenCodec} | Target: ${width}x${height} @ ${fps}fps (${(bitrate / 1_000_000).toFixed(1)} Mbps)`);
+  onLog(`🚀 WebCodecs export started (fast path) | ${width}x${height} @ ${fps}fps | Codec: ${chosenCodec}`);
 
-  // 1. Prepare Audio Master
   let audioBuffer: AudioBuffer | null = null;
   const support = checkWebCodecsSupport();
   const shouldEncodeAudio = support.hasAudioEncoder;
@@ -196,7 +186,6 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
     audioBuffer = await renderTimelineAudioOffline(tracks, duration, sampleRate, onLog);
   }
 
-  // 2. Initialize MP4 Muxer
   const muxerTarget = new ArrayBufferTarget();
   const isVp9 = chosenCodec.startsWith('vp09');
 
@@ -216,65 +205,64 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
     firstTimestampBehavior: 'offset'
   });
 
-  // 3. Initialize AudioEncoder if audio buffer exists
   let audioEngine: AudioEncoder | null = null;
   if (audioBuffer && shouldEncodeAudio) {
     try {
+      const audioDataClass = (window as any).AudioData;
+      if (!audioDataClass) {
+        throw new Error('AudioData API unavailable');
+      }
+
       audioEngine = new AudioEncoder({
         output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
         error: (e) => onLog(`[WebCodecs AudioEncoder Error] ${e}`)
       });
 
       audioEngine.configure({
-        codec: 'mp4a.40.2', // AAC-LC
+        codec: 'mp4a.40.2',
         sampleRate,
         numberOfChannels: 2,
         bitrate: 192_000
       });
 
-      // Encode audio buffer into chunks
-      const audioDataClass = (window as any).AudioData;
-      if (audioDataClass) {
-        const chunkSize = 1024;
-        const totalSamples = audioBuffer.length;
-        const leftChannel = audioBuffer.getChannelData(0);
-        const rightChannel = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : leftChannel;
+      const chunkSize = 1024;
+      const totalSamples = audioBuffer.length;
+      const leftChannel = audioBuffer.getChannelData(0);
+      const rightChannel = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : leftChannel;
 
-        for (let sampleOffset = 0; sampleOffset < totalSamples; sampleOffset += chunkSize) {
-          const currentChunkFrames = Math.min(chunkSize, totalSamples - sampleOffset);
-          const chunkLeft = leftChannel.subarray(sampleOffset, sampleOffset + currentChunkFrames);
-          const chunkRight = rightChannel.subarray(sampleOffset, sampleOffset + currentChunkFrames);
+      for (let sampleOffset = 0; sampleOffset < totalSamples; sampleOffset += chunkSize) {
+        const currentChunkFrames = Math.min(chunkSize, totalSamples - sampleOffset);
+        const leftSlice = leftChannel.subarray(sampleOffset, sampleOffset + currentChunkFrames);
+        const rightSlice = rightChannel.subarray(sampleOffset, sampleOffset + currentChunkFrames);
+        const planarData = new Float32Array(currentChunkFrames * 2);
 
-          // Planar float32 interleaved or separate planes
-          const planarData = new Float32Array(currentChunkFrames * 2);
-          planarData.set(chunkLeft, 0);
-          planarData.set(chunkRight, currentChunkFrames);
-
-          const timestampMicrosec = Math.round((sampleOffset / sampleRate) * 1_000_000);
-
-          const audioData = new audioDataClass({
-            format: 'f32-planar',
-            sampleRate,
-            numberOfFrames: currentChunkFrames,
-            numberOfChannels: 2,
-            timestamp: timestampMicrosec,
-            data: planarData
-          });
-
-          audioEngine.encode(audioData);
-          audioData.close();
+        for (let i = 0; i < currentChunkFrames; i++) {
+          planarData[i] = leftSlice[i];
+          planarData[currentChunkFrames + i] = rightSlice[i];
         }
 
-        await audioEngine.flush();
-        audioEngine.close();
-        onLog(`[WebCodecs Audio] All audio frames encoded into MP4 stream.`);
+        const timestampMicrosec = Math.round((sampleOffset / sampleRate) * 1_000_000);
+        const audioData = new audioDataClass({
+          format: 'f32-planar',
+          sampleRate,
+          numberOfFrames: currentChunkFrames,
+          numberOfChannels: 2,
+          timestamp: timestampMicrosec,
+          data: planarData
+        });
+
+        audioEngine.encode(audioData);
+        audioData.close();
       }
+
+      await audioEngine.flush();
+      audioEngine.close();
+      onLog('[WebCodecs Audio] Audio frames encoded successfully.');
     } catch (aEncErr) {
       onLog(`[WebCodecs AudioEncoder Note] ${aEncErr}. Continuing video pass.`);
     }
   }
 
-  // 4. Initialize VideoEncoder
   let encoderError: Error | null = null;
   const videoEncoder = new VideoEncoder({
     output: (chunk, meta) => {
@@ -297,18 +285,13 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
     avc: { format: 'avc' }
   });
 
-  onLog(`⚡ VideoEncoder ready! Starting hardware frame extraction loop (${totalFrames} frames)...`);
-
   const startTime = performance.now();
   let encodedFrames = 0;
 
-  // 5. Hardware Accelerated Frame Render & Encode Loop
   for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
     if (checkCancelled()) {
-      onLog(`Export cancelled by user.`);
-      try {
-        videoEncoder.close();
-      } catch {}
+      onLog('Export cancelled by user.');
+      try { videoEncoder.close(); } catch {}
       throw new Error('Export cancelled');
     }
 
@@ -317,11 +300,8 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
     }
 
     const frameTime = frameIndex / fps;
-
-    // Ask PreviewPlayer canvas to render current exact frame
     await renderFrameAtTime(frameTime);
 
-    // Microsecond timestamp
     const timestamp = Math.round((frameIndex / fps) * 1_000_000);
     const isKeyframe = (frameIndex % Math.round(fps * 2) === 0);
 
@@ -331,7 +311,6 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
 
     encodedFrames++;
 
-    // Zero-lag GPU backpressure: Synchronize with NVENC/QuickSync/VideoToolbox pipeline
     if (videoEncoder.encodeQueueSize > 4) {
       await new Promise<void>((resolve) => {
         let isResolved = false;
@@ -342,7 +321,7 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
             resolve();
           }
         };
-        // Fallback safeguard
+
         setTimeout(() => {
           if (!isResolved) {
             isResolved = true;
@@ -353,7 +332,6 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
       });
     }
 
-    // Progress update every few frames or on completion
     if (frameIndex % 5 === 0 || frameIndex === totalFrames - 1) {
       const now = performance.now();
       const elapsedSec = (now - startTime) / 1000;
@@ -363,19 +341,17 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
     }
   }
 
-  onLog(`Frames rendering complete. Flushing GPU pipeline & finalizing MP4 container...`);
+  onLog('Frames encoded. Finalizing export...');
   await videoEncoder.flush();
   videoEncoder.close();
 
-  // Finalize Muxer
   muxer.finalize();
   const buffer = muxerTarget.buffer;
 
   const totalTimeSec = ((performance.now() - startTime) / 1000).toFixed(1);
   const avgFps = totalTimeSec !== '0.0' ? Math.round(totalFrames / parseFloat(totalTimeSec)) : 0;
-  onLog(`✅ WebCodecs Export Finished in ${totalTimeSec}s! (Average GPU Speed: ${avgFps} FPS). Output: ${(buffer.byteLength / (1024 * 1024)).toFixed(2)} MB.`);
+  onLog(`✅ Export complete in ${totalTimeSec}s, avg ${avgFps} FPS. Size: ${(buffer.byteLength / (1024 * 1024)).toFixed(2)} MB.`);
 
   onProgress(100, totalFrames, totalFrames, avgFps);
-
   return new Blob([buffer], { type: 'video/mp4' });
 }
