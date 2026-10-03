@@ -288,6 +288,21 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
   const startTime = performance.now();
   let encodedFrames = 0;
 
+  // Dedicated offscreen buffer canvas to guarantee 100% pixel-perfect dimensions for VideoEncoder
+  let offscreenCanvas: HTMLCanvasElement | null = null;
+  let offscreenCtx: CanvasRenderingContext2D | null = null;
+
+  if (typeof document !== 'undefined' && (canvas.width !== width || canvas.height !== height)) {
+    offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = width;
+    offscreenCanvas.height = height;
+    offscreenCtx = offscreenCanvas.getContext('2d', { alpha: false });
+    if (offscreenCtx) {
+      offscreenCtx.imageSmoothingEnabled = true;
+      offscreenCtx.imageSmoothingQuality = 'high';
+    }
+  }
+
   for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
     if (checkCancelled()) {
       onLog('Export cancelled by user.');
@@ -305,7 +320,13 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
     const timestamp = Math.round((frameIndex / fps) * 1_000_000);
     const isKeyframe = (frameIndex % Math.round(fps * 2) === 0);
 
-    const videoFrame = new VideoFrame(canvas, { timestamp });
+    let frameSource: CanvasImageSource = canvas;
+    if (offscreenCanvas && offscreenCtx) {
+      offscreenCtx.drawImage(canvas, 0, 0, width, height);
+      frameSource = offscreenCanvas;
+    }
+
+    const videoFrame = new VideoFrame(frameSource, { timestamp });
     videoEncoder.encode(videoFrame, { keyFrame: isKeyframe });
     videoFrame.close();
 

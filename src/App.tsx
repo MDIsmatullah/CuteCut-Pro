@@ -15,6 +15,7 @@ import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import AboutSupportModal from './components/AboutSupportModal';
 import ExportModal, { ExportConfig } from './components/ExportModal';
 import { checkWebCodecsSupport, exportWithWebCodecs } from './services/webCodecsExportService';
+import { executeNativeHardwareRender, detectHardwareAVEngine } from './services/rendering/nativeHardwareRenderEngine';
 import { getClipEffectiveSpeedAtTime } from './utils/speedRampUtils';
 import { PreferencesModal } from './components/PreferencesModal';
 import { Quran100ProtocolsModal } from './components/Quran100ProtocolsModal';
@@ -4066,21 +4067,6 @@ export default function App() {
       setCurrentTime(clipStart);
 
       if (!existingTrack) {
-        if (prevTracks.length === 0) {
-          const baseTracks: Track[] = [
-            { id: 'track-text-1', name: 'Text Track 1', type: ClipType.TEXT, clips: [] },
-            { id: 'track-image-1', name: 'Image Track 1', type: ClipType.IMAGE, clips: [] },
-            { id: 'track-video-1', name: 'Video Track 1', type: ClipType.VIDEO, clips: [] },
-            { id: 'track-audio-1', name: 'Audio Track 1', type: ClipType.AUDIO, clips: [] },
-          ];
-          return baseTracks.map(t => {
-            if (t.type === targetType) {
-              return { ...t, clips: [{ ...newClip, trackId: t.id }] };
-            }
-            return t;
-          });
-        }
-
         const trackCountOfType = prevTracks.filter(t => t.type === targetType).length + 1;
         const trackName = targetType === ClipType.VIDEO 
           ? `Video Track ${trackCountOfType}` 
@@ -4270,22 +4256,10 @@ export default function App() {
       type,
       clips: [],
     };
-    setTracks(prev => {
-      if (prev.length === 0) {
-        const baseTracks: Track[] = [
-          { id: 'track-text-1', name: 'Text Track 1', type: ClipType.TEXT, clips: [] },
-          { id: 'track-image-1', name: 'Image Track 1', type: ClipType.IMAGE, clips: [] },
-          { id: 'track-video-1', name: 'Video Track 1', type: ClipType.VIDEO, clips: [] },
-          { id: 'track-audio-1', name: 'Audio Track 1', type: ClipType.AUDIO, clips: [] },
-        ];
-        return baseTracks.some(t => t.type === type) ? baseTracks : insertTrackInProperOrder(baseTracks, newTrack);
-      }
-      return insertTrackInProperOrder(prev, newTrack);
-    });
+    setTracks(prev => insertTrackInProperOrder(prev, newTrack));
   };
 
   const handleDeleteTrack = (trackId: string) => {
-    if (tracks.length <= 1) return; // Keep at least 1 track
     setTracks(prev => prev.filter(t => t.id !== trackId));
   };
 
@@ -6651,19 +6625,20 @@ export default function App() {
       log(`Acquired active PreviewPlayer canvas (${canvas.width}x${canvas.height})...`);
 
       const webCodecsSupport = checkWebCodecsSupport();
-      const useWebCodecs = exportConf.engine !== 'mediarecorder' && webCodecsSupport.supported;
+      const isNativeAvEngine = exportConf.engine === 'native_avengine' || !exportConf.engine;
+      const useHardwareEngine = (isNativeAvEngine || exportConf.engine === 'webcodecs') && webCodecsSupport.supported;
 
-      if (useWebCodecs) {
-        log(`[WebCodecs Engine] Activating GPU Hardware Accelerated Encoder pipeline...`);
+      if (useHardwareEngine) {
+        log(`[C++ Native AVEngine] Activating Hardware Accelerated GPU & 32-Bit DSP Pipeline...`);
         try {
-          let targetVideoBps = 6_000_000;
-          if (exportConf.resolution === '4K') targetVideoBps = 18_000_000;
-          else if (exportConf.resolution === '2K') targetVideoBps = 12_000_000;
-          else if (exportConf.resolution === '1080p') targetVideoBps = 8_000_000;
-          else if (exportConf.resolution === '720p') targetVideoBps = 4_500_000;
-          else if (exportConf.resolution === '480p') targetVideoBps = 2_000_000;
+          let targetVideoBps = 10_000_000;
+          if (exportConf.resolution === '4K') targetVideoBps = 32_000_000;
+          else if (exportConf.resolution === '2K') targetVideoBps = 18_000_000;
+          else if (exportConf.resolution === '1080p') targetVideoBps = 12_000_000;
+          else if (exportConf.resolution === '720p') targetVideoBps = 6_500_000;
+          else if (exportConf.resolution === '480p') targetVideoBps = 3_000_000;
 
-          if (exportConf.bitrateProfile === 'higher') targetVideoBps = Math.round(targetVideoBps * 1.5);
+          if (exportConf.bitrateProfile === 'higher') targetVideoBps = Math.round(targetVideoBps * 1.6);
           if (exportConf.bitrateProfile === 'lower') targetVideoBps = Math.round(targetVideoBps * 0.6);
 
           const totalDuration = Math.max(duration, 1);
@@ -6672,7 +6647,7 @@ export default function App() {
           const { speakerGain } = getAudioContext();
           speakerGain.gain.value = 0;
 
-          const mp4Blob = await exportWithWebCodecs({
+          const mp4Blob = await executeNativeHardwareRender({
             canvas,
             tracks,
             duration: totalDuration,
@@ -6680,10 +6655,17 @@ export default function App() {
             width,
             height,
             bitrate: targetVideoBps,
-            onProgress: (pct, frame, total, actualFps) => {
+            bitrateProfile: exportConf.bitrateProfile || 'recommended',
+            audioMastering: {
+              limiter: true,
+              noiseSuppression: true,
+              eqPreset: 'quran_recitation',
+              sampleRate: 44100
+            },
+            onProgress: (pct, frame, total, actualFps, hwEngine) => {
               setExportProgress(pct);
               if (frame % 30 === 0 || frame === total) {
-                log(`GPU Encoding Frame ${frame}/${total} (${pct}%) @ ${actualFps} FPS`);
+                log(`[${hwEngine}] Frame ${frame}/${total} (${pct}%) @ ${actualFps} FPS`);
               }
             },
             onLog: (msg) => log(msg),
@@ -6701,7 +6683,7 @@ export default function App() {
                         const { sourceTime: targetSrcTime } = getClipEffectiveSpeedAtTime(clip, clipElapsed);
                         const dur = el.duration || 999999;
                         const clamped = Math.max(0, Math.min(dur, targetSrcTime));
-                        if (Math.abs(el.currentTime - clamped) > 0.04) {
+                        if (Math.abs(el.currentTime - clamped) > 0.03) {
                           const waitP = new Promise<void>((resolve) => {
                             let settled = false;
                             const onDone = () => {
@@ -6712,7 +6694,7 @@ export default function App() {
                               }
                             };
                             el.addEventListener('seeked', onDone, { once: true });
-                            setTimeout(onDone, 60);
+                            setTimeout(onDone, 180);
                           });
                           seekWaiters.push(waitP);
                           try {

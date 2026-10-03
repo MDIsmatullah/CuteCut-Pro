@@ -227,18 +227,10 @@ export function applyColorGrading(
 }
 
 /**
- * Default initial timeline tracks structured into designated areas:
- * 1. Text Track 1 (top)
- * 2. Image Track 1 (upper-middle)
- * 3. Video Track 1 (lower-middle)
- * 4. Audio Track 1 (bottom)
+ * Default initial timeline tracks - Starts clean and empty.
+ * Tracks are dynamically created automatically when files (Video, Audio, Image, Text) are dropped or added.
  */
-export const DEFAULT_INITIAL_TRACKS: Track[] = [
-  { id: 'track-text-1', name: 'Text Track 1', type: ClipType.TEXT, clips: [] },
-  { id: 'track-image-1', name: 'Image Track 1', type: ClipType.IMAGE, clips: [] },
-  { id: 'track-video-1', name: 'Video Track 1', type: ClipType.VIDEO, clips: [] },
-  { id: 'track-audio-1', name: 'Audio Track 1', type: ClipType.AUDIO, clips: [] },
-];
+export const DEFAULT_INITIAL_TRACKS: Track[] = [];
 
 /**
  * Inserts a newly auto-created or manual track in its designated position based on track type hierarchy:

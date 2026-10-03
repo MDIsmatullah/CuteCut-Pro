@@ -2603,21 +2603,54 @@ export default function Timeline({
             {/* Visual Grid rows */}
             <div ref={gridScrollRef} onScroll={handleVerticalScroll} className="absolute top-8 bottom-0 left-0 right-0 flex flex-col p-1.5 gap-2 overflow-y-auto custom-scrollbar min-w-full w-full">
               {sortedTracks.length === 0 ? (
-                /* CapCut Pro Empty Timeline Dropzone */
+                /* CapCut Pro Dynamic Auto-Track Dropzone */
                 <div 
                   className={`h-full min-h-[180px] border-2 border-dashed rounded-xl flex flex-col items-center justify-center p-6 text-center transition-all ${
-                    isDraggingFiles ? 'border-cyan-400 bg-cyan-950/40 shadow-[0_0_25px_rgba(6,182,212,0.3)]' : 'border-[#262633] bg-[#121218]/60'
+                    isDraggingFiles ? 'border-cyan-400 bg-cyan-950/40 shadow-[0_0_25px_rgba(6,182,212,0.3)] ring-2 ring-cyan-400/50' : 'border-[#262633] bg-[#121218]/60 hover:border-gray-600'
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-3 shadow-inner">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-teal-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-3 shadow-inner">
                     <Film className={`w-6 h-6 ${isDraggingFiles ? 'animate-bounce text-cyan-300' : ''}`} />
                   </div>
                   <h3 className="text-xs sm:text-sm font-bold text-gray-200">
-                    {isDraggingFiles ? 'Drop media files to auto-create tracks!' : 'Drag & drop media files here to start editing'}
+                    {isDraggingFiles ? '⚡ Drop files here to auto-create tracks!' : 'Drag & drop media files here to start editing'}
                   </h3>
-                  <p className="text-[10px] text-gray-500 max-w-sm mt-1">
-                    Supports Video (MP4, WebM), Audio (MP3, WAV), and Images (PNG, JPG). Tracks are created automatically on drop.
+                  <p className="text-[11px] text-gray-400 max-w-sm mt-1">
+                    Timeline starts clean. Tracks (Video, Audio, Image, Text) are created automatically when you drop or add media.
                   </p>
+                  
+                  {onAddTrack && (
+                    <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+                      <button
+                        onClick={() => onAddTrack(ClipType.VIDEO)}
+                        className="px-2.5 py-1 rounded-lg bg-[#1a1a24] hover:bg-cyan-500/20 border border-[#2f2f40] hover:border-cyan-500/50 text-cyan-300 text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        <Film className="w-3.5 h-3.5" />
+                        <span>+ Video Track</span>
+                      </button>
+                      <button
+                        onClick={() => onAddTrack(ClipType.AUDIO)}
+                        className="px-2.5 py-1 rounded-lg bg-[#1a1a24] hover:bg-teal-500/20 border border-[#2f2f40] hover:border-teal-500/50 text-teal-300 text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        <Music className="w-3.5 h-3.5" />
+                        <span>+ Audio Track</span>
+                      </button>
+                      <button
+                        onClick={() => onAddTrack(ClipType.TEXT)}
+                        className="px-2.5 py-1 rounded-lg bg-[#1a1a24] hover:bg-purple-500/20 border border-[#2f2f40] hover:border-purple-500/50 text-purple-300 text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        <TypeIcon className="w-3.5 h-3.5" />
+                        <span>+ Text Track</span>
+                      </button>
+                      <button
+                        onClick={() => onAddTrack(ClipType.IMAGE)}
+                        className="px-2.5 py-1 rounded-lg bg-[#1a1a24] hover:bg-emerald-500/20 border border-[#2f2f40] hover:border-emerald-500/50 text-emerald-300 text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        <span>+ Image Track</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 sortedTracks.map((track, trackIdx) => {
@@ -2786,8 +2819,8 @@ export default function Timeline({
                                 />
                               )}
 
-                              {/* Real-time Audio Waveform Graph Visualizer for Audio & Video Clips */}
-                              {(clip.type === ClipType.AUDIO || (clip.type === ClipType.VIDEO && clip.url && showVideoWaveforms)) && (
+                              {/* Real-time Audio Waveform Graph Visualizer (Exclusively for Audio Clips) */}
+                              {clip.type === ClipType.AUDIO && clip.url && (
                                 <AudioWaveformGraph
                                   clipId={clip.id}
                                   url={clip.url}
@@ -2796,7 +2829,7 @@ export default function Timeline({
                                   volume={clip.volume}
                                   showSilenceHighlights={showSilenceGuide}
                                   showBeatMarkers={true}
-                                  overlayMode={clip.type === ClipType.VIDEO}
+                                  overlayMode={false}
                                   currentTime={currentTime}
                                   clipStart={clip.start}
                                   clipDuration={clip.duration}
