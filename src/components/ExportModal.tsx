@@ -13,6 +13,7 @@ import { AdMobService } from '../utils/admobService';
 import { GoogleDriveService } from '../services/googleDriveService';
 import { checkWebCodecsSupport } from '../services/webCodecsExportService';
 import { detectHardwareAVEngine } from '../services/rendering/nativeHardwareRenderEngine';
+import { detectPlatformAndOptimalEngine } from '../utils/platformEngineDetector';
 
 export interface ExportConfig {
   filename: string;
@@ -135,6 +136,7 @@ export default function ExportModal({
   const initialSystemInfo = useMemo(() => getSystemDefaultExportPath(), []);
   const systemPresets = useMemo(() => getSystemPresetPaths(), []);
   const webCodecsSupport = useMemo(() => checkWebCodecsSupport(), []);
+  const platformEngineInfo = useMemo(() => detectPlatformAndOptimalEngine(), []);
   const [pathMode, setPathMode] = useState<'auto' | 'manual'>('auto');
   const [isAdLoading, setIsAdLoading] = useState(false);
   
@@ -150,8 +152,8 @@ export default function ExportModal({
     exportAudioSeparately: false,
     audioFormat: 'mp3',
     coverTimestamp: 0,
-    engine: webCodecsSupport.supported ? 'webcodecs' : 'mediarecorder',
-    hardwareAcceleration: webCodecsSupport.supported,
+    engine: platformEngineInfo.engine,
+    hardwareAcceleration: true,
   }));
 
   const handleStartExportDirect = () => {
@@ -159,15 +161,18 @@ export default function ExportModal({
     onStartExport(config);
   };
 
-  // Auto-detect OS path when modal opens if path is empty or unchanged
+  // Auto-detect OS path and optimal engine when modal opens
   useEffect(() => {
     if (isOpen) {
+      const detected = detectPlatformAndOptimalEngine();
       const sys = getSystemDefaultExportPath();
       setConfig(prev => {
-        if (!prev.outputDirectory || prev.outputDirectory === 'C:/Users/Videos/CuteCut') {
-          return { ...prev, outputDirectory: sys.path };
-        }
-        return prev;
+        const nextDir = (!prev.outputDirectory || prev.outputDirectory === 'C:/Users/Videos/CuteCut') ? sys.path : prev.outputDirectory;
+        return {
+          ...prev,
+          engine: detected.engine,
+          outputDirectory: nextDir
+        };
       });
     }
   }, [isOpen]);
@@ -963,45 +968,28 @@ export default function ExportModal({
                         </div>
                       </div>
 
-                      {/* Render Engine & GPU Acceleration */}
-                      <div className="grid grid-cols-12 items-center gap-2">
-                        <span className="col-span-4 text-gray-400 flex items-center gap-1.5">
-                          <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                          <span>Engine</span>
-                        </span>
-                        <div className="col-span-8">
-                          <select
-                            value={config.engine || 'native_avengine'}
-                            onChange={(e) => setConfig({ ...config, engine: e.target.value as any })}
-                            className="w-full bg-[#15151a] border border-[#2f2f3e] focus:border-cyan-400 rounded px-2 py-1 text-xs text-white focus:outline-none cursor-pointer font-medium"
-                          >
-                            <option value="native_avengine">
-                              🚀 C++ Native AVEngine (NVENC / QuickSync / VideoToolbox)
-                            </option>
-                            <option value="webcodecs">
-                              ⚡ WebCodecs Hardware (10x GPU Frame-by-Frame)
-                            </option>
-                            <option value="mediarecorder">
-                              🎥 MediaRecorder (1x Real-Time Legacy)
-                            </option>
-                          </select>
+                      {/* Auto-Detected Render Engine & System Pipeline (Automated System Detection) */}
+                      <div className="flex flex-col gap-2 p-2.5 rounded-lg bg-[#141d26] border border-cyan-500/30 text-[11px]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-cyan-300 font-bold">
+                            <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+                            <span>System: {platformEngineInfo.platformBadge}</span>
+                          </div>
+                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono font-semibold">
+                            {platformEngineInfo.engineBadge}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-gray-200 font-medium">
+                          {platformEngineInfo.engineName}
+                        </div>
+                        <div className="text-[9.5px] text-gray-400 leading-snug">
+                          {platformEngineInfo.engineDescription}
+                        </div>
+                        <div className="flex items-center gap-1.5 pt-1 text-[9px] text-cyan-400/90 font-mono border-t border-cyan-500/20">
+                          <span>⚡ Hardware Encoder:</span>
+                          <span className="text-white font-semibold truncate">{platformEngineInfo.hardwareEncoderName}</span>
                         </div>
                       </div>
-
-                      {/* Hardware AVEngine Status Pill */}
-                      {config.engine !== 'mediarecorder' && (
-                        <div className="flex flex-col gap-1 px-2.5 py-2 rounded-md bg-emerald-950/40 border border-emerald-500/30 text-[11px] text-emerald-300">
-                          <div className="flex items-center gap-1.5 font-bold text-emerald-400">
-                            <Zap className="w-3.5 h-3.5 animate-pulse shrink-0" />
-                            <span>Hardware Engine: {detectHardwareAVEngine().hardwareEncoderName}</span>
-                          </div>
-                          <div className="text-[10px] text-emerald-200/80 leading-relaxed">
-                            ✓ Direct NVENC / Metal / QuickSync GPU Frame-by-Frame Pipeline Active
-                            <br />
-                            ✓ 32-Bit Float C++ DSP Audio Mastering (Dynamic EQ + Peak Limiter)
-                          </div>
-                        </div>
-                      )}
 
                       {/* Bit rate */}
                       <div className="grid grid-cols-12 items-center gap-2">

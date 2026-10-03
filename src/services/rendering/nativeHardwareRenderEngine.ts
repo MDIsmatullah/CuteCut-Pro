@@ -266,11 +266,46 @@ export async function executeNativeHardwareRender(options: NativeHardwareRenderO
   }
 
   // 2. Setup High-Speed MP4 Muxer with FastStart
+  const candidateCodecs = [
+    'avc1.640033',
+    'avc1.64002a',
+    'avc1.4d002a',
+    'avc1.42001f',
+    'vp09.00.41.08',
+    'vp09.00.10.08',
+  ];
+  let chosenCodec = 'avc1.42001f';
+  let chosenAccel: HardwareAcceleration = 'prefer-hardware';
+
+  let foundSupported = false;
+  for (const c of candidateCodecs) {
+    for (const accel of ['prefer-hardware', 'no-preference'] as HardwareAcceleration[]) {
+      try {
+        const sup = await VideoEncoder.isConfigSupported({
+          codec: c,
+          width,
+          height,
+          bitrate,
+          framerate: fps,
+          hardwareAcceleration: accel
+        });
+        if (sup && sup.supported) {
+          chosenCodec = c;
+          chosenAccel = accel;
+          foundSupported = true;
+          break;
+        }
+      } catch {}
+    }
+    if (foundSupported) break;
+  }
+
+  const muxerVideoCodec = chosenCodec.startsWith('vp09') ? 'vp9' : 'avc';
   const muxerTarget = new ArrayBufferTarget();
   const muxer = new Muxer({
     target: muxerTarget,
     video: {
-      codec: 'avc',
+      codec: muxerVideoCodec,
       width,
       height
     },
@@ -351,38 +386,20 @@ export async function executeNativeHardwareRender(options: NativeHardwareRenderO
     }
   });
 
-  // Candidate Hardware Codecs
-  const candidateCodecs = ['avc1.640033', 'avc1.64002a', 'avc1.4d002a', 'avc1.42001f'];
-  let chosenCodec = 'avc1.640033';
-
-  for (const c of candidateCodecs) {
-    try {
-      const sup = await VideoEncoder.isConfigSupported({
-        codec: c,
-        width,
-        height,
-        bitrate,
-        framerate: fps,
-        hardwareAcceleration: 'prefer-hardware'
-      });
-      if (sup && sup.supported) {
-        chosenCodec = c;
-        break;
-      }
-    } catch {}
-  }
-
-  videoEncoder.configure({
+  const encoderConfig: any = {
     codec: chosenCodec,
     width,
     height,
     bitrate,
     bitrateMode: 'variable',
     framerate: fps,
-    hardwareAcceleration: 'prefer-hardware',
-    latencyMode: 'quality',
-    avc: { format: 'avc' }
-  });
+    hardwareAcceleration: chosenAccel,
+    latencyMode: 'quality'
+  };
+  if (chosenCodec.startsWith('avc1')) {
+    encoderConfig.avc = { format: 'avc' };
+  }
+  videoEncoder.configure(encoderConfig);
 
   // Dedicated offscreen raster buffer matching exact target width/height (Full 4K / 1080p)
   let offscreenCanvas: HTMLCanvasElement | null = null;

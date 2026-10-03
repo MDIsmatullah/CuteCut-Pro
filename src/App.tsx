@@ -16,6 +16,7 @@ import AboutSupportModal from './components/AboutSupportModal';
 import ExportModal, { ExportConfig } from './components/ExportModal';
 import { checkWebCodecsSupport, exportWithWebCodecs } from './services/webCodecsExportService';
 import { executeNativeHardwareRender, detectHardwareAVEngine } from './services/rendering/nativeHardwareRenderEngine';
+import { detectPlatformAndOptimalEngine } from './utils/platformEngineDetector';
 import { getClipEffectiveSpeedAtTime } from './utils/speedRampUtils';
 import { PreferencesModal } from './components/PreferencesModal';
 import { Quran100ProtocolsModal } from './components/Quran100ProtocolsModal';
@@ -6586,9 +6587,14 @@ export default function App() {
       (window as any)._cutecut_last_export_dir = exportConf.outputDirectory;
     }
 
+    const platformInfo = detectPlatformAndOptimalEngine();
+
     const log = (msg: string) => {
-      setExportTerminalLogs(prev => [...prev, `[MediaRecorder Engine] ${msg}`]);
+      setExportTerminalLogs(prev => [...prev, `[AVEngine] ${msg}`]);
     };
+
+    log(`⚡ Auto-Detected Environment: ${platformInfo.platformName} (${platformInfo.platformBadge})`);
+    log(`🚀 Optimal Engine Active: ${platformInfo.engineName} [No manual setup required]`);
 
     const finalizeCompliantMp4 = async (rawBlob: Blob, targetFilename: string, fps: number): Promise<{ blob: Blob; filename: string }> => {
       // 1. Check if Electron Native Offline C++ Engine is available (Snap, deb, exe, dmg)
@@ -6685,6 +6691,62 @@ export default function App() {
       log(`Prepared canvas at native target resolution: ${width}x${height} (${exportConf.resolution})...`);
       await new Promise(r => setTimeout(r, 60));
 
+      const renderFrameAtTime = async (t: number, targetCanvas?: HTMLCanvasElement, targetCtx?: CanvasRenderingContext2D, targetWidth?: number, targetHeight?: number) => {
+        if (typeof (window as any).__cuteCutRenderDirectFrame === 'function') {
+          const handled = await (window as any).__cuteCutRenderDirectFrame(t, targetCanvas, targetCtx, targetWidth, targetHeight);
+          if (handled) return true;
+        }
+
+        const seekWaiters: Promise<void>[] = [];
+        tracks.forEach(track => {
+          if (track.hidden) return;
+          track.clips.forEach(clip => {
+            if (clip.type === ClipType.VIDEO) {
+              const el = videoElementsRef.current[clip.id];
+              if (el instanceof HTMLVideoElement) {
+                const isActive = t >= clip.start && t <= clip.start + clip.duration;
+                if (isActive) {
+                  const clipElapsed = t - clip.start;
+                  const { sourceTime: targetSrcTime } = getClipEffectiveSpeedAtTime(clip, clipElapsed);
+                  const dur = el.duration || 999999;
+                  const clamped = dur > 0 ? (targetSrcTime % dur) : 0;
+                  if (Math.abs(el.currentTime - clamped) > 0.005) {
+                    const waitP = new Promise<void>((resolve) => {
+                      let settled = false;
+                      const onDone = () => {
+                        if (!settled) {
+                          settled = true;
+                          el.removeEventListener('seeked', onDone);
+                          resolve();
+                        }
+                      };
+                      el.addEventListener('seeked', onDone, { once: true });
+                      if (typeof (el as any).requestVideoFrameCallback === 'function') {
+                        try {
+                          (el as any).requestVideoFrameCallback(() => onDone());
+                        } catch {}
+                      }
+                      try {
+                        el.currentTime = clamped;
+                      } catch {
+                        onDone();
+                      }
+                      setTimeout(onDone, 120);
+                    });
+                    seekWaiters.push(waitP);
+                  }
+                }
+              }
+            }
+          });
+        });
+        if (seekWaiters.length > 0) {
+          await Promise.all(seekWaiters);
+        }
+        await new Promise(r => requestAnimationFrame(r));
+        return false;
+      };
+
       const webCodecsSupport = checkWebCodecsSupport();
       const isNativeAvEngine = exportConf.engine === 'native_avengine' || !exportConf.engine;
       const useHardwareEngine = (isNativeAvEngine || exportConf.engine === 'webcodecs') && webCodecsSupport.supported;
@@ -6740,62 +6802,7 @@ export default function App() {
               }
             },
             onLog: (msg) => log(msg),
-            renderFrameAtTime: async (t: number, targetCanvas?: HTMLCanvasElement, targetCtx?: CanvasRenderingContext2D, targetWidth?: number, targetHeight?: number) => {
-              if (typeof (window as any).__cuteCutRenderDirectFrame === 'function') {
-                const handled = await (window as any).__cuteCutRenderDirectFrame(t, targetCanvas, targetCtx, targetWidth, targetHeight);
-                if (handled) return true;
-              }
-
-              setCurrentTime(t);
-              const seekWaiters: Promise<void>[] = [];
-              tracks.forEach(track => {
-                if (track.hidden) return;
-                track.clips.forEach(clip => {
-                  if (clip.type === ClipType.VIDEO) {
-                    const el = videoElementsRef.current[clip.id];
-                    if (el instanceof HTMLVideoElement) {
-                      const isActive = t >= clip.start && t <= clip.start + clip.duration;
-                      if (isActive) {
-                        const clipElapsed = t - clip.start;
-                        const { sourceTime: targetSrcTime } = getClipEffectiveSpeedAtTime(clip, clipElapsed);
-                        const dur = el.duration || 999999;
-                        const clamped = dur > 0 ? (targetSrcTime % dur) : 0;
-                        if (Math.abs(el.currentTime - clamped) > 0.015) {
-                          const waitP = new Promise<void>((resolve) => {
-                            let settled = false;
-                            const onDone = () => {
-                              if (!settled) {
-                                settled = true;
-                                el.removeEventListener('seeked', onDone);
-                                resolve();
-                              }
-                            };
-                            el.addEventListener('seeked', onDone, { once: true });
-                            if (typeof (el as any).requestVideoFrameCallback === 'function') {
-                              try {
-                                (el as any).requestVideoFrameCallback(() => onDone());
-                              } catch {}
-                            }
-                            try {
-                              el.currentTime = clamped;
-                            } catch {
-                              onDone();
-                            }
-                            setTimeout(onDone, 120);
-                          });
-                          seekWaiters.push(waitP);
-                        }
-                      }
-                    }
-                  }
-                });
-              });
-              if (seekWaiters.length > 0) {
-                await Promise.all(seekWaiters);
-              }
-              await new Promise(r => requestAnimationFrame(r));
-              return false;
-            },
+            renderFrameAtTime,
             checkCancelled: () => isCancelledExportRef.current
           });
 
@@ -6966,98 +6973,51 @@ export default function App() {
             };
 
             const totalDuration = Math.max(duration, 1);
-            setCurrentTime(0);
-            setIsPlaying(false); // Do not trigger editor timeline playback state
+            const fps = exportConf.frameRate || 30;
+            const totalFrames = Math.max(1, Math.ceil(totalDuration * fps));
+            const initialUserTime = currentTime;
 
             recorder.start(100);
-            log(`Started real-time frame buffer capture (Codec: ${chosenMime || 'default'}, Bitrate: ${(targetVideoBps / 1_000_000).toFixed(1)} Mbps)...`);
+            log(`Started offline frame-by-frame capture (Codec: ${chosenMime || 'default'}, Bitrate: ${(targetVideoBps / 1_000_000).toFixed(1)} Mbps, ${totalFrames} frames)...`);
 
-            const startTime = Date.now();
-            const recordInterval = setInterval(() => {
-              if (isCancelledExportRef.current) {
-                clearInterval(recordInterval);
-                return;
-              }
-              const elapsed = (Date.now() - startTime) / 1000;
-              const pct = Math.min(100, Math.floor((elapsed / totalDuration) * 100));
-              setExportProgress(pct);
-
-              const nextTime = Math.min(totalDuration, elapsed);
-              setCurrentTime(nextTime);
-
-              // Directly sync and trigger active audio/video media elements during recording (silent via gain node)
-              tracks.forEach(track => {
-                track.clips.forEach(clip => {
-                  const isActive = nextTime >= clip.start && nextTime <= clip.start + clip.duration;
-                  const clipElapsed = nextTime - clip.start;
-                  const { currentSpeed, sourceTime: targetSrcTime } = getClipEffectiveSpeedAtTime(clip, clipElapsed);
-                  const rawVol = clip.volume !== undefined ? clip.volume : 80;
-                  const safeVolume = Math.max(0, Math.min(1, rawVol > 1 ? rawVol / 100 : rawVol));
-                  const effectiveGain = (track.muted || isMuted || !isActive) ? 0 : safeVolume;
-
-                  if (audioSourceNodesRef.current[clip.id]?.gainNode) {
-                    audioSourceNodesRef.current[clip.id].gainNode.gain.value = effectiveGain;
-                  }
-
-                  if (clip.type === ClipType.AUDIO) {
-                    const el = audioElementRef.current[clip.id];
-                    if (el) {
-                      if (isActive) {
-                        if (el.paused) {
-                          const dur = el.duration || 999999;
-                          const clamped = Math.max(0, Math.min(dur, targetSrcTime));
-                          try { el.currentTime = clamped; } catch {}
-                          el.play().catch(() => {});
-                        } else {
-                          // While actively recording, NEVER micro-seek! Only resync if massive drift (> 1.2s)
-                          const dur = el.duration || 999999;
-                          const clamped = Math.max(0, Math.min(dur, targetSrcTime));
-                          if (Math.abs(el.currentTime - clamped) > 1.2) {
-                            try { el.currentTime = clamped; } catch {}
-                          }
-                        }
-                      } else {
-                        if (!el.paused) el.pause();
-                      }
-                    }
-                  } else if (clip.type === ClipType.VIDEO) {
-                    const el = videoElementsRef.current[clip.id];
-                    if (el instanceof HTMLVideoElement) {
-                      if (isActive) {
-                        el.playbackRate = Math.max(0.1, Math.min(16, currentSpeed || clip.playbackRate || 1.0));
-                        if (el.paused) {
-                          const dur = el.duration || 999999;
-                          const clamped = Math.max(0, Math.min(dur, targetSrcTime));
-                          try { el.currentTime = clamped; } catch {}
-                          el.play().catch(() => {});
-                        } else {
-                          const dur = el.duration || 999999;
-                          const clamped = Math.max(0, Math.min(dur, targetSrcTime));
-                          if (Math.abs(el.currentTime - clamped) > 1.2) {
-                            try { el.currentTime = clamped; } catch {}
-                          }
-                        }
-                      } else {
-                        if (!el.paused) el.pause();
-                      }
-                    }
-                  }
-                });
-              });
-
-              if (elapsed >= totalDuration || pct >= 100) {
-                clearInterval(recordInterval);
-                activeRecordIntervalRef.current = null;
-                if (recorder.state === 'recording') {
-                  try {
-                    recorder.requestData();
-                  } catch (e) {}
-                  recorder.stop();
+            (async () => {
+              const videoTrack = canvasStream?.getVideoTracks?.()[0];
+              for (let f = 0; f < totalFrames; f++) {
+                if (isCancelledExportRef.current) break;
+                const frameTime = f / fps;
+                
+                if (typeof (window as any).__cuteCutRenderDirectFrame === 'function') {
+                  await (window as any).__cuteCutRenderDirectFrame(frameTime, canvas, undefined, width, height);
+                } else {
+                  await renderFrameAtTime(frameTime, canvas, undefined, width, height);
                 }
-              }
-            }, 33);
 
-            activeRecordIntervalRef.current = recordInterval;
+                if (videoTrack && typeof (videoTrack as any).requestFrame === 'function') {
+                  try { (videoTrack as any).requestFrame(); } catch {}
+                }
+
+                const pct = Math.min(99, Math.floor(((f + 1) / totalFrames) * 100));
+                setExportProgress(pct);
+
+                // Yield to allow MediaRecorder to process frame slice cleanly
+                await new Promise(r => setTimeout(r, Math.max(10, Math.floor(1000 / fps))));
+              }
+
+              if (recorder.state === 'recording') {
+                try {
+                  recorder.requestData();
+                } catch (e) {}
+                recorder.stop();
+              }
+              // Restore playhead position
+              setCurrentTime(initialUserTime);
+            })().catch((err) => {
+              log(`MediaRecorder capture error: ${err}`);
+              if (recorder.state === 'recording') {
+                try { recorder.stop(); } catch {}
+              }
+              setCurrentTime(initialUserTime);
+            });
 
             recorder.onstop = async () => {
               activeRecorderRef.current = null;

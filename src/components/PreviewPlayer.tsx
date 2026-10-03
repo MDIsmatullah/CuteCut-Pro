@@ -1013,21 +1013,36 @@ export default function PreviewPlayer({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true }) || canvas.getContext('2d');
-    if (!ctx) return;
+    const defaultCtx = canvas.getContext('2d', { alpha: false, desynchronized: true }) || canvas.getContext('2d');
+    if (!defaultCtx) return;
+    const defaultDimensions = dimensions;
 
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    defaultCtx.imageSmoothingEnabled = true;
+    defaultCtx.imageSmoothingQuality = 'high';
 
     let animId: number;
 
-    const render = () => {
+    const render = (
+      timeToRender?: number,
+      targetCanvas?: HTMLCanvasElement,
+      targetCtx?: CanvasRenderingContext2D,
+      targetW?: number,
+      targetH?: number
+    ) => {
+      const t = timeToRender !== undefined ? timeToRender : currentTime;
+      const ctx = targetCtx || defaultCtx;
+      const dimensions = {
+        width: targetW || (targetCanvas ? targetCanvas.width : defaultDimensions.width),
+        height: targetH || (targetCanvas ? targetCanvas.height : defaultDimensions.height)
+      };
+      const isExportFrame = timeToRender !== undefined || isExporting;
+
       // 1. Clear Canvas
       ctx.fillStyle = '#08080b';
       ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
       // Draw subtle grid lines if enabled
-      if (showGrid && !isExporting) {
+      if (showGrid && !isExportFrame) {
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
         ctx.lineWidth = 1;
 
@@ -1053,7 +1068,7 @@ export default function PreviewPlayer({
       }
 
       // Safe Area lines if enabled
-      if (showSafeArea) {
+      if (showSafeArea && !isExportFrame) {
         ctx.strokeStyle = 'rgba(245, 158, 11, 0.5)';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([6, 6]);
@@ -1068,7 +1083,7 @@ export default function PreviewPlayer({
       tracks.forEach((track) => {
         if (track.hidden) return; // Skip hidden tracks
         track.clips.forEach((clip) => {
-          if (currentTime >= clip.start && currentTime <= clip.start + clip.duration) {
+          if (t >= clip.start && t <= clip.start + clip.duration) {
             activeFrameClips.push(clip);
           }
         });
@@ -1167,12 +1182,19 @@ export default function PreviewPlayer({
 
             if (isVideoReady) {
               drawTarget = videoEl;
-              const elapsed = currentTime - clip.start;
+              const elapsed = t - clip.start;
               const { currentSpeed, sourceTime: rawSrcTime } = getClipEffectiveSpeedAtTime(clip, elapsed);
               const vidDur = (videoEl.duration && !isNaN(videoEl.duration) && isFinite(videoEl.duration) && videoEl.duration > 0) ? videoEl.duration : (clip.duration || 999999);
               const clampedSrcTime = vidDur > 0 ? (rawSrcTime % vidDur) : 0;
               
-              if (isPlaying) {
+              if (isExportFrame) {
+                if (!videoEl.paused) videoEl.pause();
+                if (Math.abs(videoEl.currentTime - clampedSrcTime) > 0.005) {
+                  try {
+                    videoEl.currentTime = clampedSrcTime;
+                  } catch {}
+                }
+              } else if (isPlaying) {
                 if (Math.abs((videoEl.playbackRate || 1.0) - currentSpeed) > 0.05) {
                   try {
                     videoEl.playbackRate = Math.max(0.1, Math.min(16, currentSpeed));
@@ -1231,14 +1253,14 @@ export default function PreviewPlayer({
 
           if (drawTarget) {
             // Transform, Keyframe & Transition parameters
-            const interpolated = getInterpolatedClipProperties(clip, currentTime);
-            const transState = computeClipTransitionState(clip, currentTime, dimensions.width, dimensions.height);
+            const interpolated = getInterpolatedClipProperties(clip, t);
+            const transState = computeClipTransitionState(clip, t, dimensions.width, dimensions.height);
 
             // Subtle cinematic Ken Burns float for animated poster fallback
             let motionScale = 1.0;
             let motionPosY = 0;
             if (isFallbackMotion && clip.duration > 0) {
-              const progress = Math.max(0, Math.min(1, (currentTime - clip.start) / clip.duration));
+              const progress = Math.max(0, Math.min(1, (t - clip.start) / clip.duration));
               motionScale = 1.0 + progress * 0.04;
               motionPosY = (progress - 0.5) * 8;
             }
@@ -1403,7 +1425,7 @@ export default function PreviewPlayer({
             let kbOffsetX = 0;
             let kbOffsetY = 0;
             if (clip.videoEffects?.kenBurns?.enabled && clip.duration > 0) {
-              const kbProgress = Math.max(0, Math.min(1, (currentTime - clip.start) / clip.duration));
+              const kbProgress = Math.max(0, Math.min(1, (t - clip.start) / clip.duration));
               const style = clip.videoEffects.kenBurns.style || 'zoom-in';
               if (style === 'zoom-in') {
                 kbScale = 1 + kbProgress * 0.18;
@@ -1481,11 +1503,11 @@ export default function PreviewPlayer({
 
               // VHS Glitch & Chromatic Shear Effect (Periodic RGB shift and horizontal shear)
               if (clip.videoEffects?.glitch) {
-                const glitchPhase = (currentTime * 7) % 3;
-                const isGlitching = glitchPhase < 0.65 || (isPlaying && Math.random() < 0.22);
+                const glitchPhase = (t * 7) % 3;
+                const isGlitching = glitchPhase < 0.65 || ((isPlaying || isExportFrame) && Math.random() < 0.22);
                 if (isGlitching) {
-                  const shiftAmp = (Math.sin(currentTime * 18) * 6) + (Math.random() * 8 - 4);
-                  const shearAmp = (Math.cos(currentTime * 14) * 0.04) + (Math.random() * 0.03 - 0.015);
+                  const shiftAmp = (Math.sin(t * 18) * 6) + (Math.random() * 8 - 4);
+                  const shearAmp = (Math.cos(t * 14) * 0.04) + (Math.random() * 0.03 - 0.015);
                   
                   ctx.save();
                   // Apply horizontal VHS shear
@@ -1575,8 +1597,8 @@ export default function PreviewPlayer({
               if (clip.videoEffects?.bokeh) {
                 ctx.fillStyle = 'rgba(253, 230, 138, 0.15)';
                 for (let b = 0; b < 12; b++) {
-                  const bx = Math.sin(b * 1.5 + currentTime) * (dimensions.width * 0.4);
-                  const by = Math.cos(b * 2.1 + currentTime) * (dimensions.height * 0.4);
+                  const bx = Math.sin(b * 1.5 + t) * (dimensions.width * 0.4);
+                  const by = Math.cos(b * 2.1 + t) * (dimensions.height * 0.4);
                   const br = Math.random() * 12 + 8;
                   ctx.beginPath();
                   ctx.arc(bx, by, br, 0, Math.PI * 2);
@@ -1589,11 +1611,11 @@ export default function PreviewPlayer({
                 ctx.save();
                 for (let p = 0; p < 28; p++) {
                   const speed = 25 + (p % 5) * 12;
-                  const px = ((Math.sin(p * 99.3 + currentTime * 0.4) * 0.5 + 0.5) - 0.5) * dimensions.width * 0.95;
-                  const rawY = (dimensions.height * 0.5 - ((currentTime * speed + p * 42) % (dimensions.height * 1.1)));
+                  const px = ((Math.sin(p * 99.3 + t * 0.4) * 0.5 + 0.5) - 0.5) * dimensions.width * 0.95;
+                  const rawY = (dimensions.height * 0.5 - ((t * speed + p * 42) % (dimensions.height * 1.1)));
                   const py = rawY;
                   const pSize = 1.5 + (p % 4) * 1.2;
-                  const flicker = 0.35 + Math.sin(currentTime * 4 + p) * 0.35;
+                  const flicker = 0.35 + Math.sin(t * 4 + p) * 0.35;
                   
                   ctx.shadowColor = '#f59e0b';
                   ctx.shadowBlur = 8;
@@ -1613,7 +1635,7 @@ export default function PreviewPlayer({
                 const rayOriginY = -dimensions.height * 0.5;
                 const numRays = 7;
                 for (let r = 0; r < numRays; r++) {
-                  const rayAngle = 0.35 + (r / numRays) * 0.9 + Math.sin(currentTime * 0.5 + r) * 0.04;
+                  const rayAngle = 0.35 + (r / numRays) * 0.9 + Math.sin(t * 0.5 + r) * 0.04;
                   const rayLen = dimensions.width * 1.3;
                   const endX = rayOriginX + Math.cos(rayAngle) * rayLen;
                   const endY = rayOriginY + Math.sin(rayAngle) * rayLen;
@@ -1638,7 +1660,7 @@ export default function PreviewPlayer({
                 for (let s = 0; s < 18; s++) {
                   const sx = Math.sin(s * 33.7) * dimensions.width * 0.42;
                   const sy = Math.cos(s * 71.9) * dimensions.height * 0.42;
-                  const starTwinkle = 0.25 + Math.abs(Math.sin(currentTime * 3 + s * 1.7)) * 0.75;
+                  const starTwinkle = 0.25 + Math.abs(Math.sin(t * 3 + s * 1.7)) * 0.75;
                   const starRadius = 2 + (s % 3);
                   
                   ctx.fillStyle = `rgba(255, 255, 255, ${starTwinkle})`;
@@ -1674,7 +1696,7 @@ export default function PreviewPlayer({
                 ctx.globalCompositeOperation = 'screen';
                 
                 // Procedural jittering film dust specs
-                const dustSeed = Math.floor(currentTime * 12);
+                const dustSeed = Math.floor(t * 12);
                 ctx.fillStyle = `rgba(255, 255, 255, ${0.45 * dustIntensity})`;
                 for (let d = 0; d < 35; d++) {
                   const dx = ((Math.sin(d * 17.3 + dustSeed) * 0.5 + 0.5) - 0.5) * dimensions.width;
@@ -1701,7 +1723,7 @@ export default function PreviewPlayer({
               // CapCut VHS Date Stamp & Camcorder OSD
               if (clip.videoEffects?.vhsOverlay) {
                 ctx.save();
-                const vhsTime = Math.max(0, currentTime - clip.start);
+                const vhsTime = Math.max(0, t - clip.start);
                 const hrs = Math.floor(vhsTime / 3600).toString().padStart(2, '0');
                 const mins = Math.floor((vhsTime % 3600) / 60).toString().padStart(2, '0');
                 const secs = Math.floor(vhsTime % 60).toString().padStart(2, '0');
@@ -1878,7 +1900,7 @@ export default function PreviewPlayer({
       const activeTextClips = activeFrameClips.filter((clip) => clip.type === ClipType.TEXT && Boolean(clip.text));
 
       activeTextClips.forEach((clip) => {
-        const transState = computeClipTransitionState(clip, currentTime, dimensions.width, dimensions.height);
+        const transState = computeClipTransitionState(clip, t, dimensions.width, dimensions.height);
         const xPos = (((clip.textX ?? 50) / 100) * dimensions.width) + transState.offsetX;
         const yPos = (((clip.textY ?? 50) / 100) * dimensions.height) + transState.offsetY;
         const rawFontSize = clip.fontSize ?? 32;
@@ -1963,7 +1985,7 @@ export default function PreviewPlayer({
           if (wordsToUse.length > 0) {
             // Apply Audio Sync Offset (Lead adjustment in seconds, e.g. +150ms) to compensate for audio latency
             const effectiveOffsetSec = ((clip as any).syncOffsetMs !== undefined ? (clip as any).syncOffsetMs : (quranKaraokeSyncOffsetMs || 0)) / 1000;
-            const clipElapsed = Math.max(0, (currentTime + effectiveOffsetSec) - clip.start);
+            const clipElapsed = Math.max(0, (t + effectiveOffsetSec) - clip.start);
             const clipProgress = Math.max(0, Math.min(0.999, clipElapsed / Math.max(0.01, clip.duration)));
             // Phonetic Tajweed weighting ensures short words transition briskly and elongated words hold longer
             const activeWordIndex = getWordPhoneticProgress(wordsToUse, clipProgress);
@@ -2215,7 +2237,7 @@ export default function PreviewPlayer({
         ctx.textBaseline = 'middle';
 
           // ------------------ CapCut Text Animation Calculations ------------------
-          const clipTime = Math.max(0, currentTime - clip.start);
+          const clipTime = Math.max(0, t - clip.start);
           const animConfig = clip.textAnimation || {};
           const inAnim = animConfig.inAnimation || 'none';
           const inDur = animConfig.inDuration ?? 0.4;
@@ -2573,7 +2595,7 @@ export default function PreviewPlayer({
             if (isKaraokeActive && clip.duration > 0 && lineText && lineText.trim().length > 0) {
               // Apply Audio Sync Offset (Lead adjustment in seconds, e.g. +150ms) to synchronize glow with reciter's audio
               const effectiveOffsetSec = ((clip as any).syncOffsetMs !== undefined ? (clip as any).syncOffsetMs : (quranKaraokeSyncOffsetMs || 0)) / 1000;
-              const clipElapsed = Math.max(0, (currentTime + effectiveOffsetSec) - clip.start);
+              const clipElapsed = Math.max(0, (t + effectiveOffsetSec) - clip.start);
               const clipProgress = Math.max(0, Math.min(0.999, clipElapsed / Math.max(0.01, clip.duration)));
               const isRTL = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(lineText);
               const tokens = lineText.split(/(\s+)/);
@@ -2786,7 +2808,7 @@ export default function PreviewPlayer({
               maxBottom = Math.max(maxBottom, yPos + 30);
             }
           } else if (c.type === ClipType.VIDEO) {
-            const interpolated = getInterpolatedClipProperties(c, currentTime);
+            const interpolated = getInterpolatedClipProperties(c, t);
             const scale = interpolated.scale / 100;
             const posX = interpolated.posX;
             const posY = interpolated.posY;
@@ -3033,8 +3055,8 @@ export default function PreviewPlayer({
           ctx,
           dimensions.width,
           dimensions.height,
-          currentTime,
-          isPlaying,
+          t,
+          isPlaying || isExportFrame,
           {
             style: quranWaveformStyle,
             color: quranWaveformColor,
@@ -3045,7 +3067,7 @@ export default function PreviewPlayer({
 
       // ------------------ SMART ALIGNMENT GUIDELINES & SNAPPING LINES ------------------
       const activeSnap = activeSnapRef.current;
-      if ((activeSnap.x !== null || activeSnap.y !== null || activeSnap.label) && !isExporting) {
+      if ((activeSnap.x !== null || activeSnap.y !== null || activeSnap.label) && !isExportFrame) {
         ctx.save();
         ctx.lineWidth = 1.5;
 
@@ -3111,7 +3133,7 @@ export default function PreviewPlayer({
       }
 
       if (isPlaying) {
-        animId = requestAnimationFrame(render);
+        animId = requestAnimationFrame(() => render());
       }
     };
 
@@ -3127,11 +3149,14 @@ export default function PreviewPlayer({
     ): Promise<boolean> => {
       const renderT = optTime !== undefined ? optTime : currentTime;
       const destCanvas = targetCanvas || canvas;
-      const destCtx = targetCtx || (destCanvas ? destCanvas.getContext('2d', { alpha: false }) : ctx);
+      const destCtx = targetCtx || (destCanvas ? destCanvas.getContext('2d', { alpha: false }) : defaultCtx);
       if (!destCtx || !destCanvas) return false;
 
       destCtx.imageSmoothingEnabled = true;
       destCtx.imageSmoothingQuality = 'high';
+
+      const renderW = targetW || destCanvas.width;
+      const renderH = targetH || destCanvas.height;
 
       // 1. Synchronize all active HTMLVideoElements to exact frame time
       const syncPromises: Promise<void>[] = [];
@@ -3149,7 +3174,7 @@ export default function PreviewPlayer({
                 const clamped = vidDur > 0 ? (targetSrcTime % vidDur) : 0;
                 
                 const drift = Math.abs(media.currentTime - clamped);
-                if (drift > 0.015) {
+                if (drift > 0.005) {
                   const waitP = new Promise<void>((resolve) => {
                     let settled = false;
                     const done = () => {
@@ -3170,7 +3195,7 @@ export default function PreviewPlayer({
                     } catch {
                       done();
                     }
-                    setTimeout(done, 120);
+                    setTimeout(done, 150);
                   });
                   syncPromises.push(waitP);
                 }
@@ -3184,13 +3209,8 @@ export default function PreviewPlayer({
         await Promise.all(syncPromises);
       }
 
-      // 2. Perform direct synchronous render pass
-      render();
-
-      // If offscreen canvas/context provided, copy full frame
-      if (targetCtx && targetCanvas && targetCanvas !== canvas) {
-        targetCtx.drawImage(canvas, 0, 0, targetCanvas.width, targetCanvas.height);
-      }
+      // 2. Perform direct synchronous render pass with exact renderT and destCanvas/destCtx
+      render(renderT, destCanvas, destCtx, renderW, renderH);
       return true;
     };
 
