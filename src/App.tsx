@@ -18,6 +18,7 @@ import { checkWebCodecsSupport, exportWithWebCodecs } from './services/webCodecs
 import { executeNativeHardwareRender, detectHardwareAVEngine } from './services/rendering/nativeHardwareRenderEngine';
 import { detectPlatformAndOptimalEngine } from './utils/platformEngineDetector';
 import { getClipEffectiveSpeedAtTime } from './utils/speedRampUtils';
+import { backgroundMediaPreloader } from './services/backgroundMediaPreloader';
 import { PreferencesModal } from './components/PreferencesModal';
 import { Quran100ProtocolsModal } from './components/Quran100ProtocolsModal';
 import { VeoAnimateImageModal, VeoStudioMode } from './components/VeoAnimateImageModal';
@@ -2789,6 +2790,9 @@ export default function App() {
     };
     window.addEventListener('touchstart', unlockMobileMedia, { once: true });
     window.addEventListener('click', unlockMobileMedia, { once: true });
+
+    // Background pre-cache all media assets asynchronously
+    backgroundMediaPreloader.preloadTimelineAssets(tracks);
 
     tracks.forEach((track) => {
       track.clips.forEach((clip) => {

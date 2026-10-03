@@ -24,6 +24,7 @@ import {
 } from '../utils/editorUtils';
 import { getSurahMeta, formatSurahHeader } from '../utils/quranSurahData';
 import { getClipEffectiveSpeedAtTime } from '../utils/speedRampUtils';
+import { backgroundMediaPreloader } from '../services/backgroundMediaPreloader';
 
 /**
  * Extracts the Surah number from clip metadata
@@ -965,8 +966,11 @@ export default function PreviewPlayer({
     });
   };
 
-  // Pre-trigger video element initialization and poster pre-caching on track changes
+  // Pre-trigger background media pre-caching, video element initialization, and poster pre-caching on track changes
   useEffect(() => {
+    // Start background preloader for all video, audio, and image assets immediately
+    backgroundMediaPreloader.preloadTimelineAssets(tracks);
+
     tracks.forEach((track) => {
       track.clips.forEach((clip) => {
         if ((clip.type === ClipType.VIDEO || clip.type === ClipType.IMAGE) && clip.url) {
@@ -1097,7 +1101,8 @@ export default function PreviewPlayer({
 
           if (clip.type === ClipType.VIDEO && !clip.isImage) {
             const vEl = (media instanceof HTMLVideoElement) ? media : null;
-            if (vEl && (vEl.readyState < 2 || vEl.seeking)) {
+            // Only flag buffering during active continuous playback if stalled (not during scrubbing/seeking)
+            if (isPlaying && vEl && vEl.readyState < 2 && !vEl.paused) {
               hasBufferingStream = true;
             }
           }
