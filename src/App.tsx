@@ -6578,6 +6578,17 @@ export default function App() {
         }
       : config;
 
+    // 1. CapCut/Filmora Export Isolation: Instantly halt live timeline & player playback
+    setIsPlaying(false);
+    if (typeof document !== 'undefined') {
+      const mediaEls = document.querySelectorAll('video, audio');
+      mediaEls.forEach(el => {
+        try {
+          (el as HTMLMediaElement).pause();
+        } catch {}
+      });
+    }
+
     setExporting(true);
     setExportResolution(exportConf.resolution as any);
     setExportProgress(0);
@@ -6594,7 +6605,7 @@ export default function App() {
     };
 
     log(`⚡ Auto-Detected Environment: ${platformInfo.platformName} (${platformInfo.platformBadge})`);
-    log(`🚀 Optimal Engine Active: ${platformInfo.engineName} [No manual setup required]`);
+    log(`🚀 Optimal Engine Active: ${platformInfo.engineName} [100% Offline Background Export Active - Timeline Player Isolated]`);
 
     const finalizeCompliantMp4 = async (rawBlob: Blob, targetFilename: string, fps: number): Promise<{ blob: Blob; filename: string }> => {
       // 1. Check if Electron Native Offline C++ Engine is available (Snap, deb, exe, dmg)
@@ -8010,7 +8021,7 @@ export default function App() {
                       </div>
                       <div>
                         <div className="font-semibold text-gray-200 group-hover:text-teal-300">Check for Updates</div>
-                        <div className="text-[10px] text-gray-400 leading-tight">v2.5.2 • Desktop releases</div>
+                        <div className="text-[10px] text-gray-400 leading-tight">v2.5.3 • Desktop releases</div>
                       </div>
                     </div>
                     <span className="text-[10px] font-mono text-teal-400 font-semibold">Latest</span>

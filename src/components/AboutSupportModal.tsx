@@ -90,7 +90,7 @@ export const AboutSupportModal: React.FC<AboutSupportModalProps> = ({
 
             <div className="hidden sm:flex items-center gap-2">
               <span className="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
-                v2.5.2 Pro
+                v2.5.3 Pro
               </span>
             </div>
           </div>

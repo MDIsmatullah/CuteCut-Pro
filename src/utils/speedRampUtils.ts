@@ -321,7 +321,8 @@ export function getClipEffectiveSpeedAtTime(
   clip: Clip,
   elapsedInClip: number
 ): { currentSpeed: number; sourceTime: number } {
-  const baseRate = clip.playbackRate || 1.0;
+  const baseRate = clip.playbackRate || (clip as any).speed || 1.0;
+  const sourceStart = clip.sourceStart || (clip as any).inPoint || (clip as any).trimStart || 0;
   const duration = Math.max(0.01, clip.duration || 1.0);
   const clampedElapsed = Math.max(0, Math.min(duration, elapsedInClip));
 
@@ -335,7 +336,7 @@ export function getClipEffectiveSpeedAtTime(
   if (!isRampActive) {
     return {
       currentSpeed: baseRate,
-      sourceTime: clip.sourceStart + clampedElapsed * baseRate,
+      sourceTime: sourceStart + clampedElapsed * baseRate,
     };
   }
 
@@ -359,7 +360,7 @@ export function getClipEffectiveSpeedAtTime(
   }
 
   const sourceElapsed = integral * duration;
-  const sourceTime = clip.sourceStart + sourceElapsed;
+  const sourceTime = sourceStart + sourceElapsed;
 
   return {
     currentSpeed,

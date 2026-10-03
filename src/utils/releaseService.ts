@@ -31,24 +31,24 @@ export interface ReleaseInfo {
   };
 }
 
-const DEFAULT_TAG = 'v2.5.2';
+const DEFAULT_TAG = 'v2.5.3';
 const REPO_OWNER = 'MDIsmatullah';
 const REPO_NAME = 'CuteCut-Pro';
 
 export const fallbackReleaseInfo: ReleaseInfo = {
   tagName: DEFAULT_TAG,
-  version: '2.5.2',
-  name: 'CuteCut Pro V2.5.2 (Universal Native Engine)',
+  version: '2.5.3',
+  name: 'CuteCut Pro V2.5.3 (Universal Native Engine)',
   publishedAt: new Date().toISOString(),
   htmlUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/tag/${DEFAULT_TAG}`,
   assets: {
-    windowsExe: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro.Setup.2.5.2.exe`,
-    macDmg: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro-2.5.2-arm64.dmg`,
-    macPkg: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro-2.5.2.pkg`,
-    linuxAppImage: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro-2.5.2-x86_64.AppImage`,
-    linuxDeb: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/cutecut-pro_2.5.2_amd64.deb`,
-    linuxPkg: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/cutecut-pro-2.5.2.tar.gz`,
-    androidApk: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut-Pro-v2.5.2.apk`,
+    windowsExe: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro.Setup.2.5.3.exe`,
+    macDmg: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro-2.5.3-arm64.dmg`,
+    macPkg: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro-2.5.3.pkg`,
+    linuxAppImage: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut.Pro-2.5.3-x86_64.AppImage`,
+    linuxDeb: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/cutecut-pro_2.5.3_amd64.deb`,
+    linuxPkg: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/cutecut-pro-2.5.3.tar.gz`,
+    androidApk: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/CuteCut-Pro-v2.5.3.apk`,
     flatpak: `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${DEFAULT_TAG}/org.guldasta.cutecutpro.flatpak`,
     fdroidUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/raw/main/fdroid/metadata/org.guldasta.cutecutpro.yml`,
     wingetCommand: 'winget install CuteCutPro.CuteCutPro',

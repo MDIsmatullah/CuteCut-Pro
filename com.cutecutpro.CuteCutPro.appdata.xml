@@ -32,6 +32,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="2.5.3" date="2026-10-03">
+      <description>
+        <p>Production release v2.5.3 featuring automatic platform and engine detection (WebCodecs GPU Hardware Accelerated and Native C++ Offline AVEngine), offline frame-by-frame stutter-free video exporting, Microsoft WinGet v2.5.3 package manifest integration, and enhanced multi-track sync.</p>
+      </description>
+    </release>
     <release version="2.5.2" date="2026-10-02">
       <description>
         <p>Production release v2.5.2 featuring Progressive Web App (PWA) 1-click desktop and mobile installation, offline Workbox caching, enhanced package manager parity for Microsoft WinGet, AppImageHub, and F-Droid catalogs, and commercial licensing synchronization.</p>

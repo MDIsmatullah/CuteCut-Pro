@@ -61,16 +61,16 @@ export function detectHardwareAVEngine(): HardwareEngineCapabilities {
         const renderer = (gl as any).getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '';
         if (/nvidia|geforce|rtx|gtx/i.test(renderer)) {
           gpuVendor = 'NVIDIA';
-          hardwareEncoderName = 'NVIDIA NVENC Hardware Core (CUDA)';
+          hardwareEncoderName = 'NVIDIA NVENC & CUDA GPU SDK Core (Hardware NV12 / H.264)';
         } else if (/apple|m1|m2|m3|m4|metal/i.test(renderer) || /macintosh|mac os/i.test(navigator.userAgent)) {
           gpuVendor = 'Apple';
-          hardwareEncoderName = 'Apple VideoToolbox / Metal Media Engine';
+          hardwareEncoderName = 'Apple VideoToolbox & Metal Media Engine SDK (Hardware ProRes/H.264)';
         } else if (/intel|iris|uhd|arc/i.test(renderer)) {
           gpuVendor = 'Intel';
-          hardwareEncoderName = 'Intel QuickSync Video (QSV)';
+          hardwareEncoderName = 'Intel QuickSync & oneVPL GPU SDK (QSV Hardware Encoder)';
         } else if (/amd|radeon/i.test(renderer)) {
           gpuVendor = 'AMD';
-          hardwareEncoderName = 'AMD AMF Hardware Encoder';
+          hardwareEncoderName = 'AMD AMF (Advanced Media Framework) GPU SDK';
         }
       }
     }

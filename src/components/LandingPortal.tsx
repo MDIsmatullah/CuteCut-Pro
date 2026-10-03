@@ -612,7 +612,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                 </span>
               </div>
               <div className="text-[10px] text-gray-400 font-mono flex items-center gap-1">
-                <span>v2.5.2</span>
+                <span>v2.5.3</span>
                 <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
                 <span className="text-emerald-400">Native Engine</span>
               </div>
@@ -875,7 +875,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             </span>
           </div>
           <div className="text-xs font-bold text-white mb-0.5">
-            CuteCut Pro v2.5.2
+            CuteCut Pro v2.5.3
           </div>
           <p className="text-[10px] text-gray-400 leading-tight mb-2.5">
             Filmora & CapCut Speed • 60 FPS Native FFmpeg • 100% Free & Open
@@ -1508,7 +1508,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                 </p>
               </div>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Universal v2.5.2
+                Universal v2.5.3
               </span>
             </div>
 
@@ -1517,7 +1517,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.windowsExe}
                 download
-                onClick={() => handleDownloadClick('Windows', 'CuteCut.Pro.Setup.2.5.2.exe')}
+                onClick={() => handleDownloadClick('Windows', 'CuteCut.Pro.Setup.2.5.3.exe')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-cyan-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download Windows 64-bit EXE (WinGet Supported)"
               >
@@ -1535,7 +1535,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.macDmg}
                 download
-                onClick={() => handleDownloadClick('macOS DMG', 'CuteCut.Pro-2.5.2-arm64.dmg')}
+                onClick={() => handleDownloadClick('macOS DMG', 'CuteCut.Pro-2.5.3-arm64.dmg')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-gray-300 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download macOS DMG (Apple Silicon & Intel)"
               >
@@ -1553,7 +1553,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.macPkg || release.assets.windowsExe}
                 download
-                onClick={() => handleDownloadClick('macOS PKG', 'CuteCut.Pro-2.5.2.pkg')}
+                onClick={() => handleDownloadClick('macOS PKG', 'CuteCut.Pro-2.5.3.pkg')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-amber-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download Native .PKG Installer"
               >
@@ -1571,7 +1571,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.linuxAppImage}
                 download
-                onClick={() => handleDownloadClick('Linux AppImage', 'CuteCut.Pro-2.5.2-x86_64.AppImage')}
+                onClick={() => handleDownloadClick('Linux AppImage', 'CuteCut.Pro-2.5.3-x86_64.AppImage')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-emerald-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download Linux AppImage (AppImageHub Supported)"
               >
@@ -1589,7 +1589,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.linuxDeb}
                 download
-                onClick={() => handleDownloadClick('Debian / Ubuntu', 'cutecut-pro_2.5.2_amd64.deb')}
+                onClick={() => handleDownloadClick('Debian / Ubuntu', 'cutecut-pro_2.5.3_amd64.deb')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-blue-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download Debian/Ubuntu .deb package"
               >
@@ -1607,7 +1607,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.linuxPkg || release.assets.linuxDeb}
                 download
-                onClick={() => handleDownloadClick('Linux Tar PKG', 'cutecut-pro-2.5.2.tar.gz')}
+                onClick={() => handleDownloadClick('Linux Tar PKG', 'cutecut-pro-2.5.3.tar.gz')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-teal-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download Linux Universal Tar / PKG"
               >
@@ -1625,7 +1625,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <a
                 href={release.assets.androidApk || 'https://github.com/MDIsmatullah/CuteCut-Pro/releases/latest'}
                 download
-                onClick={() => handleDownloadClick('Android APK', 'CuteCut-Pro-v2.5.2.apk')}
+                onClick={() => handleDownloadClick('Android APK', 'CuteCut-Pro-v2.5.3.apk')}
                 className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-green-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
                 title="Download Android APK Direct"
               >
@@ -1937,7 +1937,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                   </div>
                   <span className="font-extrabold text-white text-sm">CuteCut Pro Studio</span>
                   <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-400 text-black">
-                    v2.5.2
+                    v2.5.3
                   </span>
                 </div>
                 <p className="text-xs text-gray-400 leading-relaxed">
@@ -2756,7 +2756,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             </div>
             <div className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              <span>CuteCut Pro v2.5.2 Official Binary</span>
+              <span>CuteCut Pro v2.5.3 Official Binary</span>
             </div>
           </div>
           <button

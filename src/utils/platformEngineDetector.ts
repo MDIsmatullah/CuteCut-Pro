@@ -70,9 +70,9 @@ export function detectPlatformAndOptimalEngine(): PlatformEngineInfo {
         platformName: 'Windows Desktop (.exe)',
         platformBadge: '🪟 Windows (.exe)',
         engine: 'native_avengine',
-        engineName: 'Native Offline C++ FFmpeg Engine',
-        engineBadge: '🚀 Native C++ (NVENC / QSV)',
-        engineDescription: '100% Offline Windows C++ Core with direct file writing to disk & zero cloud lag.',
+        engineName: 'Native Offline C++ FFmpeg & GPU SDK Engine',
+        engineBadge: '🚀 Native C++ / GPU SDKs (NVENC / QSV)',
+        engineDescription: '100% Offline Windows C++ Core with NVIDIA NVENC / Intel QSV / AMD AMF GPU SDK direct hardware encoding.',
         isDesktopNative: true,
         isAndroid: false,
         isWeb: false,
@@ -86,8 +86,8 @@ export function detectPlatformAndOptimalEngine(): PlatformEngineInfo {
         platformName: 'macOS Desktop (.dmg)',
         platformBadge: '🍎 macOS (.dmg)',
         engine: 'native_avengine',
-        engineName: 'Native Offline C++ FFmpeg Engine',
-        engineBadge: '🚀 Apple VideoToolbox / Metal C++',
+        engineName: 'Native Offline C++ & Apple Metal SDK Engine',
+        engineBadge: '🚀 Apple VideoToolbox & Metal SDK',
         engineDescription: '100% Offline macOS Metal & VideoToolbox Core with direct Movies folder auto-save.',
         isDesktopNative: true,
         isAndroid: false,
@@ -102,9 +102,9 @@ export function detectPlatformAndOptimalEngine(): PlatformEngineInfo {
       platformName: 'Linux Desktop (.deb / .snap / AppImage)',
       platformBadge: '🐧 Linux (.deb / .snap)',
       engine: 'native_avengine',
-      engineName: 'Native Offline C++ FFmpeg Engine',
-      engineBadge: '🚀 Native C++ AVEngine (VAAPI / NVENC)',
-      engineDescription: '100% Offline Linux C++ FFmpeg Core with direct Videos folder auto-save.',
+      engineName: 'Native Offline C++ FFmpeg & GPU SDK Engine',
+      engineBadge: '🚀 Native C++ / GPU SDKs (VAAPI / NVENC)',
+      engineDescription: '100% Offline Linux C++ FFmpeg Core with VAAPI / NVENC GPU SDK direct hardware encoding.',
       isDesktopNative: true,
       isAndroid: false,
       isWeb: false,
@@ -121,11 +121,11 @@ export function detectPlatformAndOptimalEngine(): PlatformEngineInfo {
       engine: 'native_avengine',
       engineName: 'Android Native Hardware C++ Pipeline',
       engineBadge: '⚡ Native Hardware MediaStore',
-      engineDescription: 'Auto-configured for Android: Hardware GPU rendering with direct DCIM/Gallery auto-save.',
+      engineDescription: 'Auto-configured for Android: Hardware GPU MediaCodec SDK rendering with direct DCIM/Gallery auto-save.',
       isDesktopNative: false,
       isAndroid: true,
       isWeb: false,
-      hardwareEncoderName: 'Android Hardware Codec Core (H.264 / AAC)'
+      hardwareEncoderName: 'Android Hardware MediaCodec SDK (H.264 / AAC)'
     };
   }
 
@@ -136,10 +136,10 @@ export function detectPlatformAndOptimalEngine(): PlatformEngineInfo {
     platformName: 'Web Browser (Online / PWA)',
     platformBadge: '🌐 Web Browser',
     engine: isWebCodecs ? 'webcodecs' : 'mediarecorder',
-    engineName: isWebCodecs ? 'WebCodecs GPU Hardware Engine' : 'Offline Frame Step Media Engine',
-    engineBadge: isWebCodecs ? '⚡ WebCodecs GPU (Auto)' : '🎥 Offline Frame Engine',
+    engineName: isWebCodecs ? 'WebCodecs GPU SDK Hardware Engine' : 'Offline Frame Step Media Engine',
+    engineBadge: isWebCodecs ? '⚡ WebCodecs GPU SDK (Auto)' : '🎥 Offline Frame Engine',
     engineDescription: isWebCodecs
-      ? 'Auto-detected Web Environment: GPU Hardware Accelerated Frame-by-Frame MP4 Muxer (0% Dropped Frames).'
+      ? 'Auto-detected Web Environment: GPU Hardware Accelerated Frame-by-Frame MP4 Muxer with Direct GPU SDK Pipeline.'
       : 'Auto-detected Web Environment: Offline Discrete Frame Pacing (Smooth Playback, No Live Timeline Play).',
     isDesktopNative: false,
     isAndroid: false,
