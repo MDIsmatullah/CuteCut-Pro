@@ -360,13 +360,25 @@ function createWindow() {
     });
   });
 
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12' || (input.control && input.shift && input.key.toLowerCase() === 'i')) {
+      mainWindow?.webContents.toggleDevTools();
+      event.preventDefault();
+    }
+  });
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`[Electron] Failed to load URL: ${validatedURL}, Error: ${errorDescription} (${errorCode})`);
+  });
+
   const devUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:3000';
   
   if (process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(devUrl);
   } else {
     const entryHtml = resolveEntryHtml();
-    mainWindow.loadFile(entryHtml).catch(() => {
+    mainWindow.loadFile(entryHtml).catch((err) => {
+      console.warn(`[Electron] loadFile failed for ${entryHtml}, falling back to devUrl:`, err);
       mainWindow?.loadURL(devUrl);
     });
   }
@@ -563,13 +575,50 @@ ipcMain.handle('native-engine:render-local-video', async (_event, {
     const args: string[] = ['-y', '-nostats', '-loglevel', 'error', '-i', tempInput];
 
     if (bestCodec === 'h264_nvenc') {
-      args.push('-c:v', 'h264_nvenc', '-preset', 'p6', '-cq', String(crf || 17), '-b:v', bitrate || '35M', '-maxrate', '55M', '-bufsize', '80M');
+      args.push(
+        '-c:v', 'h264_nvenc',
+        '-preset', 'p3',
+        '-tune', 'hq',
+        '-cq', String(crf || 18),
+        '-b:v', bitrate || '28M',
+        '-maxrate', '45M',
+        '-bufsize', '60M',
+        '-spatial-aq', '1',
+        '-temporal-aq', '1',
+        '-threads', '0'
+      );
     } else if (bestCodec === 'h264_videotoolbox') {
-      args.push('-c:v', 'h264_videotoolbox', '-b:v', bitrate || '35M');
+      args.push(
+        '-c:v', 'h264_videotoolbox',
+        '-realtime', '0',
+        '-b:v', bitrate || '28M',
+        '-threads', '0'
+      );
     } else if (bestCodec === 'h264_qsv') {
-      args.push('-c:v', 'h264_qsv', '-global_quality', String(crf || 17), '-preset', 'veryfast');
+      args.push(
+        '-c:v', 'h264_qsv',
+        '-global_quality', String(crf || 18),
+        '-preset', 'veryfast',
+        '-look_ahead', '0',
+        '-b:v', bitrate || '28M',
+        '-threads', '0'
+      );
+    } else if (bestCodec === 'h264_vaapi') {
+      args.push(
+        '-c:v', 'h264_vaapi',
+        '-b:v', bitrate || '28M',
+        '-threads', '0'
+      );
     } else {
-      args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', String(crf || 17), '-profile:v', 'high', '-level', '5.1');
+      args.push(
+        '-c:v', 'libx264',
+        '-preset', 'veryfast',
+        '-threads', '0',
+        '-tune', 'fastdecode',
+        '-crf', String(crf || 18),
+        '-profile:v', 'high',
+        '-level', '4.2'
+      );
     }
 
     args.push(

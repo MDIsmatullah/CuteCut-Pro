@@ -2864,18 +2864,20 @@ Voice Tone: ${voiceTone}`;
         '-y',
         '-nostats',
         '-loglevel', 'error',
+        '-threads', '0',
         '-i', inPath,
         '-c:v', 'libx264',
-        '-preset', 'fast',
-        '-crf', '17',
+        '-preset', 'veryfast',
+        '-tune', 'fastdecode',
+        '-crf', '18',
         '-profile:v', 'high',
-        '-level', '5.1',
+        '-level', '4.2',
         '-pix_fmt', 'yuv420p',
         '-r', String(targetFps),
-        '-maxrate', '60M',
-        '-bufsize', '90M',
+        '-maxrate', '45M',
+        '-bufsize', '60M',
         '-c:a', 'aac',
-        '-b:a', '256k',
+        '-b:a', '192k',
         '-ar', '44100',
         '-ac', '2',
         '-movflags', '+faststart',
@@ -2972,7 +2974,10 @@ Voice Tone: ${voiceTone}`;
   // Vite development middleware vs production static server
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true, hmr: false },
+      server: {
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR !== 'true',
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);

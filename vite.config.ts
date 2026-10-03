@@ -6,7 +6,7 @@ import {VitePWA} from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
-    base: process.env.ELECTRON_BUILD === 'true' ? './' : '/',
+    base: './',
     plugins: [
       react(),
       tailwindcss(),
@@ -45,7 +45,7 @@ export default defineConfig(() => {
           ],
         },
         devOptions: {
-          enabled: true,
+          enabled: false,
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 15 * 1024 * 1024, // 15MB to allow full offline app bundle caching

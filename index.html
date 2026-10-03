@@ -5,8 +5,11 @@
     <!-- Force HTTPS & Auto-Redirect .web.app / .firebaseapp.com to official cutecutpro.com -->
     <script>
       (function() {
-        var h = window.location.hostname;
         var p = window.location.protocol;
+        var h = window.location.hostname;
+        if (p === 'file:' || !h) {
+          return;
+        }
         if (h.endsWith('.web.app') || h.endsWith('.firebaseapp.com')) {
           window.location.replace('https://cutecutpro.com' + window.location.pathname + window.location.search + window.location.hash);
           return;
