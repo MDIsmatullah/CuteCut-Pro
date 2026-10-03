@@ -6215,55 +6215,81 @@ export default function App() {
       if (typeof window !== 'undefined') {
         const electron = (window as any).require ? (window as any).require('electron') : null;
         const fs = (window as any).require ? (window as any).require('fs') : null;
+        const os = (window as any).require ? (window as any).require('os') : null;
+        const pathModule = (window as any).require ? (window as any).require('path') : null;
+        const joinFsPath = (d: string, f: string) => pathModule && typeof pathModule.join === 'function' ? pathModule.join(d, f) : (d.endsWith('/') || d.endsWith('\\') ? `${d}${f}` : `${d}/${f}`);
 
         if (electron && electron.ipcRenderer) {
           try {
-            const targetPath = await electron.ipcRenderer.invoke('show-save-video-dialog', defaultFilename);
-            if (targetPath) {
-              const res = await electron.ipcRenderer.invoke('save-video-buffer-to-disk', {
-                filePath: targetPath,
-                buffer: Array.from(binaryBytes),
-              });
-              if (res && res.success) {
-                savedPath = targetPath;
-                setSavedLocalPath(targetPath);
-                setExportTerminalLogs(prev => [
-                  ...prev,
-                  `[Electron Direct] NATIVE STORAGE WRITE SUCCESSFUL!`,
-                  `[Electron Direct] Saved ${(totalSize / (1024 * 1024)).toFixed(2)} MB directly to: ${targetPath}`,
-                ]);
-                return targetPath;
-              }
+            let targetDir = (window as any)._cutecut_last_export_dir || '~/Videos/CuteCut';
+            if (targetDir.startsWith('~/') && os && typeof os.homedir === 'function') {
+              targetDir = joinFsPath(os.homedir(), targetDir.slice(2));
+            }
+            const cleanName = defaultFilename.endsWith('.mp4') ? defaultFilename : `${defaultFilename}.mp4`;
+            const autoPath = joinFsPath(targetDir, cleanName);
+
+            const res = await electron.ipcRenderer.invoke('save-video-buffer-to-disk', {
+              filePath: autoPath,
+              buffer: Array.from(binaryBytes),
+            });
+            if (res && res.success) {
+              savedPath = autoPath;
+              setSavedLocalPath(autoPath);
+              setExportTerminalLogs(prev => [
+                ...prev,
+                `[Auto Save] Video successfully saved to: ${autoPath}`,
+              ]);
+              return autoPath;
             }
           } catch (ipcErr) {
-            console.warn('[Electron IPC Save Error]', ipcErr);
+            console.warn('[Electron IPC Auto Save Error]', ipcErr);
           }
         }
 
         // Direct Node.js fs fallback if nodeIntegration is active
         if (fs && fs.promises && typeof fs.promises.writeFile === 'function' && !savedPath) {
           try {
-            const electronDialog = electron?.remote?.dialog || electron?.dialog;
-            let targetPath: string | null = null;
-            if (electronDialog && typeof electronDialog.showSaveDialogSync === 'function') {
-              targetPath = electronDialog.showSaveDialogSync({
-                defaultPath: defaultFilename,
-                filters: [{ name: 'Video Files', extensions: ['webm', 'mp4'] }]
-              });
+            let targetDir = (window as any)._cutecut_last_export_dir || '~/Videos/CuteCut';
+            if (targetDir.startsWith('~/') && os && typeof os.homedir === 'function') {
+              targetDir = joinFsPath(os.homedir(), targetDir.slice(2));
             }
-            if (targetPath) {
-              await fs.promises.writeFile(targetPath, Buffer.from(binaryBytes));
-              savedPath = targetPath;
-              setSavedLocalPath(targetPath);
-              setExportTerminalLogs(prev => [
-                ...prev,
-                `[Node.js FS] NATIVE STORAGE WRITE SUCCESSFUL!`,
-                `[Node.js FS] Written ${(totalSize / (1024 * 1024)).toFixed(2)} MB to: ${targetPath}`,
-              ]);
-              return targetPath;
-            }
+            const cleanName = defaultFilename.endsWith('.mp4') ? defaultFilename : `${defaultFilename}.mp4`;
+            const autoPath = joinFsPath(targetDir, cleanName);
+
+            await fs.promises.writeFile(autoPath, Buffer.from(binaryBytes));
+            savedPath = autoPath;
+            setSavedLocalPath(autoPath);
+            setExportTerminalLogs(prev => [
+              ...prev,
+              `[Node.js FS] Video auto-saved to: ${autoPath}`,
+            ]);
+            return autoPath;
           } catch (fsErr) {
-            console.warn('[Node.js FS Save Error]', fsErr);
+            console.warn('[Node.js FS Auto Save Error]', fsErr);
+          }
+        }
+      }
+
+      // Check if user selected directory handle in modern browser
+      if (typeof window !== 'undefined') {
+        const dirHandle = (window as any)._cutecut_export_dir_handle;
+        if (dirHandle && typeof dirHandle.getFileHandle === 'function' && sourceBlob) {
+          try {
+            const cleanName = defaultFilename.endsWith('.mp4') ? defaultFilename : `${defaultFilename}.mp4`;
+            const fileHandle = await dirHandle.getFileHandle(cleanName, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(sourceBlob);
+            await writable.close();
+            const displayPath = `${dirHandle.name}/${cleanName}`;
+            savedPath = displayPath;
+            setSavedLocalPath(displayPath);
+            setExportTerminalLogs(prev => [
+              ...prev,
+              `[Browser Auto-Save] Video saved directly into selected folder: ${displayPath}`,
+            ]);
+            return displayPath;
+          } catch (dirWriteErr) {
+            console.warn('[Directory Handle Auto Write Error]', dirWriteErr);
           }
         }
       }
@@ -6552,15 +6578,57 @@ export default function App() {
       : config;
 
     setExporting(true);
+    setExportResolution(exportConf.resolution as any);
     setExportProgress(0);
     setSavedLocalPath(null);
     setExportTerminalLogs([]);
+    if (typeof window !== 'undefined') {
+      (window as any)._cutecut_last_export_dir = exportConf.outputDirectory;
+    }
 
     const log = (msg: string) => {
       setExportTerminalLogs(prev => [...prev, `[MediaRecorder Engine] ${msg}`]);
     };
 
     const finalizeCompliantMp4 = async (rawBlob: Blob, targetFilename: string, fps: number): Promise<{ blob: Blob; filename: string }> => {
+      // 1. Check if Electron Native Offline C++ Engine is available (Snap, deb, exe, dmg)
+      if (typeof window !== 'undefined') {
+        const electron = (window as any).require ? (window as any).require('electron') : null;
+        if (electron && electron.ipcRenderer) {
+          try {
+            log(`[Native C++ AVEngine] Activating 100% Offline Filmora/CapCut Core via Electron IPC...`);
+            // Auto-save directly to output directory selected before export
+            let targetDir = exportConf.outputDirectory || '~/Videos/CuteCut';
+            const os = (window as any).require ? (window as any).require('os') : null;
+            const pathModule = (window as any).require ? (window as any).require('path') : null;
+            const joinFsPath = (d: string, f: string) => pathModule && typeof pathModule.join === 'function' ? pathModule.join(d, f) : (d.endsWith('/') || d.endsWith('\\') ? `${d}${f}` : `${d}/${f}`);
+            if (targetDir.startsWith('~/') && os && typeof os.homedir === 'function') {
+              targetDir = joinFsPath(os.homedir(), targetDir.slice(2));
+            }
+            const cleanFilename = targetFilename.endsWith('.mp4') ? targetFilename : `${targetFilename}.mp4`;
+            const autoTargetPath = joinFsPath(targetDir, cleanFilename);
+
+            const arrayBuf = await rawBlob.arrayBuffer();
+            const res = await electron.ipcRenderer.invoke('native-engine:render-local-video', {
+              inputBuffer: Array.from(new Uint8Array(arrayBuf)),
+              outputFilePath: autoTargetPath,
+              fps,
+              resolution: exportConf.resolution,
+              crf: 17
+            });
+            if (res && res.success) {
+              log(`✅ [Native C++ AVEngine] 100% Offline Render Complete!`);
+              log(`🚀 Auto-saved directly to: ${res.outputFilePath} (${res.fileSizeMb} MB, Encoder: ${res.encoderUsed})`);
+              setSavedLocalPath(res.outputFilePath);
+              return { blob: rawBlob, filename: targetFilename };
+            }
+          } catch (nativeErr: any) {
+            log(`Native offline engine note: ${nativeErr?.message || nativeErr}. Continuing with Web pipeline...`);
+          }
+        }
+      }
+
+      // 2. Web fallback (Fetch Server Finalizer API)
       try {
         log(`Finalizing 100% compliant H.264/AAC MP4 with FastStart (Universal Ubuntu/VLC playback)...`);
         const res = await fetch('/api/export/finalize-mp4', {
@@ -6587,20 +6655,9 @@ export default function App() {
       return { blob: rawBlob, filename: targetFilename };
     };
 
-    let baseRes: '1080p' | '720p' | '480p' = '1080p';
-    if (exportConf.resolution === '720p') baseRes = '720p';
-    if (exportConf.resolution === '480p') baseRes = '480p';
-
-    const dims = getExportResolutionDimensions(baseRes, aspectRatio);
-    let width = dims.width;
-    let height = dims.height;
-    if (exportConf.resolution === '4K') {
-      width *= 2;
-      height *= 2;
-    } else if (exportConf.resolution === '2K') {
-      width = Math.round(width * 1.333);
-      height = Math.round(height * 1.333);
-    }
+    const dims = getExportResolutionDimensions(exportConf.resolution, aspectRatio);
+    const width = dims.width;
+    const height = dims.height;
     const resName = `${exportConf.resolution} (${width}x${height})`;
 
     log(`Initializing Video Rendering Engine for target: ${resName} (Aspect: ${aspectRatio}, Codec: ${exportConf.codec.toUpperCase()}, Bitrate: ${exportConf.bitrateProfile}, FPS: ${exportConf.frameRate})...`);
@@ -6622,7 +6679,11 @@ export default function App() {
     const canvas = previewCanvasRef.current || (typeof document !== 'undefined' ? document.querySelector('canvas') : null);
 
     if (canvas) {
-      log(`Acquired active PreviewPlayer canvas (${canvas.width}x${canvas.height})...`);
+      // Set the canvas buffer immediately to the native target resolution (e.g. 3840x2160 for 4K)
+      canvas.width = width;
+      canvas.height = height;
+      log(`Prepared canvas at native target resolution: ${width}x${height} (${exportConf.resolution})...`);
+      await new Promise(r => setTimeout(r, 60));
 
       const webCodecsSupport = checkWebCodecsSupport();
       const isNativeAvEngine = exportConf.engine === 'native_avengine' || !exportConf.engine;
@@ -6631,17 +6692,27 @@ export default function App() {
       if (useHardwareEngine) {
         log(`[C++ Native AVEngine] Activating Hardware Accelerated GPU & 32-Bit DSP Pipeline...`);
         try {
-          let targetVideoBps = 10_000_000;
-          if (exportConf.resolution === '4K') targetVideoBps = 32_000_000;
-          else if (exportConf.resolution === '2K') targetVideoBps = 18_000_000;
-          else if (exportConf.resolution === '1080p') targetVideoBps = 12_000_000;
-          else if (exportConf.resolution === '720p') targetVideoBps = 6_500_000;
-          else if (exportConf.resolution === '480p') targetVideoBps = 3_000_000;
+          // High-fidelity bitrates for crisp, broadcast-grade detail
+          let targetVideoBps = 16_000_000;
+          if (exportConf.resolution === '4K') targetVideoBps = 48_000_000;
+          else if (exportConf.resolution === '2K') targetVideoBps = 26_000_000;
+          else if (exportConf.resolution === '1080p') targetVideoBps = 16_000_000;
+          else if (exportConf.resolution === '720p') targetVideoBps = 8_500_000;
+          else if (exportConf.resolution === '480p') targetVideoBps = 4_000_000;
 
-          if (exportConf.bitrateProfile === 'higher') targetVideoBps = Math.round(targetVideoBps * 1.6);
-          if (exportConf.bitrateProfile === 'lower') targetVideoBps = Math.round(targetVideoBps * 0.6);
+          if (exportConf.bitrateProfile === 'higher') targetVideoBps = Math.round(targetVideoBps * 1.5);
+          if (exportConf.bitrateProfile === 'lower') targetVideoBps = Math.round(targetVideoBps * 0.7);
 
-          const totalDuration = Math.max(duration, 1);
+          // Calculate exact content end time to prevent black screen at the end of export
+          let maxClipsEndTime = 0;
+          tracks.forEach(track => {
+            if (track.hidden) return;
+            track.clips.forEach(clip => {
+              const end = clip.start + clip.duration;
+              if (end > maxClipsEndTime) maxClipsEndTime = end;
+            });
+          });
+          const totalDuration = maxClipsEndTime > 0 ? Math.min(duration, maxClipsEndTime) : Math.max(duration, 1);
           const fps = exportConf.frameRate || 30;
 
           const { speakerGain } = getAudioContext();
@@ -6669,10 +6740,16 @@ export default function App() {
               }
             },
             onLog: (msg) => log(msg),
-            renderFrameAtTime: async (t: number) => {
+            renderFrameAtTime: async (t: number, targetCanvas?: HTMLCanvasElement, targetCtx?: CanvasRenderingContext2D, targetWidth?: number, targetHeight?: number) => {
+              if (typeof (window as any).__cuteCutRenderDirectFrame === 'function') {
+                const handled = await (window as any).__cuteCutRenderDirectFrame(t, targetCanvas, targetCtx, targetWidth, targetHeight);
+                if (handled) return true;
+              }
+
               setCurrentTime(t);
               const seekWaiters: Promise<void>[] = [];
               tracks.forEach(track => {
+                if (track.hidden) return;
                 track.clips.forEach(clip => {
                   if (clip.type === ClipType.VIDEO) {
                     const el = videoElementsRef.current[clip.id];
@@ -6682,8 +6759,8 @@ export default function App() {
                         const clipElapsed = t - clip.start;
                         const { sourceTime: targetSrcTime } = getClipEffectiveSpeedAtTime(clip, clipElapsed);
                         const dur = el.duration || 999999;
-                        const clamped = Math.max(0, Math.min(dur, targetSrcTime));
-                        if (Math.abs(el.currentTime - clamped) > 0.03) {
+                        const clamped = dur > 0 ? (targetSrcTime % dur) : 0;
+                        if (Math.abs(el.currentTime - clamped) > 0.015) {
                           const waitP = new Promise<void>((resolve) => {
                             let settled = false;
                             const onDone = () => {
@@ -6694,12 +6771,19 @@ export default function App() {
                               }
                             };
                             el.addEventListener('seeked', onDone, { once: true });
-                            setTimeout(onDone, 180);
+                            if (typeof (el as any).requestVideoFrameCallback === 'function') {
+                              try {
+                                (el as any).requestVideoFrameCallback(() => onDone());
+                              } catch {}
+                            }
+                            try {
+                              el.currentTime = clamped;
+                            } catch {
+                              onDone();
+                            }
+                            setTimeout(onDone, 120);
                           });
                           seekWaiters.push(waitP);
-                          try {
-                            el.currentTime = clamped;
-                          } catch {}
                         }
                       }
                     }
@@ -6710,6 +6794,7 @@ export default function App() {
                 await Promise.all(seekWaiters);
               }
               await new Promise(r => requestAnimationFrame(r));
+              return false;
             },
             checkCancelled: () => isCancelledExportRef.current
           });
@@ -7571,27 +7656,6 @@ export default function App() {
               setQuranSurahHeaderBgOpacity={setQuranSurahHeaderBgOpacity}
             />
           )}
-        />
-
-        {/* Export Modal */}
-        <ExportModal
-          isOpen={showExportModal}
-          onClose={() => setShowExportModal(false)}
-          isMinimized={isExportMinimized}
-          onToggleMinimize={() => setIsExportMinimized(prev => !prev)}
-          duration={duration}
-          aspectRatio={aspectRatio}
-          tracks={tracks}
-          watermark={watermark}
-          setWatermark={setWatermark}
-          exporting={exporting}
-          exportProgress={exportProgress}
-          exportTerminalLogs={exportTerminalLogs}
-          downloadUrl={downloadUrl}
-          savedLocalPath={savedLocalPath}
-          onStartExport={startFfmpegCompilation}
-          onCancelExport={handleCancelExport}
-          onSaveToNativeStorage={(url, filename) => handleExportToNativeStorage(url, filename || `export_${Date.now()}.mp4`)}
         />
 
         {/* Auth Modal */}

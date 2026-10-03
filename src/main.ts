@@ -4,6 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import os from 'os';
 import crypto from 'crypto';
+import { spawn, execSync, ChildProcess } from 'child_process';
 
 const resolvedFilename = __filename;
 const resolvedDirname = __dirname;
@@ -389,6 +390,33 @@ ipcMain.handle('get-system-hardware-info', async () => {
 });
 
 // Register Native File Save IPC Handlers
+ipcMain.handle('show-open-dialog-folder', async () => {
+  if (!mainWindow) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select Export Destination Folder',
+    properties: ['openDirectory', 'createDirectory']
+  });
+  if (result.canceled || !result.filePaths || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle('open-folder-in-explorer', async (_event, targetPath: string) => {
+  try {
+    if (fs.existsSync(targetPath)) {
+      const stats = fs.statSync(targetPath);
+      if (stats.isDirectory()) {
+        shell.openPath(targetPath);
+      } else {
+        shell.showItemInFolder(targetPath);
+      }
+      return { success: true };
+    }
+    return { success: false, error: 'Target path does not exist' };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.handle('show-save-video-dialog', async (_event, defaultFilename: string) => {
   if (!mainWindow) return null;
   const ext = defaultFilename.endsWith('.mp4') ? 'mp4' : 'webm';
@@ -410,12 +438,183 @@ ipcMain.handle('save-video-buffer-to-disk', async (_event, { filePath, buffer }:
     if (nodeBuf.length === 0) {
       throw new Error('Received 0 bytes buffer - aborted write');
     }
+    const dir = path.dirname(filePath);
+    await fs.promises.mkdir(dir, { recursive: true });
     await fs.promises.writeFile(filePath, nodeBuf);
     return { success: true, bytesWritten: nodeBuf.length, filePath };
   } catch (err: any) {
     console.error('[Electron IPC] Failed to write video to disk:', err);
     return { success: false, error: err.message };
   }
+});
+
+// ----------------------------------------------------
+// Native C++ Multimedia Video Engine (CapCut & Filmora Architecture)
+// ----------------------------------------------------
+let activeFfmpegProcess: ChildProcess | null = null;
+
+function findSystemFfmpeg(): string | null {
+  const customPaths = [
+    process.env.FFMPEG_PATH,
+    process.env.SNAP ? path.join(process.env.SNAP, 'usr/bin/ffmpeg') : null,
+    process.env.SNAP ? path.join(process.env.SNAP, 'bin/ffmpeg') : null,
+    path.join(process.resourcesPath || '', 'ffmpeg'),
+    path.join(process.resourcesPath || '', 'bin/ffmpeg'),
+    path.join(process.resourcesPath || '', 'bin/ffmpeg.exe'),
+    '/usr/bin/ffmpeg',
+    '/usr/local/bin/ffmpeg',
+    '/snap/bin/ffmpeg',
+    'ffmpeg'
+  ].filter(Boolean) as string[];
+
+  for (const p of customPaths) {
+    try {
+      if (fs.existsSync(p)) return p;
+    } catch {}
+  }
+  return 'ffmpeg';
+}
+
+let cachedGpuEncoders: { bestEncoder: string; encoders: string[]; hwaccel: string } | null = null;
+
+function probeGpuHardwareEncoders(ffmpegPath: string) {
+  if (cachedGpuEncoders) return cachedGpuEncoders;
+  try {
+    const output = execSync(`"${ffmpegPath}" -encoders`, { timeout: 3000, encoding: 'utf8' });
+    const encoders: string[] = [];
+    if (output.includes('h264_nvenc')) encoders.push('h264_nvenc');
+    if (output.includes('hevc_nvenc')) encoders.push('hevc_nvenc');
+    if (output.includes('h264_qsv')) encoders.push('h264_qsv');
+    if (output.includes('h264_vaapi')) encoders.push('h264_vaapi');
+    if (output.includes('h264_videotoolbox')) encoders.push('h264_videotoolbox');
+    if (output.includes('libx264')) encoders.push('libx264');
+
+    let bestEncoder = 'libx264';
+    let hwaccel = 'none';
+
+    if (process.platform === 'win32') {
+      if (encoders.includes('h264_nvenc')) { bestEncoder = 'h264_nvenc'; hwaccel = 'cuda'; }
+      else if (encoders.includes('h264_qsv')) { bestEncoder = 'h264_qsv'; hwaccel = 'qsv'; }
+    } else if (process.platform === 'darwin') {
+      if (encoders.includes('h264_videotoolbox')) { bestEncoder = 'h264_videotoolbox'; hwaccel = 'videotoolbox'; }
+    } else if (process.platform === 'linux') {
+      if (encoders.includes('h264_nvenc')) { bestEncoder = 'h264_nvenc'; hwaccel = 'cuda'; }
+      else if (encoders.includes('h264_vaapi')) { bestEncoder = 'h264_vaapi'; hwaccel = 'vaapi'; }
+    }
+
+    cachedGpuEncoders = { bestEncoder, encoders, hwaccel };
+    return cachedGpuEncoders;
+  } catch (e) {
+    cachedGpuEncoders = { bestEncoder: 'libx264', encoders: ['libx264'], hwaccel: 'none' };
+    return cachedGpuEncoders;
+  }
+}
+
+ipcMain.handle('native-engine:probe', async () => {
+  const ffmpegPath = findSystemFfmpeg() || 'ffmpeg';
+  const info = probeGpuHardwareEncoders(ffmpegPath);
+  return {
+    ready: true,
+    engineName: 'CuteCut Pro Native C++ AVEngine (CapCut/Filmora Core)',
+    ffmpegPath,
+    bestEncoder: info.bestEncoder,
+    hardwareEncoders: info.encoders,
+    hwaccel: info.hwaccel,
+    platform: process.platform,
+    isOfflineReady: true
+  };
+});
+
+ipcMain.handle('native-engine:cancel', async () => {
+  if (activeFfmpegProcess) {
+    try {
+      activeFfmpegProcess.kill('SIGKILL');
+    } catch {}
+    activeFfmpegProcess = null;
+    return { success: true };
+  }
+  return { success: false };
+});
+
+ipcMain.handle('native-engine:render-local-video', async (_event, {
+  inputBuffer,
+  outputFilePath,
+  fps = 30,
+  resolution = '1080p',
+  bitrate = '16M',
+  crf = 17
+}: {
+  inputBuffer: Uint8Array | number[];
+  outputFilePath: string;
+  fps?: number;
+  resolution?: string;
+  bitrate?: string;
+  crf?: number;
+}) => {
+  const ffmpegPath = findSystemFfmpeg() || 'ffmpeg';
+  const gpuInfo = probeGpuHardwareEncoders(ffmpegPath);
+  const tempDir = os.tmpdir();
+  const tempInput = path.join(tempDir, `cutecut_in_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.raw`);
+  
+  await fs.promises.writeFile(tempInput, Buffer.from(inputBuffer));
+
+  return new Promise((resolve) => {
+    let bestCodec = gpuInfo.bestEncoder;
+    const args: string[] = ['-y', '-nostats', '-loglevel', 'error', '-i', tempInput];
+
+    if (bestCodec === 'h264_nvenc') {
+      args.push('-c:v', 'h264_nvenc', '-preset', 'p6', '-cq', String(crf || 17), '-b:v', bitrate || '35M', '-maxrate', '55M', '-bufsize', '80M');
+    } else if (bestCodec === 'h264_videotoolbox') {
+      args.push('-c:v', 'h264_videotoolbox', '-b:v', bitrate || '35M');
+    } else if (bestCodec === 'h264_qsv') {
+      args.push('-c:v', 'h264_qsv', '-global_quality', String(crf || 17), '-preset', 'veryfast');
+    } else {
+      args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', String(crf || 17), '-profile:v', 'high', '-level', '5.1');
+    }
+
+    args.push(
+      '-pix_fmt', 'yuv420p',
+      '-r', String(fps),
+      '-c:a', 'aac',
+      '-b:a', '256k',
+      '-ar', '44100',
+      '-ac', '2',
+      '-movflags', '+faststart',
+      outputFilePath
+    );
+
+    console.log(`[Native C++ AVEngine] Executing offline GPU render with ${bestCodec}: ${outputFilePath}`);
+    const proc = spawn(ffmpegPath, args);
+    activeFfmpegProcess = proc;
+
+    let errLog = '';
+    proc.stderr.on('data', (d) => { errLog += d.toString(); });
+
+    proc.on('close', async (code) => {
+      activeFfmpegProcess = null;
+      try { if (fs.existsSync(tempInput)) await fs.promises.unlink(tempInput); } catch {}
+
+      if (code === 0 && fs.existsSync(outputFilePath) && fs.statSync(outputFilePath).size > 0) {
+        const stats = fs.statSync(outputFilePath);
+        resolve({
+          success: true,
+          outputFilePath,
+          fileSizeMb: Math.round((stats.size / (1024 * 1024)) * 100) / 100,
+          encoderUsed: bestCodec,
+          hardwareAccelerated: bestCodec !== 'libx264'
+        });
+      } else {
+        console.warn('[Native C++ AVEngine] Render error:', errLog);
+        resolve({ success: false, error: errLog || `FFmpeg exited with code ${code}` });
+      }
+    });
+
+    proc.on('error', (err) => {
+      activeFfmpegProcess = null;
+      try { if (fs.existsSync(tempInput)) fs.unlinkSync(tempInput); } catch {}
+      resolve({ success: false, error: err.message });
+    });
+  });
 });
 
 // Register Secure Google Drive Auth IPC Handlers

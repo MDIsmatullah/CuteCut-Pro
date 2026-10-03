@@ -29,7 +29,7 @@ export interface NativeHardwareRenderOptions {
   };
   onProgress: (pct: number, frame: number, totalFrames: number, actualFps: number, hardwareEngine: string) => void;
   onLog: (msg: string) => void;
-  renderFrameAtTime: (time: number) => Promise<void>;
+  renderFrameAtTime: (time: number, targetCanvas?: HTMLCanvasElement, targetCtx?: CanvasRenderingContext2D, targetWidth?: number, targetHeight?: number) => Promise<boolean | void>;
   checkCancelled: () => boolean;
 }
 
@@ -377,17 +377,18 @@ export async function executeNativeHardwareRender(options: NativeHardwareRenderO
     width,
     height,
     bitrate,
+    bitrateMode: 'variable',
     framerate: fps,
     hardwareAcceleration: 'prefer-hardware',
     latencyMode: 'quality',
     avc: { format: 'avc' }
   });
 
-  // Dedicated offscreen raster buffer matching exact target width/height
+  // Dedicated offscreen raster buffer matching exact target width/height (Full 4K / 1080p)
   let offscreenCanvas: HTMLCanvasElement | null = null;
   let offscreenCtx: CanvasRenderingContext2D | null = null;
 
-  if (typeof document !== 'undefined' && (canvas.width !== width || canvas.height !== height)) {
+  if (typeof document !== 'undefined') {
     offscreenCanvas = document.createElement('canvas');
     offscreenCanvas.width = width;
     offscreenCanvas.height = height;
@@ -413,14 +414,17 @@ export async function executeNativeHardwareRender(options: NativeHardwareRenderO
     }
 
     const frameTime = frameIndex / fps;
-    await renderFrameAtTime(frameTime);
+    const directlyRendered = await renderFrameAtTime(frameTime, offscreenCanvas || undefined, offscreenCtx || undefined, width, height);
 
     const timestamp = Math.round((frameIndex / fps) * 1_000_000);
     const isKeyframe = (frameIndex % Math.round(fps * 2) === 0);
 
     let frameSource: CanvasImageSource = canvas;
     if (offscreenCanvas && offscreenCtx) {
-      offscreenCtx.drawImage(canvas, 0, 0, width, height);
+      if (directlyRendered !== true) {
+        // Fallback: transfer from preview canvas if direct renderer was not active
+        offscreenCtx.drawImage(canvas, 0, 0, width, height);
+      }
       frameSource = offscreenCanvas;
     }
 

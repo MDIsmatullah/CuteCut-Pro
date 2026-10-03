@@ -1016,6 +1016,9 @@ export default function PreviewPlayer({
     const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true }) || canvas.getContext('2d');
     if (!ctx) return;
 
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
     let animId: number;
 
     const render = () => {
@@ -3114,9 +3117,89 @@ export default function PreviewPlayer({
 
     render();
 
+    // Register high-precision hardware export frame synchronization on window
+    (window as any).__cuteCutRenderDirectFrame = async (
+      optTime?: number,
+      targetCanvas?: HTMLCanvasElement,
+      targetCtx?: CanvasRenderingContext2D,
+      targetW?: number,
+      targetH?: number
+    ): Promise<boolean> => {
+      const renderT = optTime !== undefined ? optTime : currentTime;
+      const destCanvas = targetCanvas || canvas;
+      const destCtx = targetCtx || (destCanvas ? destCanvas.getContext('2d', { alpha: false }) : ctx);
+      if (!destCtx || !destCanvas) return false;
+
+      destCtx.imageSmoothingEnabled = true;
+      destCtx.imageSmoothingQuality = 'high';
+
+      // 1. Synchronize all active HTMLVideoElements to exact frame time
+      const syncPromises: Promise<void>[] = [];
+      tracks.forEach(track => {
+        if (track.hidden) return;
+        track.clips.forEach(clip => {
+          if (clip.type === ClipType.VIDEO) {
+            const media = videoNodes[clip.id] || fallbackMediaRef.current[clip.id];
+            if (media instanceof HTMLVideoElement) {
+              const isActive = renderT >= clip.start && renderT <= clip.start + clip.duration;
+              if (isActive) {
+                const elapsed = renderT - clip.start;
+                const { sourceTime: targetSrcTime } = getClipEffectiveSpeedAtTime(clip, elapsed);
+                const vidDur = (media.duration && !isNaN(media.duration) && isFinite(media.duration) && media.duration > 0) ? media.duration : (clip.duration || 999999);
+                const clamped = vidDur > 0 ? (targetSrcTime % vidDur) : 0;
+                
+                const drift = Math.abs(media.currentTime - clamped);
+                if (drift > 0.015) {
+                  const waitP = new Promise<void>((resolve) => {
+                    let settled = false;
+                    const done = () => {
+                      if (!settled) {
+                        settled = true;
+                        media.removeEventListener('seeked', done);
+                        resolve();
+                      }
+                    };
+                    media.addEventListener('seeked', done, { once: true });
+                    if (typeof (media as any).requestVideoFrameCallback === 'function') {
+                      try {
+                        (media as any).requestVideoFrameCallback(() => done());
+                      } catch {}
+                    }
+                    try {
+                      media.currentTime = clamped;
+                    } catch {
+                      done();
+                    }
+                    setTimeout(done, 120);
+                  });
+                  syncPromises.push(waitP);
+                }
+              }
+            }
+          }
+        });
+      });
+
+      if (syncPromises.length > 0) {
+        await Promise.all(syncPromises);
+      }
+
+      // 2. Perform direct synchronous render pass
+      render();
+
+      // If offscreen canvas/context provided, copy full frame
+      if (targetCtx && targetCanvas && targetCanvas !== canvas) {
+        targetCtx.drawImage(canvas, 0, 0, targetCanvas.width, targetCanvas.height);
+      }
+      return true;
+    };
+
     return () => {
       if (animId) {
         cancelAnimationFrame(animId);
+      }
+      if ((window as any).__cuteCutRenderDirectFrame) {
+        delete (window as any).__cuteCutRenderDirectFrame;
       }
     };
   }, [tracks, currentTime, dimensions, isPlaying, videoNodes, showGrid, showSafeArea, selectedClip]);

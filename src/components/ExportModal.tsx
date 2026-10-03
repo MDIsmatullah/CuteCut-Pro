@@ -154,46 +154,9 @@ export default function ExportModal({
     hardwareAcceleration: webCodecsSupport.supported,
   }));
 
-  const [showInAppAd, setShowInAppAd] = useState(false);
-  const [adCountdown, setAdCountdown] = useState(5);
-
-  useEffect(() => {
-    let timer: any;
-    if (showInAppAd && adCountdown > 0) {
-      timer = setTimeout(() => {
-        setAdCountdown(prev => prev - 1);
-      }, 1000);
-    } else if (showInAppAd && adCountdown <= 0) {
-      setShowInAppAd(false);
-      onStartExport(config);
-    }
-    return () => clearTimeout(timer);
-  }, [showInAppAd, adCountdown, config]);
-
-  const handleSkipInAppAd = () => {
-    setShowInAppAd(false);
+  const handleStartExportDirect = () => {
+    if (exporting) return;
     onStartExport(config);
-  };
-
-  const handleExportWithAd = async () => {
-    if (isAdLoading || exporting) return;
-    setIsAdLoading(true);
-    try {
-      await AdMobService.showExportAd(
-        () => {
-          setIsAdLoading(false);
-          onStartExport(config);
-        },
-        () => {
-          setIsAdLoading(false);
-          setShowInAppAd(true);
-          setAdCountdown(5);
-        }
-      );
-    } catch {
-      setIsAdLoading(false);
-      onStartExport(config);
-    }
   };
 
   // Auto-detect OS path when modal opens if path is empty or unchanged
@@ -382,7 +345,7 @@ export default function ExportModal({
 
   const handleBrowseDirectory = async () => {
     try {
-      // 1. Check Native Electron
+      // 1. Check Native Electron (Linux, Windows, macOS)
       if (typeof window !== 'undefined') {
         const electron = (window as any).require ? (window as any).require('electron') : null;
         if (electron && electron.ipcRenderer) {
@@ -395,12 +358,14 @@ export default function ExportModal({
         }
       }
 
-      // 2. Check Modern Web File System Access API
+      // 2. Modern Web File System Access API (Chrome, Edge, Opera)
       if (typeof window !== 'undefined' && 'showDirectoryPicker' in window) {
         try {
-          const dirHandle = await (window as any).showDirectoryPicker();
+          const dirHandle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
           if (dirHandle && dirHandle.name) {
-            setConfig(prev => ({ ...prev, outputDirectory: `${initialSystemInfo.path.split('/')[0] || ''}/${dirHandle.name}` }));
+            (window as any)._cutecut_export_dir_handle = dirHandle;
+            const fullDirLabel = `${initialSystemInfo.path.split('/')[0] || '~'}/${dirHandle.name}`;
+            setConfig(prev => ({ ...prev, outputDirectory: fullDirLabel }));
             setPathMode('manual');
             return;
           }
@@ -408,10 +373,12 @@ export default function ExportModal({
           if (abortErr.name === 'AbortError') return;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[Directory Picker Error]', e);
+    }
 
     // 3. Fallback prompt for direct manual entry
-    const custom = window.prompt('Enter or paste your custom export destination folder path:', config.outputDirectory);
+    const custom = window.prompt('Enter or paste destination folder path (e.g. ~/Videos, C:/Videos):', config.outputDirectory);
     if (custom !== null && custom.trim() !== '') {
       setConfig(prev => ({ ...prev, outputDirectory: custom.trim() }));
       setPathMode('manual');
@@ -510,73 +477,17 @@ export default function ExportModal({
     <div className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-3 md:p-4 backdrop-blur-sm animate-in fade-in duration-150">
       <div className="bg-[#1c1c23] border border-[#32323e] rounded-xl w-full max-w-[820px] shadow-2xl overflow-hidden flex flex-col max-h-[94vh] select-none text-gray-200 relative">
         
-        {/* SPONSORED IN-APP AD OVERLAY BEFORE EXPORT */}
-        {showInAppAd && (
-          <div className="absolute inset-0 z-50 bg-[#0c0c14]/95 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 text-center animate-in fade-in zoom-in-95 duration-200">
-            <div className="max-w-md w-full bg-[#161622] border border-cyan-500/40 rounded-2xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-amber-400 to-teal-400 animate-pulse" />
-              
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-mono tracking-widest uppercase bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 px-2 py-0.5 rounded font-bold">
-                  Sponsored • Ad
-                </span>
-                <span className="text-xs font-mono font-bold text-amber-400">
-                  Export in {adCountdown}s
-                </span>
-              </div>
-
-              {/* Sponsor Creative Banner */}
-              <div className="bg-gradient-to-br from-cyan-950/50 via-[#10101c] to-amber-950/30 border border-[#2b2b40] rounded-xl p-4 sm:p-5 mb-5 text-left">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0">
-                    <Sparkles className="w-5 h-5 text-cyan-300" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white">CuteCut Pro • 4K Video Studio</h4>
-                    <p className="text-[11px] text-gray-300">Offline-First Video & Quran Synchronization</p>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-300 leading-relaxed mb-3">
-                  Thank you for using CuteCut Pro! Sponsored partners keep high-bitrate 4K encoding and real-time audio visualization 100% free and open for creators worldwide.
-                </p>
-                <div className="flex items-center gap-2 text-[10px] text-cyan-400 font-mono">
-                  <span>Google AdSense & AdMob Partner Network</span>
-                </div>
-              </div>
-
-              {/* Countdown & Action Buttons */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-[11px] text-gray-400 text-left">
-                  {adCountdown > 0 ? (
-                    <span>Auto-starting export in <strong className="text-cyan-300 font-mono">{adCountdown}</strong>s...</span>
-                  ) : (
-                    <span className="text-emerald-400 font-semibold">Ready to compile!</span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={handleSkipInAppAd}
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 text-slate-950 font-bold text-xs rounded-lg transition shadow-md cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>{adCountdown <= 2 ? 'Skip & Start Export' : `Wait (${adCountdown}s)`}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Modal Title Bar */}
+        {/* Modal Title Bar (CapCut Style) */}
         <div className="h-11 px-4 flex items-center justify-between border-b border-[#282834] bg-[#22222a] shrink-0">
           <div className="flex items-center gap-2">
             <Film className="w-4 h-4 text-cyan-400" />
             <span className="text-xs font-bold text-white tracking-wide">
-              {exporting ? 'Exporting Video...' : downloadUrl ? 'Export Finished' : 'Export & Final Verification'}
+              {exporting ? 'Exporting Video' : downloadUrl ? 'Export Completed' : 'Export'}
             </span>
             {exporting && (
               <span className="flex items-center gap-1 text-[10px] bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 px-2 py-0.5 rounded-full font-medium animate-pulse">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-                Silent Studio Render
+                {exportProgress}% • In Progress
               </span>
             )}
           </div>
@@ -589,16 +500,14 @@ export default function ExportModal({
             >
               <Minimize2 className="w-3.5 h-3.5" />
             </button>
-            {!exporting && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="text-gray-400 hover:text-white p-1 rounded hover:bg-[#30303c] transition cursor-pointer"
-                title="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={exporting && onCancelExport ? onCancelExport : onClose}
+              className="text-gray-400 hover:text-white p-1 rounded hover:bg-[#30303c] transition cursor-pointer"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
@@ -1361,9 +1270,25 @@ export default function ExportModal({
                 </div>
 
                 {savedLocalPath && (
-                  <div className="bg-[#0b0f16] border border-cyan-500/30 p-2.5 rounded-lg text-xs font-mono text-cyan-300 flex items-center justify-center gap-2 max-w-lg mx-auto truncate">
-                    <FolderOpen className="w-4 h-4 text-cyan-400 shrink-0" />
-                    <span className="truncate">Saved: {savedLocalPath}</span>
+                  <div className="bg-[#0b0f16] border border-cyan-500/30 p-2.5 rounded-lg text-xs font-mono text-cyan-300 flex items-center justify-between gap-2 max-w-lg mx-auto">
+                    <div className="flex items-center gap-2 truncate">
+                      <FolderOpen className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span className="truncate">Auto-Saved: {savedLocalPath}</span>
+                    </div>
+                    {typeof window !== 'undefined' && (window as any).require && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const electron = (window as any).require('electron');
+                          if (electron && electron.ipcRenderer && savedLocalPath) {
+                            electron.ipcRenderer.invoke('open-folder-in-explorer', savedLocalPath);
+                          }
+                        }}
+                        className="px-2 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-[10px] font-bold rounded transition cursor-pointer shrink-0"
+                      >
+                        Open Folder
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -1492,35 +1417,24 @@ export default function ExportModal({
           {/* Bottom Right Actions */}
           <div className="flex items-center gap-2.5">
             
-            {/* Setting Screen: Export & Cancel */}
+            {/* Setting Screen: Cancel & Export (CapCut Style) */}
             {!exporting && !downloadUrl && (
               <>
                 <button
                   type="button"
-                  id="export-panel-start-btn"
-                  disabled={isAdLoading}
-                  onClick={handleExportWithAd}
-                  className="px-6 py-2 bg-[#00e5ff] hover:bg-[#33ebff] active:bg-[#00cce6] text-black font-bold text-xs rounded-lg transition shadow-md shadow-cyan-500/20 cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
+                  onClick={onClose}
+                  className="px-4 py-2 bg-[#2d2d38] hover:bg-[#383846] text-gray-300 hover:text-white text-xs rounded-lg transition cursor-pointer"
                 >
-                  {isAdLoading ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
-                      <span>Preparing Export...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Export Video</span>
-                    </>
-                  )}
+                  Cancel
                 </button>
                 <button
                   type="button"
-                  disabled={isAdLoading}
-                  onClick={onClose}
-                  className="px-4 py-2 bg-[#2d2d38] hover:bg-[#383846] text-gray-300 hover:text-white text-xs rounded-lg transition cursor-pointer disabled:opacity-40"
+                  id="export-panel-start-btn"
+                  onClick={handleStartExportDirect}
+                  className="px-6 py-2 bg-[#00e5ff] hover:bg-[#33ebff] active:bg-[#00cce6] text-black font-bold text-xs rounded-lg transition shadow-md shadow-cyan-500/25 cursor-pointer flex items-center gap-1.5"
                 >
-                  Cancel
+                  <Sparkles className="w-3.5 h-3.5 fill-black" />
+                  <span>Export</span>
                 </button>
               </>
             )}

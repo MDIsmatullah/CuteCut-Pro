@@ -2858,20 +2858,24 @@ Voice Tone: ${voiceTone}`;
     }
 
     function runFfmpegTranscode() {
-      // libx264 High Profile, standard yuv420p, constant framerate, stereo AAC 44.1kHz 192k, faststart
+      // Broadcast-Grade Studio Quality: H.264 High Profile 5.1 with CRF 17 (Visually Lossless)
+      // FastStart ensures 100% smooth, instant playback on Ubuntu default video player & VLC
       const args = [
         '-y',
         '-nostats',
         '-loglevel', 'error',
         '-i', inPath,
         '-c:v', 'libx264',
-        '-preset', 'veryfast',
+        '-preset', 'fast',
+        '-crf', '17',
         '-profile:v', 'high',
-        '-level', '4.1',
+        '-level', '5.1',
         '-pix_fmt', 'yuv420p',
         '-r', String(targetFps),
+        '-maxrate', '60M',
+        '-bufsize', '90M',
         '-c:a', 'aac',
-        '-b:a', '192k',
+        '-b:a', '256k',
         '-ar', '44100',
         '-ac', '2',
         '-movflags', '+faststart',
