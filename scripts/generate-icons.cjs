@@ -2,6 +2,40 @@ const fs = require('fs');
 const path = require('path');
 
 async function buildAllIcons() {
+  const dirs = [
+    'build-resources',
+    'build',
+    'build/icons',
+    'public',
+    'src/assets',
+    'assets',
+    'src-tauri/icons'
+  ];
+  dirs.forEach(d => {
+    if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+  });
+
+  // Fallback helper to ensure icons always exist in build-resources/ even without sharp/png2icons
+  const syncFallbackIcons = () => {
+    const fallbacks = [
+      { src: 'public/icon.ico', targets: ['build-resources/icon.ico', 'build/icon.ico', 'build/icons/icon.ico', 'icon.ico', 'src-tauri/icons/icon.ico'] },
+      { src: 'public/icon.png', targets: ['build-resources/icon.png', 'build/icon.png', 'build/icons/icon.png', 'icon.png', 'src-tauri/icons/icon.png'] },
+      { src: 'public/icon.icns', targets: ['build-resources/icon.icns', 'build/icon.icns', 'build/icons/icon.icns', 'icon.icns', 'src-tauri/icons/icon.icns'] }
+    ];
+
+    fallbacks.forEach(({ src, targets }) => {
+      if (fs.existsSync(src)) {
+        targets.forEach(t => {
+          if (!fs.existsSync(t)) {
+            try { fs.copyFileSync(src, t); } catch (e) {}
+          }
+        });
+      }
+    });
+  };
+
+  syncFallbackIcons();
+
   const iconExists = fs.existsSync('build-resources/icon.png') && 
                      fs.existsSync('build-resources/icon.ico') && 
                      fs.existsSync('build-resources/icon.icns');
@@ -13,14 +47,16 @@ async function buildAllIcons() {
     png2icons = require('png2icons');
   } catch (loadErr) {
     console.warn('[ICON-BUILDER] Warning: Native sharp or png2icons module not available for this platform architecture:', loadErr.message);
-    if (iconExists) {
+    syncFallbackIcons();
+    if (iconExists || fs.existsSync('build-resources/icon.ico')) {
       console.log('[ICON-BUILDER] Pre-generated luxury icons exist in build-resources/. Skipping regeneration safely.');
       return;
     }
   }
 
   if (!sharp || !png2icons) {
-    if (iconExists) {
+    syncFallbackIcons();
+    if (iconExists || fs.existsSync('build-resources/icon.ico')) {
       console.log('[ICON-BUILDER] Icons already present. Skipping icon generation.');
       return;
     }
@@ -39,20 +75,6 @@ async function buildAllIcons() {
     console.warn(`[ICON-BUILDER] Source image not found: ${sourceImage}`);
     return;
   }
-
-  // Ensure directories exist
-  const dirs = [
-    'build-resources',
-    'build',
-    'build/icons',
-    'public',
-    'src/assets',
-    'assets',
-    'src-tauri/icons'
-  ];
-  dirs.forEach(d => {
-    if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
-  });
 
   // Convert source to master 1024x1024 PNG without white border
   const master1024 = await sharp(sourceImage)

@@ -101,7 +101,7 @@ interface TimelineProps {
   // Auto-Segmentation Suite
   onAutoSegmentAudio?: (
     clipId?: string,
-    sensitivity?: 'quran-ayah' | 'studio' | 'mosque' | 'tartil' | 'hadr' | 'custom' | 'smart-waqf' | 'quran-align',
+    sensitivity?: 'quran-ayah' | 'studio' | 'mosque' | 'tartil' | 'hadr' | 'custom' | 'smart-waqf' | 'quran-align' | 'multi-ayah' | 'multi-breath',
     customOptions?: {
       minSilenceMs?: number;
       minSpeechMs?: number;
@@ -109,6 +109,9 @@ interface TimelineProps {
       gapHandling?: 'preserve-gaps' | 'bridge-seamless' | 'label-pauses';
       paddingMs?: number;
       customThresholdDb?: number;
+      recitationMode?: string;
+      ayahsPerBreath?: number;
+      breathsPerAyah?: number;
     }
   ) => void;
   onAutoSyncVideoToAyahs?: () => void;

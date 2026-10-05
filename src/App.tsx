@@ -25,6 +25,7 @@ import { VeoAnimateImageModal, VeoStudioMode } from './components/VeoAnimateImag
 import { AiPromptVideoStudio } from './components/AiPromptVideoStudio';
 import { VideoExport } from './components/video/VideoExport';
 import LandingPortal from './components/LandingPortal';
+import { ProLicenseService } from './services/proLicenseService';
 import NativeSplashScreen from './components/NativeSplashScreen';
 import { MobileCuteCutLayout } from './components/MobileCuteCutLayout';
 import { AdMobService } from './utils/admobService';
@@ -4387,13 +4388,13 @@ export default function App() {
     if (sensitivity === 'quran-align') {
       try {
         await handleAlignQuran({
-          surah: quranSurah || 1,
-          startAyah: quranStartAyah || 1,
-          style: quranStyle || 'Classic Boxed',
+          surah: 1,
+          startAyah: 1,
+          style: (quranArabicStyle as any) || 'Classic Boxed',
           mode: 'batch',
-          selectionType: quranSelectionType || 'single',
-          surahEnd: quranSurahEnd,
-          surahList: quranSurahList,
+          selectionType: 'single',
+          surahEnd: undefined,
+          surahList: undefined,
           introMode: quranIntroMode,
           breathMode: quranBreathSegmentationMode || 'split-breaths',
           recitationPace: quranRecitationPace || 'standard'
