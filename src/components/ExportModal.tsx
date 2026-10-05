@@ -14,6 +14,7 @@ import { GoogleDriveService } from '../services/googleDriveService';
 import { checkWebCodecsSupport } from '../services/webCodecsExportService';
 import { detectHardwareAVEngine } from '../services/rendering/nativeHardwareRenderEngine';
 import { detectPlatformAndOptimalEngine } from '../utils/platformEngineDetector';
+import { detectSystemHardwareProfile } from '../utils/systemCapabilityDetector';
 
 export interface ExportConfig {
   filename: string;
@@ -137,6 +138,7 @@ export default function ExportModal({
   const systemPresets = useMemo(() => getSystemPresetPaths(), []);
   const webCodecsSupport = useMemo(() => checkWebCodecsSupport(), []);
   const platformEngineInfo = useMemo(() => detectPlatformAndOptimalEngine(), []);
+  const sysHardwareProfile = useMemo(() => detectSystemHardwareProfile(), []);
   const [pathMode, setPathMode] = useState<'auto' | 'manual'>('auto');
   const [isAdLoading, setIsAdLoading] = useState(false);
 
@@ -1059,16 +1061,26 @@ export default function ExportModal({
                             <span>System: {platformEngineInfo.platformBadge}</span>
                           </div>
                           <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono font-semibold">
-                            {platformEngineInfo.engineBadge}
+                            {sysHardwareProfile.tierBadge}
                           </span>
                         </div>
                         <div className="text-[10px] text-gray-200 font-medium">
                           {platformEngineInfo.engineName}
                         </div>
                         <div className="text-[9.5px] text-gray-400 leading-snug">
-                          {platformEngineInfo.engineDescription}
+                          {sysHardwareProfile.description}
                         </div>
-                        <div className="flex items-center gap-1.5 pt-1 text-[9px] text-cyan-400/90 font-mono border-t border-cyan-500/20">
+                        <div className="grid grid-cols-2 gap-1.5 pt-1.5 text-[9px] font-mono border-t border-cyan-500/20 text-gray-300">
+                          <div className="flex items-center gap-1 truncate">
+                            <span className="text-cyan-400 font-semibold">💻 Power:</span>
+                            <span className="truncate">{sysHardwareProfile.cpuCores} Cores • {sysHardwareProfile.deviceMemoryGb}GB</span>
+                          </div>
+                          <div className="flex items-center gap-1 justify-end truncate">
+                            <span className="text-amber-400 font-semibold">⚡ Speed:</span>
+                            <span className="text-emerald-400 font-bold truncate">{sysHardwareProfile.targetExportFps}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 pt-1 text-[9px] text-cyan-400/90 font-mono border-t border-cyan-500/10">
                           <span>⚡ Hardware Encoder:</span>
                           <span className="text-white font-semibold truncate">{platformEngineInfo.hardwareEncoderName}</span>
                         </div>

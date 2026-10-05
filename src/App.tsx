@@ -17,6 +17,7 @@ import ExportModal, { ExportConfig } from './components/ExportModal';
 import { checkWebCodecsSupport, exportWithWebCodecs } from './services/webCodecsExportService';
 import { executeNativeHardwareRender, detectHardwareAVEngine } from './services/rendering/nativeHardwareRenderEngine';
 import { detectPlatformAndOptimalEngine } from './utils/platformEngineDetector';
+import { detectSystemHardwareProfile } from './utils/systemCapabilityDetector';
 import { getClipEffectiveSpeedAtTime } from './utils/speedRampUtils';
 import { backgroundMediaPreloader } from './services/backgroundMediaPreloader';
 import { PreferencesModal } from './components/PreferencesModal';
@@ -6697,13 +6698,15 @@ export default function App() {
     }
 
     const platformInfo = detectPlatformAndOptimalEngine();
+    const sysProfile = detectSystemHardwareProfile();
 
     const log = (msg: string) => {
       setExportTerminalLogs(prev => [...prev, `[AVEngine] ${msg}`]);
     };
 
     log(`⚡ Auto-Detected Environment: ${platformInfo.platformName} (${platformInfo.platformBadge})`);
-    log(`🚀 Optimal Engine Active: ${platformInfo.engineName} [100% Offline Background Export Active - Timeline Player Isolated]`);
+    log(`💻 System Power: ${sysProfile.cpuCores} CPU Cores • ${sysProfile.deviceMemoryGb}GB RAM [${sysProfile.gpuVendor}]`);
+    log(`🚀 Adaptive Engine Active: ${platformInfo.engineName} | ${sysProfile.tierBadge} (Target: ${sysProfile.targetExportFps})`);
 
     const finalizeCompliantMp4 = async (rawBlob: Blob, targetFilename: string, fps: number, wavBlob: Blob | null): Promise<{ blob: Blob; filename: string }> => {
       // 1. Check if Electron Native Offline C++ Engine is available (Snap, deb, exe, dmg)
@@ -7149,8 +7152,11 @@ export default function App() {
                 const pct = Math.min(99, Math.floor(((f + 1) / totalFrames) * 100));
                 setExportProgress(pct);
 
-                // Yield to allow MediaRecorder to process frame slice cleanly
-                await new Promise(r => setTimeout(r, Math.max(10, Math.floor(1000 / fps))));
+                // Adaptive micro-yield to allow MediaRecorder to process frame slice without artificial bottlenecks
+                const adaptiveSleepMs = sysProfile.tier === 'turbo' 
+                  ? 2 
+                  : (sysProfile.tier === 'high' ? 5 : (sysProfile.tier === 'balanced' ? 10 : Math.max(15, Math.floor(1000 / fps))));
+                await new Promise(r => setTimeout(r, adaptiveSleepMs));
               }
 
               if (recorder.state === 'recording') {

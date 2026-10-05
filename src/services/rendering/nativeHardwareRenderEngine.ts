@@ -2,6 +2,7 @@ import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 import { Track, Clip, ClipType } from '../../types';
 import { getClipEffectiveSpeedAtTime } from '../../utils/speedRampUtils';
 import { normalizeMediaUrl, getNormalizedClipVolume } from '../../utils/editorUtils';
+import { detectSystemHardwareProfile, SystemHardwareProfile } from '../../utils/systemCapabilityDetector';
 
 export interface HardwareEngineCapabilities {
   gpuVendor: 'NVIDIA' | 'Intel' | 'Apple' | 'AMD' | 'Generic GPU';
@@ -338,8 +339,11 @@ export async function executeNativeHardwareRender(options: NativeHardwareRenderO
   }
 
   const hwCaps = detectHardwareAVEngine();
+  const sysProfile = detectSystemHardwareProfile();
   onLog(`🚀 Activating Native C++ AVEngine Pipeline...`);
-  onLog(`⚡ Detected Hardware Encoder: ${hwCaps.hardwareEncoderName} [Vendor: ${hwCaps.gpuVendor}]`);
+  onLog(`⚡ System Power Detected: ${sysProfile.cpuCores} CPU Cores • ${sysProfile.deviceMemoryGb}GB RAM [${sysProfile.gpuVendor}]`);
+  onLog(`⚙️ Hardware Acceleration: ${hwCaps.hardwareEncoderName}`);
+  onLog(`⚡ Adaptive Speed Mode: ${sysProfile.tierBadge} (Target: ${sysProfile.targetExportFps})`);
   onLog(`🎛️ Audio Mastering: ${hwCaps.dspAudioEngine}`);
   onLog(`📐 Frame Output: ${width}x${height} @ ${fps} FPS | Bitrate: ${(bitrate / 1_000_000).toFixed(1)} Mbps`);
 
@@ -577,30 +581,39 @@ export async function executeNativeHardwareRender(options: NativeHardwareRenderO
 
     encodedFrames++;
 
-    // Responsive micro-yield to keep the browser UI, progress bar, and decoder pipeline 100% fluid without lag
-    if (frameIndex % 3 === 0) {
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    // Adaptive micro-yielding tailored to system CPU/GPU power
+    if (frameIndex % sysProfile.yieldIntervalFrames === 0) {
+      if (sysProfile.tier === 'turbo' || sysProfile.tier === 'high') {
+        // High-performance systems use instantaneous microtask tick for zero latency
+        await Promise.resolve();
+      } else {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      }
     }
 
-    // Backpressure queue throttling to prevent GPU memory spikes & encoder congestion
-    if (videoEncoder.encodeQueueSize > 4) {
+    // Dynamic Backpressure Queue Throttling: Prevents GPU memory overflow while maximizing throughput
+    const maxQueue = sysProfile.maxQueueDepth;
+    const releaseThreshold = Math.max(1, Math.floor(maxQueue / 2));
+
+    if (videoEncoder.encodeQueueSize > maxQueue) {
       await new Promise<void>((resolve) => {
         let isResolved = false;
         videoEncoder.ondequeue = () => {
-          if (videoEncoder.encodeQueueSize <= 2 && !isResolved) {
+          if (videoEncoder.encodeQueueSize <= releaseThreshold && !isResolved) {
             isResolved = true;
             videoEncoder.ondequeue = null;
             resolve();
           }
         };
 
+        // Safety fallback timeout
         setTimeout(() => {
           if (!isResolved) {
             isResolved = true;
             videoEncoder.ondequeue = null;
             resolve();
           }
-        }, 4);
+        }, sysProfile.tier === 'turbo' ? 2 : 4);
       });
     }
 

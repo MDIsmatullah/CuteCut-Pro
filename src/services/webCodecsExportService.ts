@@ -1,6 +1,7 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 import { Track, Clip, ClipType } from '../types';
 import { getNormalizedClipVolume } from '../utils/editorUtils';
+import { detectSystemHardwareProfile } from '../utils/systemCapabilityDetector';
 
 export interface WebCodecsExportOptions {
   canvas: HTMLCanvasElement;
@@ -175,8 +176,10 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
   const totalFrames = Math.max(1, Math.ceil(duration * fps));
   const chosenCodec = await getSupportedVideoCodec(width, height, fps, bitrate);
   const sampleRate = 44100;
+  const sysProfile = detectSystemHardwareProfile();
 
-  onLog(`🚀 WebCodecs export started (fast path) | ${width}x${height} @ ${fps}fps | Codec: ${chosenCodec}`);
+  onLog(`🚀 WebCodecs export started | ${width}x${height} @ ${fps}fps | Codec: ${chosenCodec}`);
+  onLog(`⚡ System Capability: ${sysProfile.cpuCores} CPU Cores • ${sysProfile.deviceMemoryGb}GB RAM [${sysProfile.tierBadge}]`);
 
   let audioBuffer: AudioBuffer | null = null;
   const support = checkWebCodecsSupport();
@@ -332,16 +335,24 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
 
     encodedFrames++;
 
-    // Responsive micro-yield to keep the browser UI, progress bar, and decoder pipeline 100% fluid without lag
-    if (frameIndex % 3 === 0) {
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    // Adaptive micro-yielding tailored to system CPU/GPU power
+    if (frameIndex % sysProfile.yieldIntervalFrames === 0) {
+      if (sysProfile.tier === 'turbo' || sysProfile.tier === 'high') {
+        await Promise.resolve();
+      } else {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      }
     }
 
-    if (videoEncoder.encodeQueueSize > 4) {
+    // Dynamic Backpressure Queue Throttling tuned to GPU capabilities
+    const maxQueue = sysProfile.maxQueueDepth;
+    const releaseThreshold = Math.max(1, Math.floor(maxQueue / 2));
+
+    if (videoEncoder.encodeQueueSize > maxQueue) {
       await new Promise<void>((resolve) => {
         let isResolved = false;
         videoEncoder.ondequeue = () => {
-          if (videoEncoder.encodeQueueSize <= 2 && !isResolved) {
+          if (videoEncoder.encodeQueueSize <= releaseThreshold && !isResolved) {
             isResolved = true;
             videoEncoder.ondequeue = null;
             resolve();
@@ -354,7 +365,7 @@ export async function exportWithWebCodecs(options: WebCodecsExportOptions): Prom
             videoEncoder.ondequeue = null;
             resolve();
           }
-        }, 4);
+        }, sysProfile.tier === 'turbo' ? 2 : 4);
       });
     }
 
