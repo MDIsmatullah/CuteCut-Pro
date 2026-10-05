@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Scissors, Download, RefreshCw, Film, Type, Code, Terminal, Save, User, FolderOpen, Brain, Mic, Heart, Cloud, CloudUpload, X, LogOut, Check, ChevronDown, ChevronRight, Loader2, Keyboard, Zap, Wifi, WifiOff, Settings, MessageSquare, Bot, Sparkles, Wand2 } from 'lucide-react';
+import { Scissors, Download, RefreshCw, Film, Type, Code, Terminal, Save, User, FolderOpen, Brain, Mic, Heart, Cloud, CloudUpload, X, LogOut, Check, ChevronDown, ChevronRight, Loader2, Keyboard, Zap, Wifi, WifiOff, Settings, MessageSquare, Bot, Sparkles, Wand2, Share2 } from 'lucide-react';
 import { Clip, ClipType, Track, WatermarkSettings, VisualStylePreset } from './types';
 import MediaPanel from './components/MediaPanel';
 import PreviewPlayer from './components/PreviewPlayer';
@@ -14,6 +14,7 @@ import { GeminiChatbotModal } from './components/GeminiChatbotModal';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import AboutSupportModal from './components/AboutSupportModal';
 import ExportModal, { ExportConfig } from './components/ExportModal';
+import PromoteShareModal from './components/PromoteShareModal';
 import { checkWebCodecsSupport, exportWithWebCodecs } from './services/webCodecsExportService';
 import { executeNativeHardwareRender, detectHardwareAVEngine } from './services/rendering/nativeHardwareRenderEngine';
 import { detectPlatformAndOptimalEngine } from './utils/platformEngineDetector';
@@ -444,6 +445,7 @@ export default function App() {
   }, [showSettingsDropdown]);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [showAboutSupportModal, setShowAboutSupportModal] = useState(false);
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [showAISegmentationModal, setShowAISegmentationModal] = useState(false);
   const [show100ProtocolsModal, setShow100ProtocolsModal] = useState(false);
   const [latestProtocolsEvaluation, setLatestProtocolsEvaluation] = useState<any>(undefined);
@@ -8179,6 +8181,29 @@ export default function App() {
                     <kbd className="px-1.5 py-0.5 bg-[#202030] text-[10px] text-cyan-300 font-mono rounded border border-cyan-500/30">?</kbd>
                   </button>
 
+                  {/* Promote & Viral Growth Hub */}
+                  <button
+                    onClick={() => {
+                      setShowPromoteModal(true);
+                      setShowSettingsDropdown(false);
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#1c1c2c] text-gray-200 hover:text-white transition group cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition">
+                        <Share2 className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-200 group-hover:text-emerald-300 flex items-center gap-1.5">
+                          <span>Promotion & Viral Hub</span>
+                          <span className="px-1 py-0.2 bg-emerald-500/20 text-emerald-300 text-[8px] font-mono rounded font-bold">470+</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 leading-tight">Share links, viral tags, QR scanner</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-500 group-hover:text-gray-300 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+
                   <div className="h-px bg-gray-800/80 my-1" />
 
                   {/* All System Preferences */}
@@ -8335,6 +8360,21 @@ export default function App() {
               )}
             </div>
           ) : null}
+
+          {/* Promotion & Viral Growth Hub Button */}
+          <button
+            id="btn-promote-share"
+            onClick={() => setShowPromoteModal(true)}
+            className="flex items-center gap-1.5 px-3 h-9 bg-gradient-to-r from-emerald-950/60 to-cyan-950/60 hover:from-emerald-900/70 hover:to-cyan-900/70 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 text-xs font-semibold rounded-lg transition shadow-sm cursor-pointer group"
+            title="CuteCut Pro Promotion & Viral Growth Hub (470+ Active Devices in 86 Countries)"
+          >
+            <Share2 className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition" />
+            <span>Promote Hub</span>
+            <span className="bg-emerald-500/20 text-emerald-300 text-[9px] px-1 py-0.5 rounded font-mono font-bold border border-emerald-500/30 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              470+
+            </span>
+          </button>
 
           {/* Donation Support Action Button */}
           <button
@@ -8734,6 +8774,7 @@ export default function App() {
         onStartExport={startFfmpegCompilation}
         onCancelExport={handleCancelExport}
         onSaveToNativeStorage={(url, filename) => handleExportToNativeStorage(url, filename || `export_${Date.now()}.mp4`)}
+        onOpenPromoteModal={() => setShowPromoteModal(true)}
       />
 
       {/* Auth Modal */}
@@ -8852,6 +8893,12 @@ export default function App() {
         onClose={() => setShowAboutSupportModal(false)}
         onSupportClick={handleSupportProjectClick}
         donationUrl={DONATION_SUPPORT_URL}
+      />
+
+      {/* CuteCut Pro Promotion & Viral Growth Hub Modal */}
+      <PromoteShareModal
+        isOpen={showPromoteModal}
+        onClose={() => setShowPromoteModal(false)}
       />
 
       {/* 100 Master Quran Alignment Protocols Diagnostic Inspector Modal */}

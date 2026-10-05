@@ -5,7 +5,8 @@ import {
   Film, Music, Clock, Square, Play, Pause, FolderOpen,
   Sliders, Sparkles, FileVideo, RotateCcw, AlertTriangle,
   Cloud, ExternalLink, Loader2, Eye, Shield, Check,
-  Smartphone, Monitor, Scan, Tv, Layers, Zap, Share2, ArrowRight
+  Smartphone, Monitor, Scan, Tv, Layers, Zap, Share2, ArrowRight,
+  MessageCircle, Send, Copy, TrendingUp
 } from 'lucide-react';
 import { formatTimeCode, getExportResolutionDimensions } from '../utils/editorUtils';
 import { Track, WatermarkSettings } from '../types';
@@ -51,6 +52,7 @@ interface ExportModalProps {
   onStartExport: (config: ExportConfig) => void;
   onCancelExport?: () => void;
   onSaveToNativeStorage: (videoUrlOrBlob: string, filename: string) => void;
+  onOpenPromoteModal?: () => void;
 }
 
 export function getSystemDefaultExportPath(): { path: string; osName: string } {
@@ -133,6 +135,7 @@ export default function ExportModal({
   onStartExport,
   onCancelExport,
   onSaveToNativeStorage,
+  onOpenPromoteModal,
 }: ExportModalProps) {
   const initialSystemInfo = useMemo(() => getSystemDefaultExportPath(), []);
   const systemPresets = useMemo(() => getSystemPresetPaths(), []);
@@ -141,6 +144,7 @@ export default function ExportModal({
   const sysHardwareProfile = useMemo(() => detectSystemHardwareProfile(), []);
   const [pathMode, setPathMode] = useState<'auto' | 'manual'>('auto');
   const [isAdLoading, setIsAdLoading] = useState(false);
+  const [copiedViralTags, setCopiedViralTags] = useState(false);
 
   // Dynamic evidence-based Quran Timing Integrity Auditor
   const timingIntegrityData = useMemo(() => {
@@ -1561,6 +1565,84 @@ export default function ExportModal({
                     {previewPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
                     <span>{previewPlaying ? 'Pause Video' : 'Play Video Preview'}</span>
                   </button>
+                </div>
+
+                {/* 🚀 Viral Growth & Creator Share Suite */}
+                <div className="w-full max-w-xl mx-auto p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 via-cyan-950/30 to-purple-950/40 border border-cyan-500/30 text-left space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                        <TrendingUp className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                          Viral Creator Toolkit
+                          <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 text-[9px] font-mono rounded font-bold border border-amber-500/30">
+                            SEO BOOST
+                          </span>
+                        </h4>
+                        <p className="text-[10.5px] text-gray-400">Maximize views on TikTok, YouTube Shorts & Reels with instant tags</p>
+                      </div>
+                    </div>
+                    {onOpenPromoteModal && (
+                      <button
+                        type="button"
+                        onClick={onOpenPromoteModal}
+                        className="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold rounded-lg transition flex items-center gap-1 shadow-sm"
+                      >
+                        <Share2 className="w-3 h-3" />
+                        <span>Promotion Hub</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 1-Click Viral Tags Bar */}
+                  <div className="flex items-center gap-2 pt-1 border-t border-cyan-500/20">
+                    <div className="flex-1 px-2.5 py-1.5 bg-black/50 border border-gray-700/60 rounded-lg text-[10.5px] text-cyan-300 font-mono truncate select-all">
+                      #CuteCutPro #QuranReels #IslamicStatus #QuranRecitation #VideoEditor #4K
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText('#CuteCutPro #QuranReels #IslamicStatus #QuranRecitation #QuranVideo #VideoEditor #CapCutAlternative #AudioEditor #4K');
+                          setCopiedViralTags(true);
+                          setTimeout(() => setCopiedViralTags(false), 2500);
+                        } catch {}
+                      }}
+                      className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shrink-0 ${
+                        copiedViralTags
+                          ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                          : 'bg-amber-500 hover:bg-amber-400 text-black shadow-md shadow-amber-500/20'
+                      }`}
+                    >
+                      {copiedViralTags ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedViralTags ? 'Tags Copied!' : 'Copy Tags'}</span>
+                    </button>
+                  </div>
+
+                  {/* Instant Social Channels */}
+                  <div className="flex items-center justify-between text-[11px] text-gray-300 pt-1">
+                    <span className="text-gray-400 text-[10px]">Share with creators:</span>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent('🌟 Check out CuteCut Pro - Free AI Quran Video & Audio Editor: https://cutecutpro.com')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded text-[10px] font-semibold transition"
+                      >
+                        <MessageCircle className="w-3 h-3 text-emerald-400" /> WhatsApp
+                      </a>
+                      <a
+                        href={`https://t.me/share/url?url=${encodeURIComponent('https://cutecutpro.com')}&text=${encodeURIComponent('🌟 CuteCut Pro Video Editor')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2 py-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 rounded text-[10px] font-semibold transition"
+                      >
+                        <Send className="w-3 h-3 text-sky-400" /> Telegram
+                      </a>
+                    </div>
+                  </div>
                 </div>
 
               </div>

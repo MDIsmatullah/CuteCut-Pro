@@ -142,6 +142,19 @@ const StockVideoItemCard: React.FC<StockVideoItemCardProps> = ({ video, onAdd })
           </div>
         </div>
 
+        {/* 1-Tap Mobile Add Button (CapCut Mobile Style) */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdd();
+          }}
+          className="absolute top-1.5 right-1.5 z-30 w-6 h-6 rounded-full bg-cyan-500 hover:bg-cyan-400 active:scale-90 text-black flex items-center justify-center shadow-lg transition"
+          title="Add to Timeline"
+        >
+          <Plus className="w-3.5 h-3.5 stroke-[3]" />
+        </button>
+
         <span className="absolute bottom-1 right-1 z-20 text-[8px] bg-black/75 backdrop-blur-xs text-white px-1.5 py-0.5 rounded font-mono font-bold">
           {video.duration}s
         </span>

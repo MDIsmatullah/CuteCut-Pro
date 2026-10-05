@@ -55,7 +55,15 @@ import {
   Mail,
   Lock,
   Menu,
-  X
+  X,
+  Sun,
+  Moon,
+  Server,
+  Cpu,
+  Laptop,
+  Star,
+  CheckCheck,
+  Compass
 } from 'lucide-react';
 import { UserProfile } from './AuthModal';
 import { SavedProjectSession } from './ProjectSaveModal';
@@ -64,6 +72,10 @@ import { getUserNamedProjects, deleteUserNamedProject } from '../utils/firebaseC
 import { ProLicenseService } from '../services/proLicenseService';
 import LegalPagesModal, { LegalTab } from './legal/LegalPagesModal';
 import { PWAInstallButton } from './PWAInstallButton';
+import { WebsiteShowcaseView } from './portal/WebsiteShowcaseView';
+import { CloudSyncHubView } from './portal/CloudSyncHubView';
+import { NativeEngineAiHubView } from './portal/NativeEngineAiHubView';
+import PromoteShareModal from './PromoteShareModal';
 
 export interface LandingPortalProps {
   user: UserProfile | null;
@@ -341,7 +353,23 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
   onDirectGoogleSignIn,
   onOpenPreferences,
 }) => {
-  const [activeNav, setActiveNav] = useState<'home' | 'templates' | 'projects' | 'ai' | 'quran' | 'downloads'>('home');
+  const [activeNav, setActiveNav] = useState<'website' | 'home' | 'templates' | 'projects' | 'ai' | 'quran' | 'downloads' | 'cloud' | 'native_engine'>('home');
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('cutecut_portal_theme') as 'dark' | 'light') || 'dark';
+    }
+    return 'dark';
+  });
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cutecut_portal_theme', next);
+    }
+  };
+
+  const isDark = theme === 'dark';
   const [selectedTemplateCategory, setSelectedTemplateCategory] = useState<'all' | 'quran' | 'viral' | 'podcast' | 'cinematic'>('all');
   const [selectedSourceFilter, setSelectedSourceFilter] = useState<'all' | 'Pexels' | 'Pixabay'>('all');
   const [showTemplateGuide, setShowTemplateGuide] = useState(false);
@@ -367,6 +395,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
   const [showVoiceoverTtsModal, setShowVoiceoverTtsModal] = useState(false);
   const [showImageEnhanceModal, setShowImageEnhanceModal] = useState(false);
   const [previewTemplateModal, setPreviewTemplateModal] = useState<CapCutTemplate | null>(null);
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
 
   // Legal & AdSense Compliance Pages Modal State
   const [showLegalModal, setShowLegalModal] = useState(false);
@@ -708,6 +737,24 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
         <nav className="space-y-1 pt-1">
           <button
             onClick={() => {
+              setActiveNav('website');
+              if (isMobile) setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+              activeNav === 'website'
+                ? 'bg-gradient-to-r from-blue-500/20 to-transparent text-blue-400 border-l-2 border-blue-400 font-bold'
+                : 'text-gray-400 hover:bg-[#161626] hover:text-white'
+            }`}
+          >
+            <Globe className="w-4 h-4 text-blue-400" />
+            <span className="flex-1 text-left">Official Website</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+              PRO
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
               setActiveNav('home');
               if (isMobile) setIsMobileSidebarOpen(false);
             }}
@@ -718,7 +765,43 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             }`}
           >
             <Layout className="w-4 h-4" />
-            <span className="flex-1 text-left">Home / Studio</span>
+            <span className="flex-1 text-left">Home / Studio Hub</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveNav('native_engine');
+              if (isMobile) setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+              activeNav === 'native_engine'
+                ? 'bg-gradient-to-r from-emerald-500/20 to-transparent text-emerald-400 border-l-2 border-emerald-400 font-bold'
+                : 'text-gray-400 hover:bg-[#161626] hover:text-white'
+            }`}
+          >
+            <Cpu className="w-4 h-4 text-emerald-400" />
+            <span className="flex-1 text-left">AI Models & Native Hub</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              AI GPU
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveNav('cloud');
+              if (isMobile) setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+              activeNav === 'cloud'
+                ? 'bg-gradient-to-r from-purple-500/20 to-transparent text-purple-400 border-l-2 border-purple-400 font-bold'
+                : 'text-gray-400 hover:bg-[#161626] hover:text-white'
+            }`}
+          >
+            <Cloud className="w-4 h-4 text-purple-400" />
+            <span className="flex-1 text-left">Firebase Cloud Sync</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              SYNC
+            </span>
           </button>
 
           <button
@@ -738,6 +821,21 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             <span className="flex-1 text-left">Templates (ٹیمپلیٹس)</span>
             <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
               CapCut
+            </span>
+          </button>
+
+          {/* Promotion & Viral Growth Hub */}
+          <button
+            onClick={() => {
+              setShowPromoteModal(true);
+              if (isMobile) setIsMobileSidebarOpen(false);
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-emerald-300 hover:bg-[#162620] transition cursor-pointer border border-emerald-500/20 bg-emerald-950/20"
+          >
+            <Share2 className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <span className="flex-1 text-left font-bold">Promotion & Viral Hub</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              470+
             </span>
           </button>
 
@@ -893,12 +991,16 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
   );
 
   return (
-    <div className="flex h-screen w-screen bg-[#0a0a10] text-gray-100 font-sans overflow-hidden select-none">
+    <div className={`flex h-screen w-screen font-sans overflow-hidden select-none transition-colors duration-200 ${
+      isDark ? 'bg-[#0a0a10] text-gray-100' : 'bg-[#f4f6f9] text-slate-800'
+    }`}>
       
       {/* ========================================================= */}
       {/* 1. LEFT SIDEBAR (DESKTOP: PERMANENT, LG+ SCREENS)          */}
       {/* ========================================================= */}
-      <aside className="hidden lg:flex w-64 xl:w-72 bg-[#0e0e18] border-r border-[#1e1e2e] flex-col justify-between shrink-0 z-20 shadow-2xl overflow-y-auto custom-scrollbar">
+      <aside className={`hidden lg:flex w-64 xl:w-72 border-r flex-col justify-between shrink-0 z-20 shadow-2xl overflow-y-auto custom-scrollbar transition-colors ${
+        isDark ? 'bg-[#0e0e18] border-[#1e1e2e]' : 'bg-white border-slate-200 text-slate-800'
+      }`}>
         {renderSidebarContent(false)}
       </aside>
 
@@ -913,7 +1015,9 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             onClick={() => setIsMobileSidebarOpen(false)}
           />
           {/* Sliding Drawer Container */}
-          <aside className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#0e0e18] border-r border-[#1e1e2e] flex flex-col justify-between shadow-2xl overflow-y-auto custom-scrollbar animate-slideRight">
+          <aside className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] border-r flex flex-col justify-between shadow-2xl overflow-y-auto custom-scrollbar animate-slideRight ${
+            isDark ? 'bg-[#0e0e18] border-[#1e1e2e]' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
             {renderSidebarContent(true)}
           </aside>
         </div>
@@ -922,10 +1026,14 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
       {/* ========================================================= */}
       {/* 2. MAIN WORKSPACE / CAPCUT-GRADE DASHBOARD AREA           */}
       {/* ========================================================= */}
-      <main className="flex-1 flex flex-col h-full overflow-y-auto bg-[#0a0a12] custom-scrollbar w-full min-w-0">
+      <main className={`flex-1 flex flex-col h-full overflow-y-auto custom-scrollbar w-full min-w-0 ${
+        isDark ? 'bg-[#0a0a12]' : 'bg-[#f8fafc]'
+      }`}>
         
         {/* Top Header Controls Bar */}
-        <header className="h-14 sm:h-16 border-b border-[#1c1c2c] px-3 sm:px-6 flex items-center justify-between bg-[#0e0e18]/80 backdrop-blur-md sticky top-0 z-30 shrink-0">
+        <header className={`h-14 sm:h-16 border-b px-3 sm:px-6 flex items-center justify-between backdrop-blur-md sticky top-0 z-30 shrink-0 transition-colors ${
+          isDark ? 'bg-[#0e0e18]/85 border-[#1c1c2c]' : 'bg-white/95 border-slate-200 shadow-xs'
+        }`}>
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {/* Mobile / Tablet Hamburger Menu Button */}
             <button
@@ -937,60 +1045,133 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xs sm:text-sm font-bold text-white truncate">
-                CuteCut Pro Studio
-              </span>
-              <span className="hidden sm:inline text-gray-500">•</span>
-              <span className="hidden md:inline text-xs font-normal text-gray-400 truncate">
-                {user?.displayName ? `Signed in as ${user.displayName}` : 'CuteCutPro.com'}
-              </span>
+            {/* Quick Navigation Modes Switcher (Website / Studio Hub / AI Models / Cloud) */}
+            <div className="flex items-center gap-1 bg-[#141424] p-1 rounded-2xl border border-[#222238]">
+              <button
+                onClick={() => setActiveNav('website')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  activeNav === 'website'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="Official Website & Feature Showcase"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Official Website</span>
+                <span className="sm:hidden">Web</span>
+              </button>
+
+              <button
+                onClick={() => setActiveNav('home')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  activeNav === 'home' || activeNav === 'projects'
+                    ? 'bg-cyan-500 text-black shadow-md font-black'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="Desktop & Android Studio Hub"
+              >
+                <Scissors className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Studio Hub</span>
+                <span className="sm:hidden">Studio</span>
+              </button>
+
+              <button
+                onClick={() => setActiveNav('native_engine')}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  activeNav === 'native_engine'
+                    ? 'bg-emerald-500 text-black shadow-md font-black'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="AI Creative Models & Native Offline Engine"
+              >
+                <Cpu className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden md:inline">AI Models & Engine</span>
+                <span className="md:hidden">AI Hub</span>
+              </button>
+
+              <button
+                onClick={() => setActiveNav('cloud')}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition hidden lg:flex items-center gap-1.5 cursor-pointer ${
+                  activeNav === 'cloud'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="Firebase Cloud Storage & Sync"
+              >
+                <Cloud className="w-3.5 h-3.5" />
+                <span>Cloud Sync</span>
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Quick Search */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative hidden xl:block">
+              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-24 sm:w-40 md:w-60 bg-[#141422] border border-[#26263a] rounded-xl pl-7 sm:pl-8 pr-2.5 sm:pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400 transition"
+                className={`w-44 bg-[#141422] border rounded-xl pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400 transition ${
+                  isDark ? 'border-[#26263a]' : 'border-slate-300'
+                }`}
               />
             </div>
+
+            {/* Dark Mode / White Light Mode Switcher Toggle */}
+            <button
+              onClick={toggleTheme}
+              className={`p-2 rounded-xl border transition flex items-center gap-1.5 text-xs font-bold cursor-pointer shrink-0 ${
+                isDark
+                  ? 'bg-[#18182c] border-[#2c2c48] text-amber-300 hover:text-white hover:bg-[#20203a]'
+                  : 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200'
+              }`}
+              title={isDark ? 'Switch to Light Mode (White Theme)' : 'Switch to Dark Studio Mode'}
+            >
+              {isDark ? (
+                <>
+                  <Sun className="w-4 h-4 text-amber-400" />
+                  <span className="hidden sm:inline">Light</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 text-indigo-600" />
+                  <span className="hidden sm:inline">Dark</span>
+                </>
+              )}
+            </button>
 
             {/* Sync Button */}
             <button
               onClick={syncProjects}
               disabled={isSyncing}
-              className="p-1.5 sm:p-2 rounded-xl bg-[#141422] border border-[#26263a] hover:border-cyan-400/50 text-gray-300 hover:text-white transition cursor-pointer flex items-center gap-1 text-xs font-medium shrink-0"
+              className="p-2 rounded-xl bg-[#141422] border border-[#26263a] hover:border-cyan-400/50 text-gray-300 hover:text-white transition cursor-pointer flex items-center gap-1 text-xs font-medium shrink-0"
               title="Sync Projects"
             >
               <RotateCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-cyan-400' : ''}`} />
-              <span className="hidden sm:inline">Sync</span>
             </button>
 
-            {/* Desktop App Download Button */}
-            <a
-              href={release.assets.windowsExe}
-              download
-              className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141422] border border-[#26263a] hover:border-emerald-400/50 text-xs font-semibold text-gray-300 hover:text-white transition cursor-pointer shrink-0"
-              title="Download Windows App"
+            {/* Launch Web Studio Button */}
+            <button
+              onClick={() => onOpenEditor('16:9')}
+              className="px-3 sm:px-4 py-1.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-xs shadow-md transition hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
             >
-              <Download className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Get Native App</span>
-            </a>
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span className="hidden sm:inline">Launch Web Studio</span>
+              <span className="sm:hidden">Edit</span>
+            </button>
 
             {/* 1-Click PWA Desktop / Mobile Install Button */}
-            <PWAInstallButton />
+            <div className="hidden sm:block">
+              <PWAInstallButton />
+            </div>
 
             {/* Header User Profile or Google Sign In Button */}
             {user ? (
               <button
                 onClick={onOpenAuth}
-                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-[#141422] border border-[#26263a] hover:border-cyan-400/50 text-xs text-white transition cursor-pointer shrink-0"
+                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl bg-[#141422] border border-[#26263a] hover:border-cyan-400/50 text-xs text-white transition cursor-pointer shrink-0"
                 title="Account Settings & Cloud Storage"
               >
                 {user.photoURL ? (
@@ -1000,8 +1181,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                     {user.displayName ? user.displayName.charAt(0).toUpperCase() : 'G'}
                   </div>
                 )}
-                <span className="font-semibold hidden md:inline max-w-[100px] truncate">{user.displayName || 'Creator'}</span>
-                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-cyan-400 text-black">PRO</span>
+                <span className="font-semibold hidden lg:inline max-w-[90px] truncate">{user.displayName || 'Creator'}</span>
               </button>
             ) : (
               <button
@@ -1009,7 +1189,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                   if (onDirectGoogleSignIn) onDirectGoogleSignIn();
                   else if (onOpenAuth) onOpenAuth();
                 }}
-                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-slate-950 font-bold text-xs shadow-md hover:scale-[1.02] transition active:scale-95 cursor-pointer shrink-0"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-slate-950 font-bold text-xs shadow-md hover:scale-[1.02] transition active:scale-95 cursor-pointer shrink-0"
                 title="Sign in with Google"
               >
                 <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
@@ -1018,8 +1198,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                 </svg>
-                <span className="hidden sm:inline">Sign in with Google</span>
-                <span className="sm:hidden">Sign in</span>
+                <span className="hidden sm:inline">Sign in</span>
               </button>
             )}
           </div>
@@ -1027,6 +1206,68 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
 
         {/* Dashboard Main Scrollable Content */}
         <div className="p-3.5 sm:p-6 md:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto w-full min-w-0">
+          
+          {/* ========================================================= */}
+          {/* VIEW A: OFFICIAL WEBSITE SHOWCASE VIEW                     */}
+          {/* ========================================================= */}
+          {activeNav === 'website' && (
+            <WebsiteShowcaseView
+              theme={theme}
+              user={user}
+              release={release}
+              onOpenEditor={onOpenEditor}
+              onOpenAuth={onOpenAuth}
+              onDirectGoogleSignIn={onDirectGoogleSignIn}
+              onOpenQuranStudio={onOpenQuranStudio}
+              onOpenAiPromptStudio={onOpenAiPromptStudio}
+              onSwitchToStudioHub={() => setActiveNav('home')}
+              onOpenLegalModal={(tab) => {
+                setLegalModalTab(tab);
+                setShowLegalModal(true);
+              }}
+            />
+          )}
+
+          {/* ========================================================= */}
+          {/* VIEW B: FIREBASE CLOUD SYNC & ECOSYSTEM VIEW              */}
+          {/* ========================================================= */}
+          {activeNav === 'cloud' && (
+            <CloudSyncHubView
+              theme={theme}
+              user={user}
+              savedProjects={savedProjects}
+              isSyncing={isSyncing}
+              onSync={syncProjects}
+              onOpenAuth={onOpenAuth}
+              onDirectGoogleSignIn={onDirectGoogleSignIn}
+              onOpenProject={handleOpenProject}
+              onOpenEditor={() => onOpenEditor('16:9')}
+            />
+          )}
+
+          {/* ========================================================= */}
+          {/* VIEW C: AI MODELS & NATIVE OFFLINE ENGINE HUB              */}
+          {/* ========================================================= */}
+          {activeNav === 'native_engine' && (
+            <NativeEngineAiHubView
+              theme={theme}
+              onOpenEditor={onOpenEditor}
+              onOpenAiPromptStudio={onOpenAiPromptStudio}
+              onOpenVeoAnimate={onOpenVeoAnimate}
+              onOpenQuranStudio={onOpenQuranStudio}
+              onOpenGeminiIntelligence={onOpenGeminiIntelligence}
+              onOpenSoraPhoto={onOpenSoraPhoto}
+              onOpenVoiceoverTts={() => setShowVoiceoverTtsModal(true)}
+              onOpenImageEnhance={() => setShowImageEnhanceModal(true)}
+              onSwitchToWebsite={() => setActiveNav('website')}
+            />
+          )}
+
+          {/* ========================================================= */}
+          {/* VIEW D: CAPCUT-STYLE STUDIO HUB & PROJECT MANAGER (DEFAULT)*/}
+          {/* ========================================================= */}
+          {activeNav !== 'website' && activeNav !== 'cloud' && activeNav !== 'native_engine' && (
+            <>
           
           {/* ========================================================= */}
           {/* 3. HERO BANNER: "+ CREATE PROJECT" (AURORA GLOW)          */}
@@ -2026,6 +2267,8 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               </div>
             </div>
           </footer>
+          </>
+          )}
 
         </div>
       </main>
@@ -2773,6 +3016,12 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
         isOpen={showLegalModal}
         onClose={() => setShowLegalModal(false)}
         initialTab={legalModalTab}
+      />
+
+      {/* 6.7 CAPI / PROMOTION & VIRAL GROWTH HUB MODAL */}
+      <PromoteShareModal
+        isOpen={showPromoteModal}
+        onClose={() => setShowPromoteModal(false)}
       />
     </div>
   );

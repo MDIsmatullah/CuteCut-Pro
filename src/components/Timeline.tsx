@@ -579,6 +579,17 @@ export default function Timeline({
     isMultiSelect: boolean;
     isActivated: boolean;
   } | null>(null);
+  const pendingTouchClipRef = useRef<{
+    clip: Clip;
+    startX: number;
+    startY: number;
+    startTime: number;
+    isActivated: boolean;
+  } | null>(null);
+  const pinchStartDistRef = useRef<number | null>(null);
+  const pinchStartZoomRef = useRef<number>(zoom);
+  const onZoomChangeRef = useRef(onZoomChange);
+  onZoomChangeRef.current = onZoomChange;
   const suppressContextMenuRef = useRef(false);
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
@@ -1263,11 +1274,83 @@ export default function Timeline({
     };
 
     const handleMouseMove = (e: MouseEvent) => handleMove(e.clientX, e.clientY);
+    
     const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length > 0) handleMove(e.touches[0].clientX, e.touches[0].clientY);
+      // 1. Two-Finger Pinch-to-Zoom Gesture for Mobile/Tablet Timeline
+      if (e.touches.length === 2) {
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const currentDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        
+        if (pinchStartDistRef.current === null) {
+          pinchStartDistRef.current = currentDist;
+          pinchStartZoomRef.current = zoomRef.current;
+        } else if (pinchStartDistRef.current > 10) {
+          const ratio = currentDist / pinchStartDistRef.current;
+          const targetZoom = Math.min(200, Math.max(8, Math.round(pinchStartZoomRef.current * ratio)));
+          if (Math.abs(targetZoom - zoomRef.current) >= 1) {
+            onZoomChangeRef.current(targetZoom);
+          }
+        }
+        return;
+      }
+
+      // 2. Single Touch Processing
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        
+        // If user is touching a clip, verify movement threshold before starting a drag (prevents scroll vs tap conflict)
+        if (pendingTouchClipRef.current && !pendingTouchClipRef.current.isActivated) {
+          const dx = touch.clientX - pendingTouchClipRef.current.startX;
+          const dy = touch.clientY - pendingTouchClipRef.current.startY;
+          const dist = Math.hypot(dx, dy);
+          
+          if (dist > 14) {
+            // User intentionally dragged finger past 14px threshold -> activate clip move
+            pendingTouchClipRef.current.isActivated = true;
+            const clip = pendingTouchClipRef.current.clip;
+            const sourceTrack = tracksRef.current.find(t => t.clips.some(c => c.id === clip.id)) || tracksRef.current.find(t => t.id === clip.trackId);
+            const sourceTrackId = sourceTrack?.id || clip.trackId;
+
+            setDraggingClips({
+              primaryId: clip.id,
+              dragStartPos: pendingTouchClipRef.current.startX,
+              dragStartY: pendingTouchClipRef.current.startY,
+              handle: pendingTouchClipRef.current.handle,
+              clips: [{ id: clip.id, initialStart: clip.start, initialDuration: clip.duration, trackId: sourceTrackId, sourceTrackId }],
+              sourceTrackId,
+              targetTrackId: sourceTrackId,
+              targetTrackIdx: tracksRef.current.findIndex(t => t.id === sourceTrackId),
+              calculatedTargetStart: clip.start,
+            });
+          }
+        }
+
+        handleMove(touch.clientX, touch.clientY);
+      }
     };
 
     const handleEnd = () => {
+      pinchStartDistRef.current = null;
+
+      // Handle Clean Touch Tap on Clip (CapCut Mobile Tap-to-Select without jitter)
+      if (pendingTouchClipRef.current) {
+        if (!pendingTouchClipRef.current.isActivated) {
+          // It was a clean tap! Select clip & seek playhead to tap position without moving clip
+          const pending = pendingTouchClipRef.current;
+          onSelectClipRef.current(pending.clip.id, false);
+
+          if (tracksContainerRef.current && gridWrapperRef.current) {
+            const gridRect = gridWrapperRef.current.getBoundingClientRect();
+            const scrollLeft = tracksContainerRef.current.scrollLeft || 0;
+            const tapX = pending.startX - gridRect.left + scrollLeft;
+            const tapTime = Math.max(0, Math.min(durationRef.current, tapX / zoomRef.current));
+            onSeekRef.current(tapTime);
+          }
+        }
+        pendingTouchClipRef.current = null;
+      }
+
       if (isScrubbingRef.current) {
         setIsScrubbing(false);
       }
@@ -1558,6 +1641,20 @@ export default function Timeline({
     }
 
     const isMultiSelect = 'ctrlKey' in e ? (e.ctrlKey || e.metaKey || e.shiftKey) : false;
+
+    // For touch devices on clip body (no handle), defer dragging until movement threshold to allow clean tap & scroll
+    if ('touches' in e && !handle) {
+      const touch = e.touches[0];
+      onSelectClip(clip.id, isMultiSelect);
+      pendingTouchClipRef.current = {
+        clip,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        startTime: Date.now(),
+        isActivated: false,
+      };
+      return;
+    }
 
     onSelectClip(clip.id, isMultiSelect);
 
@@ -2777,9 +2874,9 @@ export default function Timeline({
                       const left = clip.start * zoom;
                       const width = clip.duration * zoom;
 
-                      // Track specific clip styling with Multi-Selection Matrix glow
+                      // Track specific clip styling with CapCut White Glow Highlight
                       let clipStyleClass = isSelected
-                        ? 'bg-[#2a2200] border-2 border-amber-400 text-amber-100 font-bold shadow-[0_0_15px_rgba(251,191,36,0.5)] ring-2 ring-amber-400/40 z-30'
+                        ? 'bg-[#1a1a24] border-[2.5px] border-white text-white font-bold shadow-[0_0_20px_rgba(255,255,255,0.4)] ring-2 ring-white/30 z-30 rounded-xl'
                         : 'bg-[#1a1a24] hover:bg-[#20202c] border-gray-800 text-gray-300';
 
                       if (!isSelected) {
@@ -2796,13 +2893,13 @@ export default function Timeline({
                         }
                       } else {
                         if (clip.type === ClipType.AUDIO) {
-                          clipStyleClass = 'bg-teal-900 border-2 border-amber-400 text-teal-100 font-bold shadow-[0_0_15px_rgba(251,191,36,0.55)] ring-2 ring-amber-400/40 z-30';
+                          clipStyleClass = 'bg-teal-950 border-[2.5px] border-white text-teal-100 font-bold shadow-[0_0_20px_rgba(255,255,255,0.45)] ring-2 ring-white/30 z-30 rounded-xl';
                         } else if (clip.type === ClipType.TEXT) {
-                          clipStyleClass = 'bg-purple-900 border-2 border-amber-400 text-purple-100 font-bold shadow-[0_0_15px_rgba(251,191,36,0.55)] ring-2 ring-amber-400/40 z-30';
+                          clipStyleClass = 'bg-purple-950 border-[2.5px] border-white text-purple-100 font-bold shadow-[0_0_20px_rgba(255,255,255,0.45)] ring-2 ring-white/30 z-30 rounded-xl';
                         } else if (clip.type === ClipType.IMAGE) {
-                          clipStyleClass = 'bg-emerald-900 border-2 border-amber-400 text-emerald-100 font-bold shadow-[0_0_15px_rgba(251,191,36,0.55)] ring-2 ring-amber-400/40 z-30';
+                          clipStyleClass = 'bg-emerald-950 border-[2.5px] border-white text-emerald-100 font-bold shadow-[0_0_20px_rgba(255,255,255,0.45)] ring-2 ring-white/30 z-30 rounded-xl';
                         } else if (clip.type === ClipType.VIDEO) {
-                          clipStyleClass = 'bg-cyan-950 border-2 border-amber-400 text-cyan-100 font-bold shadow-[0_0_15px_rgba(251,191,36,0.55)] ring-2 ring-amber-400/40 z-30';
+                          clipStyleClass = 'bg-[#142330] border-[2.5px] border-white text-cyan-100 font-bold shadow-[0_0_20px_rgba(255,255,255,0.45)] ring-2 ring-white/30 z-30 rounded-xl';
                         }
                       }
 
@@ -2911,20 +3008,20 @@ export default function Timeline({
                               )}
                             </div>
 
-                            {/* Drag Resize Handle Left with Motion */}
+                            {/* Drag Resize Handle Left with CapCut White Bracket Handle */}
                             <motion.div
                               onMouseDown={(e) => startClipDrag(e, clip, 'left')}
                               onTouchStart={(e) => startClipDrag(e, clip, 'left')}
-                              className={`absolute left-0 top-0 bottom-0 w-3.5 bg-black/60 hover:bg-cyan-500 cursor-ew-resize flex items-center justify-center transition-colors z-20 group/handle ${
-                                isSelected || isResizingLeft ? 'opacity-100 ring-1 ring-amber-400' : 'opacity-0 group-hover:opacity-100'
-                              } ${isResizingLeft ? 'bg-cyan-500 ring-2 ring-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.8)]' : ''}`}
+                              className={`absolute left-0 top-0 bottom-0 w-6 sm:w-4 bg-white text-black cursor-ew-resize flex items-center justify-center transition-all z-40 touch-none shadow-md ${
+                                isSelected || isResizingLeft ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                              } ${isResizingLeft ? 'bg-cyan-200 ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.9)]' : ''}`}
                               title="Drag to trim start time"
-                              whileHover={{ scaleX: 1.25 }}
+                              whileHover={{ scaleX: 1.15 }}
                               whileTap={{ scale: 0.95 }}
-                              animate={isResizingLeft ? { scaleY: 1.05, width: 14 } : { scaleY: 1, width: 12 }}
+                              animate={isResizingLeft ? { scaleY: 1.05, width: 22 } : { scaleY: 1, width: isSelected ? 18 : 14 }}
                               transition={{ type: 'spring', damping: 22, stiffness: 400 }}
                             >
-                              <div className={`w-0.5 h-4.5 rounded-full ${isResizingLeft ? 'bg-white shadow-[0_0_6px_white]' : 'bg-white/90 group-hover/handle:bg-white'}`} />
+                              <div className="w-1 h-5 rounded-full bg-black/80 flex flex-col items-center justify-center" />
 
                               {/* Live Resizing Duration & Delta Badge on Left Handle */}
                               <AnimatePresence>
@@ -2943,20 +3040,20 @@ export default function Timeline({
                               </AnimatePresence>
                             </motion.div>
 
-                            {/* Drag Resize Handle Right with Motion */}
+                            {/* Drag Resize Handle Right with CapCut White Bracket Handle */}
                             <motion.div
                               onMouseDown={(e) => startClipDrag(e, clip, 'right')}
                               onTouchStart={(e) => startClipDrag(e, clip, 'right')}
-                              className={`absolute right-0 top-0 bottom-0 w-3.5 bg-black/60 hover:bg-cyan-500 cursor-ew-resize flex items-center justify-center transition-colors z-20 group/handle ${
-                                isSelected || isResizingRight ? 'opacity-100 ring-1 ring-amber-400' : 'opacity-0 group-hover:opacity-100'
-                              } ${isResizingRight ? 'bg-cyan-500 ring-2 ring-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.8)]' : ''}`}
+                              className={`absolute right-0 top-0 bottom-0 w-6 sm:w-4 bg-white text-black cursor-ew-resize flex items-center justify-center transition-all z-40 touch-none shadow-md ${
+                                isSelected || isResizingRight ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                              } ${isResizingRight ? 'bg-cyan-200 ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.9)]' : ''}`}
                               title="Drag to trim end time"
-                              whileHover={{ scaleX: 1.25 }}
+                              whileHover={{ scaleX: 1.15 }}
                               whileTap={{ scale: 0.95 }}
-                              animate={isResizingRight ? { scaleY: 1.05, width: 14 } : { scaleY: 1, width: 12 }}
+                              animate={isResizingRight ? { scaleY: 1.05, width: 22 } : { scaleY: 1, width: isSelected ? 18 : 14 }}
                               transition={{ type: 'spring', damping: 22, stiffness: 400 }}
                             >
-                              <div className={`w-0.5 h-4.5 rounded-full ${isResizingRight ? 'bg-white shadow-[0_0_6px_white]' : 'bg-white/90 group-hover/handle:bg-white'}`} />
+                              <div className="w-1 h-5 rounded-full bg-black/80 flex flex-col items-center justify-center" />
 
                               {/* Live Resizing Duration & Delta Badge on Right Handle */}
                               <AnimatePresence>
