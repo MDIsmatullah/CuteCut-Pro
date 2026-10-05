@@ -1,0 +1,151 @@
+================================================================================
+                    END USER LICENSE AGREEMENT & TERMS OF SERVICE
+                                FOR CUTECUT PRO
+================================================================================
+
+Last Updated: September 2026
+
+IMPORTANT: PLEASE READ THIS END USER LICENSE AGREEMENT ("AGREEMENT" OR "EULA") 
+CAREFULLY BEFORE DOWNLOADING, INSTALLING, COPYING, OR USING THE CUTECUT PRO 
+DESKTOP APPLICATION ("SOFTWARE"). BY CLICKING "I AGREE", INSTALLING, COPYING, 
+OR OTHERWISE USING THE SOFTWARE, YOU AGREE TO BE BOUND BY THE TERMS OF THIS 
+AGREEMENT. IF YOU DO NOT AGREE TO THE TERMS OF THIS AGREEMENT, DO NOT INSTALL, 
+COPY, OR USE THE SOFTWARE.
+
+--------------------------------------------------------------------------------
+1. GRANT OF LICENSE
+--------------------------------------------------------------------------------
+Subject to the terms and conditions of this Agreement, the developers and 
+licensors of CuteCut Pro ("Licensor") hereby grant you ("User" or "Licensee") a 
+revocable, non-exclusive, non-transferable, non-sublicensable, limited license 
+to download, install, and execute the Software on desktop hardware (including 
+supported versions of Microsoft Windows, Apple macOS, and Linux distributions) 
+solely for:
+  a. Personal, non-commercial media editing and educational purposes; and
+  b. Commercial content creation, commercial video production, broadcasting, and 
+     commercial audio-visual publication, provided that all output media is 
+     created in compliance with this Agreement and applicable laws.
+
+All rights not expressly granted to you under this Agreement are reserved by 
+Licensor.
+
+--------------------------------------------------------------------------------
+2. LOCAL AI PROCESSING & DATA PRIVACY
+--------------------------------------------------------------------------------
+a. On-Device Computation: CuteCut Pro is engineered with an emphasis on user 
+   privacy. All core artificial intelligence and machine learning pipelines—
+   including, but not limited to, acoustic feature extraction, speech-to-text 
+   recognition (WhisperX / Wav2Vec2 architectures), forced phoneme alignment, 
+   audio spectrum generation, and subtitle (SRT/VTT) synchronization—execute 
+   locally on the User's host machine.
+b. No Covert Data Harvesting: The Software does not transmit, harvest, upload, 
+   or store the User’s source audio recordings, video files, project timelines, 
+   or generated transcriptions on external cloud servers without the User's 
+   explicit configuration and consent.
+c. Model Assets: Local model weights, neural network binaries, and language assets 
+   bundled with or downloaded by the application reside strictly within the 
+   User's local environment.
+
+--------------------------------------------------------------------------------
+3. RESTRICTIONS ON USE
+--------------------------------------------------------------------------------
+You agree that you will not, and will not permit, assist, or authorize any 
+third party to:
+  a. Decompile, disassemble, reverse engineer, or attempt to derive the source 
+     code, underlying algorithms, or internal protocols of the Software’s 
+     compiled binaries and proprietary modules, except to the extent permitted 
+     by mandatory applicable law;
+  b. Modify, adapt, translate, alter, or create derivative works of the Software 
+     or any component thereof;
+  c. Distribute, lease, rent, loan, sell, resell, sublicense, repackage, 
+     redistribute via unauthorized mirror repositories, or commercially exploit 
+     the core software binaries without the prior express written authorization 
+     of the Licensor;
+  d. Remove, obscure, deface, or alter any copyright notices, trademark notices, 
+     digital signatures, or proprietary markings embedded within or displayed 
+     by the Software;
+  e. Use the Software to generate, publish, or distribute content that violates 
+     applicable local, national, or international copyright and intellectual 
+     property laws.
+
+--------------------------------------------------------------------------------
+4. RELIGIOUS CONTENT & SCRIPTURAL ACCURACY DISCLAIMER
+--------------------------------------------------------------------------------
+a. Assistance Tool Only: CuteCut Pro contains specialized features designed for 
+   Quranic recitation alignment, Ayah synchronization, Arabic phonetic mapping, 
+   and multilingual translation placement. These automated tools are provided 
+   solely as workflow aids and assistive computational utilities.
+b. User Verification Responsibility: Automated machine learning models, forced 
+   aligners, and speech recognition engines are inherently probabilistic and may 
+   occasionally misalign timings, omit pause marks (Waqf), or misinterpret 
+   phonetic nuances. 
+c. Final Review Obligation: THE ENTIRE RESPONSIBILITY FOR VERIFYING THE RELIGIOUS, 
+   ORTHOGRAPHIC, LINGUISTIC, AND THEOLOGICAL ACCURACY OF ANY GENERATED QURANIC 
+   TEXT, TASHKEEL, AYAH NUMBERING, AND TIMESTAMPS RESTS EXCLUSIVELY WITH THE USER 
+   AND CONTENT CREATOR PRIOR TO EXPORT OR PUBLIC DISTRIBUTION. The Licensor 
+   expressly disclaims any liability for scriptural, orthographic, or alignment 
+   inaccuracies in exported media.
+
+--------------------------------------------------------------------------------
+5. DISCLAIMER OF WARRANTIES & LIMITATION OF LIABILITY
+--------------------------------------------------------------------------------
+a. "AS IS" AND "AS AVAILABLE": TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE 
+   LAW, THE SOFTWARE IS PROVIDED "AS IS", "AS AVAILABLE", AND WITH ALL FAULTS, 
+   WITHOUT WARRANTY OF ANY KIND, EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE. 
+   LICENSOR DISCLAIMS ALL WARRANTIES, INCLUDING BUT NOT LIMITED TO IMPLIED 
+   WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, 
+   QUIET ENJOYMENT, AND NON-INFRINGEMENT.
+b. NO GUARANTEE OF UNINTERRUPTED OPERATION: LICENSOR DOES NOT WARRANT THAT THE 
+   FUNCTIONS CONTAINED IN THE SOFTWARE WILL MEET YOUR SPECIFIC REQUIREMENTS, 
+   THAT HARDWARE ENCODING/DECODING WILL BE ERROR-FREE, OR THAT TIMELINE 
+   PLAYBACK WILL BE ENTIRELY UNINTERRUPTED ACROSS ALL SYSTEM CONFIGURATIONS.
+c. LIMITATION OF LIABILITY: IN NO EVENT SHALL LICENSOR, ITS DIRECTORS, 
+   EMPLOYEES, AFFILIATES, OR AGENTS BE LIABLE FOR ANY DIRECT, INDIRECT, 
+   INCIDENTAL, SPECIAL, EXEMPLARY, PUNITIVE, OR CONSEQUENTIAL DAMAGES 
+   WHATSOEVER (INCLUDING, WITHOUT LIMITATION, DAMAGES FOR LOSS OF DATA, CORRUPTION 
+   OF PROJECT FILES, EXPORT RENDER CRASHES, HARDWARE OVERHEATING, LOSS OF BUSINESS 
+   PROFITS, OR WORK STOPPAGE) ARISING OUT OF OR IN CONNECTION WITH THE USE, 
+   INABILITY TO USE, OR PERFORMANCE OF THE SOFTWARE, EVEN IF LICENSOR HAS BEEN 
+   ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+--------------------------------------------------------------------------------
+6. THIRD-PARTY DEPENDENCIES & OPEN-SOURCE LICENSES
+--------------------------------------------------------------------------------
+CuteCut Pro utilizes various third-party open-source components, libraries, and 
+multimedia frameworks (such as Electron, FFmpeg, PyTorch/ONNX runtime engines, 
+and community-trained models). These components remain subject to their respective 
+open-source licenses (e.g., MIT, Apache 2.0, LGPL, or BSD). Nothing in this 
+Agreement limits your rights under, or grants you rights that supersede, the 
+terms of any applicable open-source software license.
+
+--------------------------------------------------------------------------------
+7. TERMINATION
+--------------------------------------------------------------------------------
+a. Termination by Licensor: This Agreement and your license to use the Software 
+   shall terminate automatically without prior notice from Licensor if you fail 
+   to comply with any term or condition of this Agreement.
+b. Effect of Termination: Upon termination, you must immediately discontinue 
+   all use of the Software and permanently delete and destroy all copies of 
+   the Software, including installer files and associated binaries, in your 
+   possession or control.
+c. Survival: Sections 2, 3, 4, 5, 7, and 8 of this Agreement shall survive any 
+   termination or expiration of this Agreement.
+
+--------------------------------------------------------------------------------
+8. GOVERNING LAW & SEVERABILITY
+--------------------------------------------------------------------------------
+a. Governing Law: This Agreement shall be governed by and construed in accordance 
+   with the laws of the applicable jurisdiction of the Licensor, without regard 
+   to conflict of law principles.
+b. Severability: If any provision of this Agreement is held to be invalid, 
+   illegal, or unenforceable by a court of competent jurisdiction, such provision 
+   shall be modified to the minimum extent necessary to make it valid and 
+   enforceable, and the remaining provisions shall continue in full force and 
+   effect.
+c. Entire Agreement: This Agreement constitutes the complete and exclusive 
+   understanding between the User and Licensor regarding CuteCut Pro and supersedes 
+   all prior or contemporaneous agreements, understandings, or communications.
+
+================================================================================
+                    END OF LICENSE AGREEMENT (CUTECUT PRO)
+================================================================================

@@ -1,0 +1,23 @@
+name: Validate & Verify F-Droid Android Recipe
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'fdroid/**'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-fdroid:
+    name: Verify F-Droid Metadata Recipe
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate F-Droid Recipe Format
+        run: |
+          chmod +x scripts/submit-fdroid.sh
+          ./scripts/submit-fdroid.sh

@@ -1,0 +1,126 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Atma:wght@400;600;700&family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Galada&family=Gulzar&family=Hind+Siliguri:wght@400;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Kalam:wght@400;700&family=Lalezar&family=Lateef:wght@400;700&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;800&family=Mukta+Malar:wght@400;700&family=Mukta:wght@400;600;700;800&family=Noto+Naskh+Arabic:wght@400;700&family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Bengali:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700;800&family=Noto+Sans+Tamil:wght@400;600;700&family=Noto+Serif+Bengali:wght@400;700&family=Noto+Serif+Devanagari:wght@400;700&family=Noto+Serif+Tamil:wght@400;700&family=Outfit:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Poppins:ital,wght@0,400;0,600;0,700;1,400&family=Reem+Kufi:wght@400;700&family=Roboto+Slab:wght@400;700&family=Rozha+One&family=Scheherazade+New:wght@400;700&family=Space+Grotesk:wght@400;700&family=Tiro+Bangla:ital@0;1&family=Tiro+Devanagari+Hindi:ital@0;1&family=Vazirmatn:wght@400;600;700;800&display=swap');
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'QPC Uthmani Hafs';
+  src: url('/fonts/hafs-uthmanic-v14-full.woff2') format('woff2'),
+       url('/fonts/hafs-uthmanic-v14-full.ttf') format('truetype'),
+       url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/hafs-uthmanic-v14-full.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Uthmani';
+  src: url('/fonts/hafs-uthmanic-v14-full.woff2') format('woff2'),
+       url('/fonts/hafs-uthmanic-v14-full.ttf') format('truetype'),
+       url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/hafs-uthmanic-v14-full.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'KFGQPC Uthmanic Script HAFS';
+  src: url('/fonts/hafs-uthmanic-v14-full.woff2') format('woff2'),
+       url('/fonts/hafs-uthmanic-v14-full.ttf') format('truetype'),
+       url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/hafs-uthmanic-v14-full.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'KFGQPC Uthmanic Script HAFS Regular';
+  src: url('/fonts/hafs-uthmanic-v14-full.woff2') format('woff2'),
+       url('/fonts/hafs-uthmanic-v14-full.ttf') format('truetype'),
+       url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/hafs-uthmanic-v14-full.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'KFGQPC Uthman Taha Naskh';
+  src: url('/fonts/hafs-uthmanic-v14-full.woff2') format('woff2'),
+       url('/fonts/hafs-uthmanic-v14-full.ttf') format('truetype'),
+       url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/hafs-uthmanic-v14-full.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-uthmani: "QPC Uthmani Hafs", "KFGQPC Uthmanic Script HAFS", "Uthmani", "KFGQPC Uthman Taha Naskh", "Amiri Quran", "Noto Naskh Arabic", serif;
+  --font-amiri: "Amiri", serif;
+  --font-scheherazade: "Scheherazade New", serif;
+  --font-reemkufi: "Reem Kufi", sans-serif;
+  --font-urdu: "Noto Nastaliq Urdu", "Gulzar", "Lateef", serif;
+  --font-hindi: "Noto Sans Devanagari", "Poppins", "Mukta", sans-serif;
+  --font-bengali: "Noto Sans Bengali", "Hind Siliguri", sans-serif;
+  --font-persian: "Vazirmatn", "Lalezar", sans-serif;
+  --font-tamil: "Noto Sans Tamil", "Mukta Malar", sans-serif;
+  --font-cinzel: "Cinzel", serif;
+  --font-montserrat: "Montserrat", sans-serif;
+  --font-space: "Space Grotesk", sans-serif;
+  --font-playfair: "Playfair Display", serif;
+  --font-outfit: "Outfit", sans-serif;
+}
+
+/* Mobile & Android Touch Optimizations */
+@layer utilities {
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  .touch-pan-x {
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+html, body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111115; 
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333344;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444455;
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #333344 #111115;
+}

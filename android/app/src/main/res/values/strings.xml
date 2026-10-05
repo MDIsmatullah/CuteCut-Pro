@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CuteCut Pro</string>
+    <string name="title_activity_main">CuteCut Pro</string>
+    <string name="package_name">org.guldasta.cutecutpro</string>
+    <string name="custom_url_scheme">org.guldasta.cutecutpro</string>
+</resources>

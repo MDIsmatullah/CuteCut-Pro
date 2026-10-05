@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.cutecutpro.CuteCutPro</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>CuteCut Pro</name>
+  <summary>High-Precision Quranic &amp; Islamic Video Editor</summary>
+  <description>
+    <p>
+      CuteCut Pro is a professional-grade, multi-track desktop video editor engineered specifically for high-precision Islamic and Quranic content creation. Driven by cutting-edge WebAssembly (WASM), it enables direct 4K video rendering and timeline execution.
+    </p>
+    <p>
+      Key highlights include:
+    </p>
+    <ul>
+      <li>High-fidelity forced-alignment sub-syllable Quran lyric tracking.</li>
+      <li>AI Multi-Language Subtitle Translator powered by high-fidelity Gemini linguistics.</li>
+      <li>Creative AI Calligraphy &amp; Islamic Geometric Mosaic asset generators.</li>
+      <li>Full integration with secure, user-controlled Google Drive storage.</li>
+      <li>Advanced color grading, multi-track audio wave peaks, and timeline split controls.</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">com.cutecutpro.CuteCutPro.desktop</launchable>
+  <icon type="stock">com.cutecutpro.CuteCutPro</icon>
+  <url type="homepage">https://github.com/MDIsmatullah/CuteCut-Pro</url>
+  <url type="bugtracker">https://github.com/MDIsmatullah/CuteCut-Pro/issues</url>
+  <developer_name>Guldasta Islam Or Quran</developer_name>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Fully integrated multi-track editing workspace with Quran visuals engine.</caption>
+      <image>https://raw.githubusercontent.com/MDIsmatullah/CuteCut-Pro/main/build-resources/icon.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="2.5.3" date="2026-10-03">
+      <description>
+        <p>Production release v2.5.3 featuring automatic platform and engine detection (WebCodecs GPU Hardware Accelerated and Native C++ Offline AVEngine), offline frame-by-frame stutter-free video exporting, Microsoft WinGet v2.5.3 package manifest integration, and enhanced multi-track sync.</p>
+      </description>
+    </release>
+    <release version="2.5.2" date="2026-10-02">
+      <description>
+        <p>Production release v2.5.2 featuring Progressive Web App (PWA) 1-click desktop and mobile installation, offline Workbox caching, enhanced package manager parity for Microsoft WinGet, AppImageHub, and F-Droid catalogs, and commercial licensing synchronization.</p>
+      </description>
+    </release>
+    <release version="2.5.1" date="2026-10-01">
+      <description>
+        <p>Production release v2.5.1 featuring official custom domain cutecutpro.com support routing, active Cloudflare DNS/SSL hardening, automated package manager parity for Microsoft WinGet, F-Droid, and AppImageHub catalogs, and updated responsive timeline controls.</p>
+      </description>
+    </release>
+    <release version="2.4.5" date="2026-09-24">
+      <description>
+        <p>Production release with launcher script POSIX formatting fix, window auto-maximize on startup, PulseAudio/PipeWire auto-routing, and interactive searchable Surah picker.</p>
+      </description>
+    </release>
+    <release version="2.4.4" date="2026-09-21">
+      <description>
+        <p>Production release with Snapcraft PulseAudio compatibility fixes, resolving audio playback issues in strictly sandboxed Linux environments.</p>
+      </description>
+    </release>
+    <release version="2.4.3" date="2026-09-21">
+      <description>
+        <p>Introduced Bézier Speed Curve inspector with interactive tangent handles, custom velocity ramping presets, Snap/Debian cross-platform audio pipeline hardening, and real-time motion curve interpolation.</p>
+      </description>
+    </release>
+    <release version="2.4.2" date="2026-09-18">
+      <description>
+        <p>Production parity release with optimized installer packaging for Microsoft WinGet, Homebrew Cask, AppImage, Debian, Snap, and enhanced Quranic timeline synchronization.</p>
+      </description>
+    </release>
+    <release version="2.4.1" date="2026-09-16">
+      <description>
+        <p>Cross-platform audio engine parity for Snap, AppImage, Debian, Windows, and macOS with optimized PulseAudio, PipeWire, and ALSA channel synchronization.</p>
+      </description>
+    </release>
+    <release version="2.3.10" date="2026-09-12">
+      <description>
+        <p>Transition speed real-time sync, dual translation subtitle tracks generation, dynamic secondary language switching, and micro-aligned Uthmani Quran engine enhancements.</p>
+      </description>
+    </release>
+    <release version="2.3.9" date="2026-09-08">
+      <description>
+        <p>Enhanced Quran AI alignment and typography animation engine.</p>
+      </description>
+    </release>
+    <release version="2.3.8" date="2026-09-03">
+      <description>
+        <p>Added Islamic AI Calligraphy generator, real-time Gemini subtitle translator, and optimized local voice tracking alignment.</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>

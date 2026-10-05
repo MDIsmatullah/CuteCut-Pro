@@ -1,0 +1,70 @@
+{
+  "project": "Quran Forced Alignment Normalization Layer",
+  "rules": [
+    {
+      "id": "strip_harakat",
+      "description": "Strip standard Arabic short vowel diacritics (Harakat) because CTC models recognize graphemes (consonants + long vowels) rather than vocalic diacritics.",
+      "characters": ["\u064B", "\u064C", "\u064D", "\u064E", "\u064F", "\u0650", "\u0651", "\u0652"],
+      "examples": [
+        {"input": "تَبَٰرَكَ", "output_stripped": "تبارك"}
+      ]
+    },
+    {
+      "id": "strip_tajweed_annotations",
+      "description": "Remove special Quranic annotation signs (Waqf stops, Sajdah, Hizb, and elongation guides) which have no acoustic expression and do not belong to the vocal dictionary.",
+      "characters": ["\u06D6", "\u06D7", "\u06D8", "\u06D9", "\u06DA", "\u06DB", "\u06DC", "\u06DF", "\u06E0", "\u06E2", "\u06E4", "\u06E5", "\u06E6", "\u06E8", "\u06EA", "\u06EB", "\u06EC", "\u06ED"],
+      "examples": [
+        {"input": "عَمَلًا ۚ", "output_stripped": "عملا"}
+      ]
+    },
+    {
+      "id": "map_alif_khanjariya",
+      "description": "Convert Alif Khanjariya (Superscript/Dagger Alif, representing a long 'a' vowel) to a standard Alif letter, preserving phonetic length in the text representation.",
+      "unicode": "\u0670",
+      "mapping_target": "ا",
+      "examples": [
+        {"input": "تَبَٰرَكَ", "output_normalized": "تبارك"}
+      ]
+    },
+    {
+      "id": "map_alif_waslah",
+      "description": "Convert Alif Waslah (representing an elided Alif at word boundaries) to a standard Alif to match tokenizer graphemic inputs.",
+      "unicode": "\u0671",
+      "mapping_target": "ا",
+      "examples": [
+        {"input": "ٱلَّذِى", "output_normalized": "الذى"}
+      ]
+    },
+    {
+      "id": "normalize_alif_types",
+      "description": "Map all variations of Alif (Alif with Hamza above, Alif with Hamza below, Alif Maddah) to a simple bare Alif to match the model's unified Alif token.",
+      "characters": ["آ", "أ", "إ"],
+      "mapping_target": "ا",
+      "examples": [
+        {"input": "أَحْسَنُ", "output_normalized": "احسن"}
+      ]
+    },
+    {
+      "id": "normalize_ta_marbouta",
+      "description": "Map Ta Marbouta to Ha to align with typical Arabic CTC tokenizers that collapse this distinction acoustically.",
+      "unicode": "ة",
+      "mapping_target": "ه",
+      "examples": [
+        {"input": "ٱلْحَيَٰوةَ", "output_normalized": "الحياه"}
+      ]
+    },
+    {
+      "id": "normalize_alif_maqsura",
+      "description": "Map Alif Maqsura (Ya without dots) to standard Alif or Ya depending on context, typically collapsed to Alif or Ya in the target vocab.",
+      "unicode": "ى",
+      "mapping_target": "ا",
+      "examples": [
+        {"input": "عَلَىٰ", "output_normalized": "على"}
+      ]
+    },
+    {
+      "id": "reversible_mapping_mechanism",
+      "description": "During normalization, for every single character retained in the normalized output, a mapping object is generated containing: {canonical_word_idx, char_in_word_idx, canonical_word}. This allows the CTC alignment outputs on normalized tokens to be perfectly mapped back to the exact index and bounds of the original Uthmani word."
+    }
+  ]
+}

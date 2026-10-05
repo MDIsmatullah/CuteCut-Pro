@@ -1,0 +1,56 @@
+{
+  "alignment_examples": [
+    {
+      "test_case": "style_1_alafasy_murattal_ayah_1",
+      "canonical_text": "تَبَٰرَكَ ٱلَّذِى بِيَدِهِ ٱلْمُلْكُ وَهُوَ عَلَىٰ كُلِّ شَىْءٍ قَدِيرٌ",
+      "example_word_alignments": [
+        {
+          "word": "تَبَٰرَكَ",
+          "normalizedWord": "تبارك",
+          "originalWordIndex": 0,
+          "start": 0.12,
+          "end": 0.84,
+          "duration": 0.72,
+          "confidence": 0.91,
+          "tokenPath": [
+            {"token": "ت", "frameStart": 6, "frameEnd": 12},
+            {"token": "ب", "frameStart": 13, "frameEnd": 22},
+            {"token": "ا", "frameStart": 23, "frameEnd": 34},
+            {"token": "ر", "frameStart": 35, "frameEnd": 38},
+            {"token": "ك", "frameStart": 39, "frameEnd": 42}
+          ]
+        },
+        {
+          "word": "ٱلَّذِى",
+          "normalizedWord": "الذى",
+          "originalWordIndex": 1,
+          "start": 0.88,
+          "end": 1.42,
+          "duration": 0.54,
+          "confidence": 0.89,
+          "tokenPath": [
+            {"token": "ا", "frameStart": 44, "frameEnd": 48},
+            {"token": "ل", "frameStart": 49, "frameEnd": 56},
+            {"token": "ذ", "frameStart": 57, "frameEnd": 64},
+            {"token": "ى", "frameStart": 65, "frameEnd": 71}
+          ]
+        },
+        {
+          "word": "بِيَدِهِ",
+          "normalizedWord": "بيده",
+          "originalWordIndex": 2,
+          "start": 1.46,
+          "end": 1.98,
+          "duration": 0.52,
+          "confidence": 0.87,
+          "tokenPath": [
+            {"token": "ب", "frameStart": 73, "frameEnd": 79},
+            {"token": "ى", "frameStart": 80, "frameEnd": 86},
+            {"token": "د", "frameStart": 87, "frameEnd": 92},
+            {"token": "ه", "frameStart": 93, "frameEnd": 99}
+          ]
+        }
+      ]
+    }
+  ]
+}

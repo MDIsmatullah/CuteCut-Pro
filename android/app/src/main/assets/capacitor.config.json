@@ -1,0 +1,19 @@
+{
+	"appId": "org.guldasta.cutecutpro",
+	"appName": "CuteCut Pro",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https",
+		"cleartext": true
+	},
+	"android": {
+		"allowMixedContent": true,
+		"captureInput": true,
+		"webContentsDebuggingEnabled": true
+	},
+	"plugins": {
+		"AdMob": {
+			"appId": "ca-app-pub-8898043565822840~4018462556"
+		}
+	}
+}

@@ -1,0 +1,40 @@
+{
+  "failure_cases": [
+    {
+      "case_id": "fc_001_mujawwad_madd_collapse",
+      "ayah_num": 1,
+      "word_index": 0,
+      "canonical_word": "تَبَٰرَكَ",
+      "expected_normalized_text": "تبارك",
+      "observed_token_path": "ت -> ب -> ا -> [blank] -> ا -> ر -> ك",
+      "frame_range": "20-112 (approx. 1.84 seconds)",
+      "model_confidence_score": 0.48,
+      "failure_type": "OBSERVED FAILURE - Madd-Induced Trellis Slip",
+      "explanation": "During Abdul Basit's Mujawwad recitation, the vowel elongation on 'بَٰ' (represented as 'با' in normalized text) is stretched for 1.84 seconds. The acoustic CTC model fails to emit a continuous 'ا' (Alif) signal over this duration, emitting blank tokens and dropping below threshold. The Viterbi trellis, seeking to maximize path scores, collapses the state transitions and advances to 'ر' and 'ك' prematurely while the audio is still executing the elongation, causing a catastrophic word-level duration drift."
+    },
+    {
+      "case_id": "fc_002_idgham_grapheme_drop",
+      "ayah_num": 1,
+      "word_index": 7,
+      "canonical_word": "شَىْءٍ",
+      "expected_normalized_text": "شىء",
+      "observed_token_path": "ش -> ى -> ء -> [blank]",
+      "frame_range": "240-285",
+      "model_confidence_score": 0.52,
+      "failure_type": "OBSERVED FAILURE - Idgham-Induced Grapheme Omission",
+      "explanation": "In Ayah 1, the words 'شَىْءٍ قَدِيرٌ' merge via Idgham (nasalized consonant assimilation). The Tanween on 'شَىْءٍ' is pronounced as a merged nasal sound rather than a clean Nun consonant. Because Model B uses a strict graphemic vocabulary and lacks phonetic representations for nasalization (Ghunnah), the model does not produce any active CTC logit emissions for the character. The trellis forced-alignment solver is forced to map the non-existent phoneme to surrounding frame noise, leading to word-boundary bleeding between the two words."
+    },
+    {
+      "case_id": "fc_003_hadr_boundary_bleed",
+      "ayah_num": 2,
+      "word_index": 1,
+      "canonical_word": "خَلَقَ",
+      "expected_normalized_text": "خلق",
+      "observed_token_path": "خ -> ل -> ق",
+      "frame_range": "110-128",
+      "model_confidence_score": 0.61,
+      "failure_type": "POSSIBLE TAJWEED-RELATED FAILURE - Connected Recitation Wasl Bleeding",
+      "explanation": "In Saood ash-Shuraym's rapid Hadr recitation, 'خَلَقَ ٱلْمَوْتَ' is read in continuous breath (Wasl). The final Qaf 'ق' of 'خَلَقَ' blends directly into the Lam 'ل' of 'ٱلْمَوْتَ'. The model fails to emit a clear consonant transition boundary between 'ق' and 'ل', resulting in zero acoustic silence frames. Consequently, the word-level end timestamp for 'خَلَقَ' is pushed forward into the middle of 'ٱلْمَوْتَ', creating an incorrect duration overlap."
+    }
+  ]
+}

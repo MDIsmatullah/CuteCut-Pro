@@ -1,0 +1,56 @@
+name: cutecut-pro
+base: core22
+version: '2.5.2'
+summary: CuteCut Pro Professional Video Editor Suite
+description: |
+  CuteCut Pro is a high-performance, studio-grade video editing suite
+  engineered for desktop and cloud workflows, featuring advanced Quran AI
+  subtitling, multi-track audio/video composition, keyframing, and professional transitions.
+
+  Linux Audio Note:
+  CuteCut Pro automatically routes audio through PulseAudio, PipeWire, and ALSA with automatic Headphone/Speaker/Bluetooth switching.
+
+grade: stable
+confinement: strict
+
+apps:
+  cutecut-pro:
+    command: snap/local/desktop-init.sh
+    extensions: [gnome]
+    plugs:
+      - desktop
+      - desktop-legacy
+      - wayland
+      - x11
+      - opengl
+      - audio-playback
+      - audio-record
+      - pulseaudio
+      - alsa
+      - home
+      - network
+      - network-bind
+
+parts:
+  desktop-gtk3:
+    plugin: nil
+    stage-packages:
+      - libnspr4
+      - libnss3
+      - libatk1.0-0
+      - libatk-bridge2.0-0
+      - libcups2
+      - libdrm2
+      - libgtk-3-0
+      - libgbm1
+      - libasound2
+      - libasound2-data
+      - libasound2-plugins
+      - libpulse0
+      - libpulse-mainloop-glib0
+      - libsndfile1
+      - libpipewire-0.3-0
+      - alsa-utils
+      - desktop-file-utils
+      - shared-mime-info
+

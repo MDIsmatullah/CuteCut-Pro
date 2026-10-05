@@ -1,0 +1,9 @@
+CuteCut Pro is a powerful, offline-first multi-track video editing suite tailored for high-speed timeline editing, real-time FFmpeg processing, dynamic audio frequency waveforms, and dedicated Quranic recitation-to-text synchronization.
+
+Key Features:
+- Multi-track non-linear video editing with split, trim, speed, and volume controls.
+- Dedicated Quranic recitation alignment with ayah-by-ayah synchronization.
+- Audio waveform visualizer and precision audio trimming.
+- Multi-language subtitle tracks with customizable typography and calligraphy styles.
+- Offline-first rendering and high-performance export pipeline.
+- 100% free and open-source under the MIT license.

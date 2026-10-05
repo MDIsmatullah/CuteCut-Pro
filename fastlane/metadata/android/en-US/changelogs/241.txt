@@ -1,0 +1,4 @@
+- Release v2.4.1
+- Enhanced Quranic audio-to-text alignment engine
+- Added audio frequency waveform visualizer
+- Performance and stability improvements for Android exports
