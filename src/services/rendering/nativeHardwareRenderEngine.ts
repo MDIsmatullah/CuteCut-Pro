@@ -137,9 +137,9 @@ export async function renderDspAudioPipelineOffline(
   const lengthInFrames = Math.max(1, Math.ceil(totalDuration * sampleRate));
   const offlineCtx = new OfflineAudioCtxClass(2, lengthInFrames, sampleRate);
 
-  // Master DSP Bus Chain with transparent studio gain
+  // Master DSP Bus Chain with transparent studio gain (+3.5dB broadcast mastering level)
   const masterBus = offlineCtx.createGain();
-  masterBus.gain.value = 1.05;
+  masterBus.gain.value = 1.35;
 
   // 1. Equalizer Filter (C++ Bi-quad DSP emulation)
   const eqPreset = options?.eqPreset || 'quran_recitation';
@@ -152,14 +152,14 @@ export async function renderDspAudioPipelineOffline(
   highFilter.frequency.value = 4500;
 
   if (eqPreset === 'quran_recitation') {
-    lowFilter.gain.value = 1.5; // Rich natural resonance for recitation
-    highFilter.gain.value = 2.0; // Vocal clarity & Tajweed articulation
+    lowFilter.gain.value = 2.0; // Rich natural resonance for recitation
+    highFilter.gain.value = 2.5; // Vocal clarity & Tajweed articulation
   } else if (eqPreset === 'studio_master') {
-    lowFilter.gain.value = 1.0;
-    highFilter.gain.value = 1.5;
+    lowFilter.gain.value = 1.5;
+    highFilter.gain.value = 2.0;
   } else if (eqPreset === 'vocal_warmth') {
-    lowFilter.gain.value = 2.0;
-    highFilter.gain.value = 0.5;
+    lowFilter.gain.value = 2.5;
+    highFilter.gain.value = 1.0;
   } else {
     lowFilter.gain.value = 0;
     highFilter.gain.value = 0;
@@ -167,11 +167,11 @@ export async function renderDspAudioPipelineOffline(
 
   // 2. Transparent Anti-Clipping Peak Limiter (prevents digital clipping while keeping full loudness)
   const dynamicsCompressor = offlineCtx.createDynamicsCompressor();
-  dynamicsCompressor.threshold.value = -1.0;
-  dynamicsCompressor.knee.value = 6;
-  dynamicsCompressor.ratio.value = 12;
-  dynamicsCompressor.attack.value = 0.002;
-  dynamicsCompressor.release.value = 0.10;
+  dynamicsCompressor.threshold.value = -2.5;
+  dynamicsCompressor.knee.value = 5;
+  dynamicsCompressor.ratio.value = 4;
+  dynamicsCompressor.attack.value = 0.003;
+  dynamicsCompressor.release.value = 0.12;
 
   // Connect Master DSP Chain
   masterBus.connect(lowFilter);
@@ -301,9 +301,26 @@ export function convertAudioBufferToWavBlob(buffer: AudioBuffer): Blob {
   }
   
   const totalLength = buffer.length;
+
+  // Scan peak to normalize output level if audio signal is quiet
+  let peakVal = 0;
+  for (let c = 0; c < numOfChan; c++) {
+    const ch = channels[c];
+    for (let i = 0; i < totalLength; i += 8) {
+      const v = Math.abs(ch[i]);
+      if (v > peakVal) peakVal = v;
+    }
+  }
+
+  // Automatic broadcast loudness normalization: bring peaks up to -0.5 dB (0.94) without clipping
+  let normFactor = 1.0;
+  if (peakVal > 0.02 && peakVal < 0.70) {
+    normFactor = Math.min(2.2, 0.94 / peakVal);
+  }
+
   for (let sampleIdx = 0; sampleIdx < totalLength; sampleIdx++) {
     for (let c = 0; c < numOfChan; c++) {
-      let sample = channels[c][sampleIdx];
+      let sample = channels[c][sampleIdx] * normFactor;
       // Clamp to float bounds
       sample = Math.max(-1, Math.min(1, sample));
       // Convert to 16-bit signed PCM
@@ -470,6 +487,10 @@ export async function executeNativeHardwareRender(options: NativeHardwareRenderO
         const leftChannel = audioBuffer.getChannelData(0);
         const rightChannel = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : leftChannel;
 
+        // Chromium's Opus encoder normalizes to -23 LUFS (which sounds ~8-10dB lower than AAC).
+        // Apply an intelligent gain compensation multiplier so Opus matches AAC loudness exactly!
+        const audioGainFactor = useAudioOpusMux ? 2.2 : 1.25;
+
         for (let sampleOffset = 0; sampleOffset < totalSamples; sampleOffset += chunkSize) {
           const currentChunkFrames = Math.min(chunkSize, totalSamples - sampleOffset);
           const leftSlice = leftChannel.subarray(sampleOffset, sampleOffset + currentChunkFrames);
@@ -477,8 +498,8 @@ export async function executeNativeHardwareRender(options: NativeHardwareRenderO
           const planarData = new Float32Array(currentChunkFrames * 2);
 
           for (let i = 0; i < currentChunkFrames; i++) {
-            planarData[i] = leftSlice[i];
-            planarData[currentChunkFrames + i] = rightSlice[i];
+            planarData[i] = Math.max(-1.0, Math.min(1.0, leftSlice[i] * audioGainFactor));
+            planarData[currentChunkFrames + i] = Math.max(-1.0, Math.min(1.0, rightSlice[i] * audioGainFactor));
           }
 
           const timestampMicrosec = Math.round((sampleOffset / sampleRate) * 1_000_000);

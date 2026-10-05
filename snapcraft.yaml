@@ -35,6 +35,7 @@ parts:
   desktop-gtk3:
     plugin: nil
     stage-packages:
+      - ffmpeg
       - libnspr4
       - libnss3
       - libatk1.0-0

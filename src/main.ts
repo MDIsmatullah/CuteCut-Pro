@@ -648,10 +648,10 @@ ipcMain.handle('native-engine:render-local-video', async (_event, {
         '-map', '1:a:0',
         '-c:a', 'aac',
         '-profile:a', 'aac_low',
-        '-b:a', '192k',
+        '-b:a', '256k',
         '-ar', '44100',
         '-ac', '2',
-        '-af', 'aresample=async=1000',
+        '-af', 'volume=1.45,aresample=async=1000',
         '-max_interleave_delta', '0',
         '-shortest'
       );
@@ -661,10 +661,10 @@ ipcMain.handle('native-engine:render-local-video', async (_event, {
         '-map', '0:a?',
         '-c:a', 'aac',
         '-profile:a', 'aac_low',
-        '-b:a', '192k',
+        '-b:a', '256k',
         '-ar', '44100',
         '-ac', '2',
-        '-af', 'aresample=async=1000',
+        '-af', 'volume=1.45,aresample=async=1000',
         '-max_interleave_delta', '0'
       );
     }

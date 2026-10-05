@@ -89,6 +89,7 @@
       "base": "core22",
       "summary": "Professional Multi-Track Video Editor",
       "stagePackages": [
+        "ffmpeg",
         "libnspr4",
         "libnss3",
         "libxss1",

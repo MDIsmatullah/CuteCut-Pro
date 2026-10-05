@@ -6729,8 +6729,15 @@ export default function App() {
             const autoTargetPath = joinFsPath(targetDir, cleanFilename);
 
             const arrayBuf = await rawBlob.arrayBuffer();
+            let audioArray: number[] | null = null;
+            if (wavBlob && wavBlob.size > 0) {
+              const audioAb = await wavBlob.arrayBuffer();
+              audioArray = Array.from(new Uint8Array(audioAb));
+            }
+
             const res = await electron.ipcRenderer.invoke('native-engine:render-local-video', {
               inputBuffer: Array.from(new Uint8Array(arrayBuf)),
+              audioBuffer: audioArray,
               outputFilePath: autoTargetPath,
               fps,
               resolution: exportConf.resolution,
@@ -6740,7 +6747,19 @@ export default function App() {
               log(`✅ [Native C++ AVEngine] 100% Offline Render Complete!`);
               log(`🚀 Auto-saved directly to: ${res.outputFilePath} (${res.fileSizeMb} MB, Encoder: ${res.encoderUsed})`);
               setSavedLocalPath(res.outputFilePath);
-              return { blob: rawBlob, filename: targetFilename };
+              
+              // Load the finalized native-rendered MP4 with studio-grade AAC audio
+              const fsModule = (window as any).require ? (window as any).require('fs') : null;
+              let finalOfflineBlob = rawBlob;
+              if (fsModule && fsModule.existsSync(res.outputFilePath)) {
+                try {
+                  const fileBuffer = await fsModule.promises.readFile(res.outputFilePath);
+                  finalOfflineBlob = new Blob([fileBuffer], { type: 'video/mp4' });
+                } catch (readErr) {
+                  console.warn('Could not read finalized MP4 into memory, using stream blob:', readErr);
+                }
+              }
+              return { blob: finalOfflineBlob, filename: targetFilename };
             }
           } catch (nativeErr: any) {
             log(`Native offline engine note: ${nativeErr?.message || nativeErr}. Continuing with Web pipeline...`);

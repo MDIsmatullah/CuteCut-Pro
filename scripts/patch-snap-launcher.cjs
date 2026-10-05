@@ -17,6 +17,7 @@ const lines = [
   '# Audio and graphic library paths',
   'export LD_LIBRARY_PATH="$SNAP/app:$SNAP:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio:$SNAP/usr/lib/x86_64-linux-gnu/alsa-lib:$SNAP/usr/lib/x86_64-linux-gnu/nss:$SNAP/lib/x86_64-linux-gnu/nss:$SNAP/nss:/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu:/snap/gnome-42-2204/current/usr/lib:/snap/gnome-42-2204/current/lib/x86_64-linux-gnu:/snap/gnome-42-2204/current/lib:/snap/core22/current/usr/lib/x86_64-linux-gnu:/snap/core22/current/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"',
   'export PATH="/snap/gnome-42-2204/current/usr/bin:$SNAP/app:$SNAP/bin:$SNAP/usr/bin:$PATH"',
+  'if [ -x "$SNAP/usr/bin/ffmpeg" ]; then export FFMPEG_PATH="$SNAP/usr/bin/ffmpeg"; elif [ -x "$SNAP/bin/ffmpeg" ]; then export FFMPEG_PATH="$SNAP/bin/ffmpeg"; fi',
   'export XDG_DATA_DIRS="/snap/gnome-42-2204/current/usr/share:$SNAP/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"',
   'export GSETTINGS_SCHEMA_DIR="/snap/gnome-42-2204/current/usr/share/glib-2.0/schemas:$SNAP/usr/share/glib-2.0/schemas:/usr/share/glib-2.0/schemas:${GSETTINGS_SCHEMA_DIR:-}"',
   'export GTK_PATH="/snap/gnome-42-2204/current/usr/lib/x86_64-linux-gnu/gtk-3.0"',
