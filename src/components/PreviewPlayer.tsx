@@ -779,6 +779,9 @@ interface PreviewPlayerProps {
   // Audio-Video Word-by-Word / Karaoke Sync Offset Calibration in ms (e.g. +150ms)
   quranKaraokeSyncOffsetMs?: number;
 
+  // Mobile layout optimization flag
+  isMobileMode?: boolean;
+
   // Dedicated Support & About App Modal Trigger
   onOpenSupportModal?: () => void;
 }
@@ -847,7 +850,9 @@ export default function PreviewPlayer({
 
   // Dedicated Support & About App Modal Trigger
   onOpenSupportModal,
+  isMobileMode = false,
 }: PreviewPlayerProps) {
+  const isMobile = isMobileMode || (typeof window !== 'undefined' && (window.innerWidth < 768 || !!(window as any).Capacitor));
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -3831,73 +3836,79 @@ export default function PreviewPlayer({
   };
 
   return (
-    <div id="preview-player" ref={playerFrameRef} className="flex-1 bg-[#141418] rounded-lg border border-[#23232b] flex flex-col h-full select-none overflow-hidden shadow-sm">
+    <div id="preview-player" ref={playerFrameRef} className={`flex-1 bg-[#141418] ${isMobile ? 'border-0 rounded-none' : 'rounded-lg border border-[#23232b] shadow-sm'} flex flex-col h-full select-none overflow-hidden`}>
       
-      {/* Exact CapCut Player Header */}
-      <div className="h-9 border-b border-[#24242c] px-3 flex items-center justify-between bg-[#1e1e24] shrink-0 text-xs text-gray-300">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-gray-200 text-xs tracking-wide">Player</span>
-        </div>
+      {/* Exact CapCut Player Header (Desktop only) */}
+      {!isMobile && (
+        <div className="h-9 border-b border-[#24242c] px-3 flex items-center justify-between bg-[#1e1e24] shrink-0 text-xs text-gray-300">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-gray-200 text-xs tracking-wide">Player</span>
+          </div>
 
-        <div className="relative flex items-center gap-1">
-          <button
-            id="btn-player-menu"
-            onClick={() => setShowPlayerMenu(!showPlayerMenu)}
-            className="p-1 rounded hover:bg-[#2c2c36] text-gray-400 hover:text-white transition cursor-pointer"
-            title="Player Options"
-          >
-            <Menu className="w-4 h-4" />
-          </button>
+          <div className="relative flex items-center gap-1">
+            <button
+              id="btn-player-menu"
+              onClick={() => setShowPlayerMenu(!showPlayerMenu)}
+              className="p-1 rounded hover:bg-[#2c2c36] text-gray-400 hover:text-white transition cursor-pointer"
+              title="Player Options"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
 
-          {showPlayerMenu && (
-            <div className="absolute top-full right-0 mt-1 w-44 bg-[#1a1a20] border border-[#2a2a34] rounded-lg shadow-2xl p-1 z-50 text-xs text-gray-300">
-              <button
-                onClick={() => { setShowGrid(!showGrid); setShowPlayerMenu(false); }}
-                className="w-full text-left px-2.5 py-1.5 rounded hover:bg-[#2a2a36] flex items-center justify-between"
-              >
-                <span>Grid Guides</span>
-                <span className="text-[10px] text-cyan-400">{showGrid ? 'ON' : 'OFF'}</span>
-              </button>
-              <button
-                onClick={() => { setShowSafeArea(!showSafeArea); setShowPlayerMenu(false); }}
-                className="w-full text-left px-2.5 py-1.5 rounded hover:bg-[#2a2a36] flex items-center justify-between"
-              >
-                <span>Safe Area Margin</span>
-                <span className="text-[10px] text-amber-400">{showSafeArea ? 'ON' : 'OFF'}</span>
-              </button>
-              <div className="h-px bg-[#2a2a34] my-1" />
-              <div className="px-2.5 py-1 text-[10px] text-gray-500 font-bold uppercase">Zoom Scale</div>
-              {(['fit', 50, 75, 100] as const).map(z => (
+            {showPlayerMenu && (
+              <div className="absolute top-full right-0 mt-1 w-44 bg-[#1a1a20] border border-[#2a2a34] rounded-lg shadow-2xl p-1 z-50 text-xs text-gray-300">
                 <button
-                  key={z}
-                  onClick={() => { setCanvasZoom(z); setShowPlayerMenu(false); }}
-                  className={`w-full text-left px-2.5 py-1 rounded hover:bg-[#2a2a36] text-[11px] ${canvasZoom === z ? 'text-cyan-400 font-bold' : ''}`}
+                  onClick={() => { setShowGrid(!showGrid); setShowPlayerMenu(false); }}
+                  className="w-full text-left px-2.5 py-1.5 rounded hover:bg-[#2a2a36] flex items-center justify-between"
                 >
-                  {z === 'fit' ? 'Fit Screen' : `${z}% Zoom`}
+                  <span>Grid Guides</span>
+                  <span className="text-[10px] text-cyan-400">{showGrid ? 'ON' : 'OFF'}</span>
                 </button>
-              ))}
-            </div>
-          )}
+                <button
+                  onClick={() => { setShowSafeArea(!showSafeArea); setShowPlayerMenu(false); }}
+                  className="w-full text-left px-2.5 py-1.5 rounded hover:bg-[#2a2a36] flex items-center justify-between"
+                >
+                  <span>Safe Area Margin</span>
+                  <span className="text-[10px] text-amber-400">{showSafeArea ? 'ON' : 'OFF'}</span>
+                </button>
+                <div className="h-px bg-[#2a2a34] my-1" />
+                <div className="px-2.5 py-1 text-[10px] text-gray-500 font-bold uppercase">Zoom Scale</div>
+                {(['fit', 50, 75, 100] as const).map(z => (
+                  <button
+                    key={z}
+                    onClick={() => { setCanvasZoom(z); setShowPlayerMenu(false); }}
+                    className={`w-full text-left px-2.5 py-1 rounded hover:bg-[#2a2a36] text-[11px] ${canvasZoom === z ? 'text-cyan-400 font-bold' : ''}`}
+                  >
+                    {z === 'fit' ? 'Fit Screen' : `${z}% Zoom`}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Viewport Stage Canvas */}
-      <div ref={containerRef} className="flex-1 flex items-center justify-center p-3 relative min-h-0 bg-[#070709] overflow-hidden">
+      <div ref={containerRef} className={`flex-1 flex items-center justify-center ${isMobile ? 'p-1' : 'p-3'} relative min-h-0 bg-[#070709] overflow-hidden w-full h-full`}>
         <div
-          className="relative rounded-sm shadow-2xl overflow-hidden bg-black flex items-center justify-center transition-all duration-300 border border-white/80 group"
+          className="relative rounded-sm shadow-2xl overflow-hidden bg-black flex items-center justify-center transition-all duration-200 border border-white/40 group max-w-full max-h-full"
           style={{
             width: canvasZoom === 'fit' ? (aspectRatio === '16:9' ? '100%' : 'auto') : `${canvasZoom}%`,
             height: canvasZoom === 'fit' ? (aspectRatio === '16:9' ? 'auto' : '100%') : `${canvasZoom}%`,
-            maxWidth: `${dimensions.width}px`,
-            maxHeight: `${dimensions.height}px`,
+            maxWidth: '100%',
+            maxHeight: '100%',
             aspectRatio: aspectRatio === '16:9' ? '16/9' : aspectRatio === '9:16' ? '9/16' : '1/1'
           }}
         >
-          {/* White Corner Frame Handle Anchors */}
-          <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-white rounded-xs shadow-md z-30" />
-          <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white rounded-xs shadow-md z-30" />
-          <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 bg-white rounded-xs shadow-md z-30" />
-          <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-white rounded-xs shadow-md z-30" />
+          {/* White Corner Frame Handle Anchors (Desktop only) */}
+          {!isMobile && (
+            <>
+              <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-white rounded-xs shadow-md z-30" />
+              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white rounded-xs shadow-md z-30" />
+              <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 bg-white rounded-xs shadow-md z-30" />
+              <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-white rounded-xs shadow-md z-30" />
+            </>
+          )}
 
           <canvas
             ref={canvasRef}
@@ -4035,7 +4046,8 @@ export default function PreviewPlayer({
       </div>
 
       {/* CapCut Pro Player Transport Controls Bar */}
-      <div className="h-11 border-t border-[#24242c] bg-[#1a1a20] px-3 flex items-center justify-between shrink-0 select-none text-xs text-gray-300">
+      {!isMobile && (
+        <div className="h-11 border-t border-[#24242c] bg-[#1a1a20] px-3 flex items-center justify-between shrink-0 select-none text-xs text-gray-300">
         
         {/* Left: Timecode Scrubber & Audio VU Meter */}
         <div className="flex items-center gap-2.5 sm:gap-3">
@@ -4332,6 +4344,7 @@ export default function PreviewPlayer({
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }

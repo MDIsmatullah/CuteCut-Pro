@@ -3086,21 +3086,20 @@ export default function App() {
                     video.play().catch(() => {});
                   });
                 }
-                // Sync drift check with clamping to avoid crashes on huge streams
+                // Sync drift check with relaxed threshold on mobile to avoid MediaCodec stalls
                 if (shouldCheckDrift && !video.seeking) {
-                  const driftThreshold = (safeVolume === 0 || video.muted) ? 1.0 : 0.5;
+                  const driftThreshold = (safeVolume === 0 || video.muted) ? 1.5 : 0.8;
                   if (Math.abs(video.currentTime - clampedTarget) > driftThreshold) {
                     try {
                       video.currentTime = clampedTarget;
                     } catch {}
                   }
                 }
-                syncAudioEffectsForClip(video, clip);
               } else {
                 if (!video.paused) {
                   video.pause();
                 }
-                // Sync paused time
+                // Sync paused time smoothly
                 if (Math.abs(video.currentTime - clampedTarget) > 0.05 && !video.seeking) {
                   try {
                     video.currentTime = clampedTarget;
@@ -3132,15 +3131,13 @@ export default function App() {
                   try { audio.currentTime = clampedTarget; } catch {}
                   audio.play().catch(() => {});
                 } else {
-                  // Only re-seek if drift is massive (> 1.2s), NEVER micro-seek while playing
-                  // Micro-seeking while playing clears the audio DSP buffer and causes repeating stutter!
+                  // Only re-seek if drift is massive (> 1.5s), NEVER micro-seek while playing
                   const durationLimit = audio.duration || clip.duration || 999999;
                   const clampedTarget = Math.max(0, Math.min(durationLimit, targetSrcTime));
-                  if (Math.abs(audio.currentTime - clampedTarget) > 1.2) {
+                  if (Math.abs(audio.currentTime - clampedTarget) > 1.5) {
                     try { audio.currentTime = clampedTarget; } catch {}
                   }
                 }
-                syncAudioEffectsForClip(audio, clip);
               } else {
                 if (!audio.paused) {
                   audio.pause();
@@ -7476,6 +7473,7 @@ export default function App() {
           onOpenAiPromptStudio={() => setShowAiVideoStudioModal(true)}
           renderPreviewPlayer={() => (
             <PreviewPlayer
+              isMobileMode={true}
               tracks={tracks}
               currentTime={currentTime}
               duration={duration}
