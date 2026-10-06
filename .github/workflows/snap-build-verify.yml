@@ -1,10 +1,6 @@
-name: Snap Build & Verify (No Publishing)
+name: Snap Build & Verify (Standalone Test)
 
 on:
-  push:
-    branches:
-      - main
-      - master
   workflow_dispatch:
 
 concurrency:
