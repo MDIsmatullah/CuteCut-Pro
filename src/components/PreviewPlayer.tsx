@@ -852,7 +852,7 @@ export default function PreviewPlayer({
   onOpenSupportModal,
   isMobileMode = false,
 }: PreviewPlayerProps) {
-  const isMobile = isMobileMode || (typeof window !== 'undefined' && (window.innerWidth < 768 || !!(window as any).Capacitor));
+  const isMobile = Boolean(isMobileMode);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -1917,13 +1917,6 @@ export default function PreviewPlayer({
             }
           }
         });
-
-      // Throttled stream buffering check
-      const nowCheck = performance.now();
-      if (nowCheck - lastBufferingCheck.current > 300) {
-        lastBufferingCheck.current = nowCheck;
-        setIsStreamBuffering((prev) => (prev !== hasBufferingStream ? hasBufferingStream : prev));
-      }
 
       // ------------------ PRE-CALCULATE TEXT LAYERS & CINEMA OVERLAYS ------------------
       interface PreparedTextLayer {
@@ -3891,12 +3884,12 @@ export default function PreviewPlayer({
       {/* Main Viewport Stage Canvas */}
       <div ref={containerRef} className={`flex-1 flex items-center justify-center ${isMobile ? 'p-1' : 'p-3'} relative min-h-0 bg-[#070709] overflow-hidden w-full h-full`}>
         <div
-          className="relative rounded-sm shadow-2xl overflow-hidden bg-black flex items-center justify-center transition-all duration-200 border border-white/40 group max-w-full max-h-full"
+          className={`relative rounded-sm shadow-2xl overflow-hidden bg-black flex items-center justify-center transition-all duration-200 ${isMobile ? 'border border-white/40 max-w-full max-h-full' : 'border border-white/80'} group`}
           style={{
             width: canvasZoom === 'fit' ? (aspectRatio === '16:9' ? '100%' : 'auto') : `${canvasZoom}%`,
             height: canvasZoom === 'fit' ? (aspectRatio === '16:9' ? 'auto' : '100%') : `${canvasZoom}%`,
-            maxWidth: '100%',
-            maxHeight: '100%',
+            maxWidth: isMobile ? '100%' : `${dimensions.width}px`,
+            maxHeight: isMobile ? '100%' : `${dimensions.height}px`,
             aspectRatio: aspectRatio === '16:9' ? '16/9' : aspectRatio === '9:16' ? '9/16' : '1/1'
           }}
         >

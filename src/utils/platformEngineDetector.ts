@@ -18,6 +18,53 @@ export interface PlatformEngineInfo {
 }
 
 /**
+ * Determines whether the current execution runtime is an installed offline native application
+ * (Windows .exe, macOS .dmg, Linux .deb/.snap/.AppImage, or Android native APK)
+ * vs a standard web browser visit on the public website.
+ */
+export function isOfflineNativeApp(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    // URL search param override for testing (?mode=desktop or ?mode=web)
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('mode') === 'desktop' || searchParams.get('mode') === 'app' || searchParams.get('shell') === 'native') {
+      return true;
+    }
+    if (searchParams.get('mode') === 'web' || searchParams.get('mode') === 'website') {
+      return false;
+    }
+  } catch {
+    // ignore
+  }
+
+  const userAgent = (navigator.userAgent || '').toLowerCase();
+
+  // 1. Electron Desktop (.exe, .dmg, .deb, .snap, AppImage)
+  const isElectron = !!(window as any).process?.versions?.electron ||
+    /electron/i.test(userAgent) ||
+    !!(window as any).ipcRenderer ||
+    (typeof (window as any).require === 'function' && Boolean((window as any).require('electron')));
+
+  // 2. Tauri Desktop / local file protocol
+  const isTauri = !!(window as any).__TAURI__;
+  const isLocalFile = window.location.protocol === 'file:';
+
+  // 3. Capacitor Native Android / iOS APK shell
+  const isCapacitor = !!(window as any).Capacitor;
+  const isCapacitorNative = isCapacitor && (
+    (typeof (window as any).Capacitor.isNativePlatform === 'function' && (window as any).Capacitor.isNativePlatform()) ||
+    (window as any).Capacitor.getPlatform?.() === 'android' ||
+    (window as any).Capacitor.getPlatform?.() === 'ios'
+  );
+
+  // 4. Native Android bridge interface (injected by WebChromeClient / WebView)
+  const isAndroidBridge = !!(window as any).Android || !!(window as any).AndroidBridge;
+
+  return !!(isElectron || isTauri || isLocalFile || isCapacitorNative || isAndroidBridge);
+}
+
+/**
  * Automatically detects the exact host operating system & runtime environment
  * (Windows .exe, macOS .dmg, Linux .deb/.snap/.AppImage, Android APK, or Web Browser)
  * and assigns the optimal offline rendering engine without manual user selection.

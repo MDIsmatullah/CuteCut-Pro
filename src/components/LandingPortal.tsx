@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Sparkles,
   Scissors,
@@ -71,10 +71,9 @@ import { fetchLatestRelease, fallbackReleaseInfo, ReleaseInfo } from '../utils/r
 import { getUserNamedProjects, deleteUserNamedProject } from '../utils/firebaseConfig';
 import { ProLicenseService } from '../services/proLicenseService';
 import LegalPagesModal, { LegalTab } from './legal/LegalPagesModal';
-import { PWAInstallButton } from './PWAInstallButton';
 import { WebsiteShowcaseView } from './portal/WebsiteShowcaseView';
-import { CloudSyncHubView } from './portal/CloudSyncHubView';
 import { NativeEngineAiHubView } from './portal/NativeEngineAiHubView';
+import { isOfflineNativeApp } from '../utils/platformEngineDetector';
 import PromoteShareModal from './PromoteShareModal';
 
 export interface LandingPortalProps {
@@ -353,7 +352,10 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
   onDirectGoogleSignIn,
   onOpenPreferences,
 }) => {
-  const [activeNav, setActiveNav] = useState<'website' | 'home' | 'templates' | 'projects' | 'ai' | 'quran' | 'downloads' | 'cloud' | 'native_engine'>('home');
+  const isOfflineNative = useMemo(() => isOfflineNativeApp(), []);
+  const [activeNav, setActiveNav] = useState<'website' | 'home' | 'templates' | 'projects' | 'ai' | 'quran' | 'downloads' | 'native_engine'>(() => {
+    return isOfflineNativeApp() ? 'home' : 'website';
+  });
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('cutecut_portal_theme') as 'dark' | 'light') || 'dark';
@@ -735,39 +737,46 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
 
         {/* Navigation Items (CapCut Style) */}
         <nav className="space-y-1 pt-1">
-          <button
-            onClick={() => {
-              setActiveNav('website');
-              if (isMobile) setIsMobileSidebarOpen(false);
-            }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-              activeNav === 'website'
-                ? 'bg-gradient-to-r from-blue-500/20 to-transparent text-blue-400 border-l-2 border-blue-400 font-bold'
-                : 'text-gray-400 hover:bg-[#161626] hover:text-white'
-            }`}
-          >
-            <Globe className="w-4 h-4 text-blue-400" />
-            <span className="flex-1 text-left">Official Website</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
-              PRO
-            </span>
-          </button>
+          {/* Official Website (Visible ONLY on Web Browser Website) */}
+          {!isOfflineNative && (
+            <button
+              onClick={() => {
+                setActiveNav('website');
+                if (isMobile) setIsMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                activeNav === 'website'
+                  ? 'bg-gradient-to-r from-blue-500/20 to-transparent text-blue-400 border-l-2 border-blue-400 font-bold'
+                  : 'text-gray-400 hover:bg-[#161626] hover:text-white'
+              }`}
+            >
+              <Globe className="w-4 h-4 text-blue-400" />
+              <span className="flex-1 text-left">Official Website</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                PRO
+              </span>
+            </button>
+          )}
 
-          <button
-            onClick={() => {
-              setActiveNav('home');
-              if (isMobile) setIsMobileSidebarOpen(false);
-            }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-              activeNav === 'home'
-                ? 'bg-gradient-to-r from-cyan-500/15 to-transparent text-cyan-400 border-l-2 border-cyan-400'
-                : 'text-gray-400 hover:bg-[#161626] hover:text-white'
-            }`}
-          >
-            <Layout className="w-4 h-4" />
-            <span className="flex-1 text-left">Home / Studio Hub</span>
-          </button>
+          {/* Home / Studio Hub (Visible ONLY in Desktop & Android Offline Apps) */}
+          {isOfflineNative && (
+            <button
+              onClick={() => {
+                setActiveNav('home');
+                if (isMobile) setIsMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                activeNav === 'home'
+                  ? 'bg-gradient-to-r from-cyan-500/15 to-transparent text-cyan-400 border-l-2 border-cyan-400'
+                  : 'text-gray-400 hover:bg-[#161626] hover:text-white'
+              }`}
+            >
+              <Layout className="w-4 h-4" />
+              <span className="flex-1 text-left">Home / Studio Hub</span>
+            </button>
+          )}
 
+          {/* AI Models & Native Hub (Visible in BOTH Web and Desktop/Android) */}
           <button
             onClick={() => {
               setActiveNav('native_engine');
@@ -786,78 +795,50 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             </span>
           </button>
 
-          <button
-            onClick={() => {
-              setActiveNav('cloud');
-              if (isMobile) setIsMobileSidebarOpen(false);
-            }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-              activeNav === 'cloud'
-                ? 'bg-gradient-to-r from-purple-500/20 to-transparent text-purple-400 border-l-2 border-purple-400 font-bold'
-                : 'text-gray-400 hover:bg-[#161626] hover:text-white'
-            }`}
-          >
-            <Cloud className="w-4 h-4 text-purple-400" />
-            <span className="flex-1 text-left">Firebase Cloud Sync</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-              SYNC
-            </span>
-          </button>
+          {/* Studio Hub Quick Jump Sections (Visible ONLY in Desktop & Android Offline Apps) */}
+          {isOfflineNative && (
+            <>
+              <button
+                onClick={() => {
+                  setActiveNav('templates');
+                  if (isMobile) setIsMobileSidebarOpen(false);
+                  const el = document.getElementById('capcut-templates-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                  activeNav === 'templates'
+                    ? 'bg-gradient-to-r from-amber-500/15 to-transparent text-amber-400 border-l-2 border-amber-400'
+                    : 'text-gray-400 hover:bg-[#161626] hover:text-white'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span className="flex-1 text-left">Templates (ٹیمپلیٹس)</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  CapCut
+                </span>
+              </button>
 
-          <button
-            onClick={() => {
-              setActiveNav('templates');
-              if (isMobile) setIsMobileSidebarOpen(false);
-              const el = document.getElementById('capcut-templates-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-              activeNav === 'templates'
-                ? 'bg-gradient-to-r from-amber-500/15 to-transparent text-amber-400 border-l-2 border-amber-400'
-                : 'text-gray-400 hover:bg-[#161626] hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span className="flex-1 text-left">Templates (ٹیمپلیٹس)</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              CapCut
-            </span>
-          </button>
-
-          {/* Promotion & Viral Growth Hub */}
-          <button
-            onClick={() => {
-              setShowPromoteModal(true);
-              if (isMobile) setIsMobileSidebarOpen(false);
-            }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-emerald-300 hover:bg-[#162620] transition cursor-pointer border border-emerald-500/20 bg-emerald-950/20"
-          >
-            <Share2 className="w-4 h-4 text-emerald-400 animate-pulse" />
-            <span className="flex-1 text-left font-bold">Promotion & Viral Hub</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              470+
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveNav('projects');
-              if (isMobile) setIsMobileSidebarOpen(false);
-              const el = document.getElementById('recent-projects-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-              activeNav === 'projects'
-                ? 'bg-gradient-to-r from-cyan-500/15 to-transparent text-cyan-400 border-l-2 border-cyan-400'
-                : 'text-gray-400 hover:bg-[#161626] hover:text-white'
-            }`}
-          >
-            <FolderOpen className="w-4 h-4" />
-            <span className="flex-1 text-left">My Projects</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#202034] text-gray-300">
-              {savedProjects.length}
-            </span>
-          </button>
+              <button
+                onClick={() => {
+                  setActiveNav('projects');
+                  if (isMobile) setIsMobileSidebarOpen(false);
+                  const el = document.getElementById('recent-projects-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                  activeNav === 'projects'
+                    ? 'bg-gradient-to-r from-cyan-500/15 to-transparent text-cyan-400 border-l-2 border-cyan-400'
+                    : 'text-gray-400 hover:bg-[#161626] hover:text-white'
+                }`}
+              >
+                <FolderOpen className="w-4 h-4" />
+                <span className="flex-1 text-left">My Projects</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#202034] text-gray-300">
+                  {savedProjects.length}
+                </span>
+              </button>
+            </>
+          )}
 
           <button
             onClick={() => {
@@ -1045,36 +1026,43 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* Quick Navigation Modes Switcher (Website / Studio Hub / AI Models / Cloud) */}
+            {/* Quick Navigation Modes Switcher (Website & AI Models on Web; Studio Hub & AI Models in Desktop/Android) */}
             <div className="flex items-center gap-1 bg-[#141424] p-1 rounded-2xl border border-[#222238]">
-              <button
-                onClick={() => setActiveNav('website')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeNav === 'website'
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-                title="Official Website & Feature Showcase"
-              >
-                <Globe className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Official Website</span>
-                <span className="sm:hidden">Web</span>
-              </button>
+              {/* Official Website (Visible ONLY on Web Browser Website) */}
+              {!isOfflineNative && (
+                <button
+                  onClick={() => setActiveNav('website')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    activeNav === 'website'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Official Website & Feature Showcase"
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Official Website</span>
+                  <span className="sm:hidden">Web</span>
+                </button>
+              )}
 
-              <button
-                onClick={() => setActiveNav('home')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeNav === 'home' || activeNav === 'projects'
-                    ? 'bg-cyan-500 text-black shadow-md font-black'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-                title="Desktop & Android Studio Hub"
-              >
-                <Scissors className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Studio Hub</span>
-                <span className="sm:hidden">Studio</span>
-              </button>
+              {/* Studio Hub (Visible ONLY in Desktop & Android Offline Native Apps) */}
+              {isOfflineNative && (
+                <button
+                  onClick={() => setActiveNav('home')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    activeNav === 'home' || activeNav === 'projects' || activeNav === 'templates'
+                      ? 'bg-cyan-500 text-black shadow-md font-black'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Desktop & Android Studio Hub"
+                >
+                  <Scissors className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Studio Hub</span>
+                  <span className="sm:hidden">Studio</span>
+                </button>
+              )}
 
+              {/* AI Creative Models & Engine Hub (Visible in BOTH Web and Desktop/Android) */}
               <button
                 onClick={() => setActiveNav('native_engine')}
                 className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
@@ -1087,19 +1075,6 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                 <Cpu className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="hidden md:inline">AI Models & Engine</span>
                 <span className="md:hidden">AI Hub</span>
-              </button>
-
-              <button
-                onClick={() => setActiveNav('cloud')}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition hidden lg:flex items-center gap-1.5 cursor-pointer ${
-                  activeNav === 'cloud'
-                    ? 'bg-purple-600 text-white shadow-md'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-                title="Firebase Cloud Storage & Sync"
-              >
-                <Cloud className="w-3.5 h-3.5" />
-                <span>Cloud Sync</span>
               </button>
             </div>
           </div>
@@ -1162,11 +1137,6 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               <span className="sm:hidden">Edit</span>
             </button>
 
-            {/* 1-Click PWA Desktop / Mobile Install Button */}
-            <div className="hidden sm:block">
-              <PWAInstallButton />
-            </div>
-
             {/* Header User Profile or Google Sign In Button */}
             {user ? (
               <button
@@ -1209,8 +1179,9 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
           
           {/* ========================================================= */}
           {/* VIEW A: OFFICIAL WEBSITE SHOWCASE VIEW                     */}
+          {/* (Rendered ONLY on Web Browser Website)                    */}
           {/* ========================================================= */}
-          {activeNav === 'website' && (
+          {!isOfflineNative && activeNav !== 'native_engine' && (
             <WebsiteShowcaseView
               theme={theme}
               user={user}
@@ -1220,7 +1191,8 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               onDirectGoogleSignIn={onDirectGoogleSignIn}
               onOpenQuranStudio={onOpenQuranStudio}
               onOpenAiPromptStudio={onOpenAiPromptStudio}
-              onSwitchToStudioHub={() => setActiveNav('home')}
+              onSwitchToStudioHub={() => setActiveNav('native_engine')}
+              onSwitchToAiHub={() => setActiveNav('native_engine')}
               onOpenLegalModal={(tab) => {
                 setLegalModalTab(tab);
                 setShowLegalModal(true);
@@ -1229,24 +1201,8 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
           )}
 
           {/* ========================================================= */}
-          {/* VIEW B: FIREBASE CLOUD SYNC & ECOSYSTEM VIEW              */}
-          {/* ========================================================= */}
-          {activeNav === 'cloud' && (
-            <CloudSyncHubView
-              theme={theme}
-              user={user}
-              savedProjects={savedProjects}
-              isSyncing={isSyncing}
-              onSync={syncProjects}
-              onOpenAuth={onOpenAuth}
-              onDirectGoogleSignIn={onDirectGoogleSignIn}
-              onOpenProject={handleOpenProject}
-              onOpenEditor={() => onOpenEditor('16:9')}
-            />
-          )}
-
-          {/* ========================================================= */}
           {/* VIEW C: AI MODELS & NATIVE OFFLINE ENGINE HUB              */}
+          {/* (Rendered in BOTH Web Browser and Desktop/Android)         */}
           {/* ========================================================= */}
           {activeNav === 'native_engine' && (
             <NativeEngineAiHubView
@@ -1259,14 +1215,16 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               onOpenSoraPhoto={onOpenSoraPhoto}
               onOpenVoiceoverTts={() => setShowVoiceoverTtsModal(true)}
               onOpenImageEnhance={() => setShowImageEnhanceModal(true)}
-              onSwitchToWebsite={() => setActiveNav('website')}
+              onSwitchToWebsite={!isOfflineNative ? () => setActiveNav('website') : undefined}
+              onSwitchToStudioHub={isOfflineNative ? () => setActiveNav('home') : undefined}
             />
           )}
 
           {/* ========================================================= */}
           {/* VIEW D: CAPCUT-STYLE STUDIO HUB & PROJECT MANAGER (DEFAULT)*/}
+          {/* (Rendered ONLY in Desktop & Android Offline Native Apps)   */}
           {/* ========================================================= */}
-          {activeNav !== 'website' && activeNav !== 'cloud' && activeNav !== 'native_engine' && (
+          {isOfflineNative && activeNav !== 'native_engine' && (
             <>
           
           {/* ========================================================= */}
@@ -1733,192 +1691,6 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               </div>
             )}
           </section>
-
-          {/* ========================================================= */}
-          {/* 6. NATIVE APPS DOWNLOAD SECTION (CROSS-PLATFORM)          */}
-          {/* ========================================================= */}
-          <div className="rounded-3xl p-6 bg-[#0e0e18] border border-[#1e1e2e] space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Download className="w-4 h-4 text-cyan-400" />
-                  <span>Download CuteCut Pro Native Apps ({release.tagName})</span>
-                </h3>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  100% offline-ready with hardware GPU acceleration. Choose your platform:
-                </p>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Universal v2.5.3
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 gap-2.5">
-              {/* Windows EXE */}
-              <a
-                href={release.assets.windowsExe}
-                download
-                onClick={() => handleDownloadClick('Windows', 'CuteCut.Pro.Setup.2.5.3.exe')}
-                className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-cyan-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
-                title="Download Windows 64-bit EXE (WinGet Supported)"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Monitor className="w-4 h-4 text-cyan-400 shrink-0 group-hover:scale-110 transition" />
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-cyan-500/15 text-cyan-300 font-bold">WinGet</span>
-                </div>
-                <div className="text-left min-w-0">
-                  <div className="text-xs font-bold truncate">Windows</div>
-                  <div className="text-[10px] text-gray-400 font-mono">.exe 64-bit</div>
-                </div>
-              </a>
-
-              {/* macOS DMG */}
-              <a
-                href={release.assets.macDmg}
-                download
-                onClick={() => handleDownloadClick('macOS DMG', 'CuteCut.Pro-2.5.3-arm64.dmg')}
-                className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-gray-300 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
-                title="Download macOS DMG (Apple Silicon & Intel)"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Apple className="w-4 h-4 text-gray-300 shrink-0 group-hover:scale-110 transition" />
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-gray-500/20 text-gray-300 font-bold">DMG</span>
-                </div>
-                <div className="text-left min-w-0">
-                  <div className="text-xs font-bold truncate">macOS</div>
-                  <div className="text-[10px] text-gray-400 font-mono">.dmg Apple</div>
-                </div>
-              </a>
-
-              {/* macOS / Universal PKG */}
-              <a
-                href={release.assets.macPkg || release.assets.windowsExe}
-                download
-                onClick={() => handleDownloadClick('macOS PKG', 'CuteCut.Pro-2.5.3.pkg')}
-                className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-amber-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
-                title="Download Native .PKG Installer"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Package className="w-4 h-4 text-amber-400 shrink-0 group-hover:scale-110 transition" />
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">PKG</span>
-                </div>
-                <div className="text-left min-w-0">
-                  <div className="text-xs font-bold truncate">Package</div>
-                  <div className="text-[10px] text-gray-400 font-mono">.pkg Installer</div>
-                </div>
-              </a>
-
-              {/* Linux AppImage */}
-              <a
-                href={release.assets.linuxAppImage}
-                download
-                onClick={() => handleDownloadClick('Linux AppImage', 'CuteCut.Pro-2.5.3-x86_64.AppImage')}
-                className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-emerald-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
-                title="Download Linux AppImage (AppImageHub Supported)"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Terminal className="w-4 h-4 text-emerald-400 shrink-0 group-hover:scale-110 transition" />
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">AppImage</span>
-                </div>
-                <div className="text-left min-w-0">
-                  <div className="text-xs font-bold truncate">Linux</div>
-                  <div className="text-[10px] text-gray-400 font-mono">.AppImage</div>
-                </div>
-              </a>
-
-              {/* Debian / Ubuntu .deb */}
-              <a
-                href={release.assets.linuxDeb}
-                download
-                onClick={() => handleDownloadClick('Debian / Ubuntu', 'cutecut-pro_2.5.3_amd64.deb')}
-                className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-blue-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
-                title="Download Debian/Ubuntu .deb package"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Terminal className="w-4 h-4 text-blue-400 shrink-0 group-hover:scale-110 transition" />
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-blue-500/20 text-blue-300 font-bold">DEB</span>
-                </div>
-                <div className="text-left min-w-0">
-                  <div className="text-xs font-bold truncate">Debian</div>
-                  <div className="text-[10px] text-gray-400 font-mono">.deb package</div>
-                </div>
-              </a>
-
-              {/* Linux Tar / Arch PKG */}
-              <a
-                href={release.assets.linuxPkg || release.assets.linuxDeb}
-                download
-                onClick={() => handleDownloadClick('Linux Tar PKG', 'cutecut-pro-2.5.3.tar.gz')}
-                className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-teal-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
-                title="Download Linux Universal Tar / PKG"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Package className="w-4 h-4 text-teal-400 shrink-0 group-hover:scale-110 transition" />
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-teal-500/20 text-teal-300 font-bold">TAR</span>
-                </div>
-                <div className="text-left min-w-0">
-                  <div className="text-xs font-bold truncate">Linux PKG</div>
-                  <div className="text-[10px] text-gray-400 font-mono">.tar.gz / pkg</div>
-                </div>
-              </a>
-
-              {/* Android APK */}
-              <a
-                href={release.assets.androidApk || 'https://github.com/MDIsmatullah/CuteCut-Pro/releases/latest'}
-                download
-                onClick={() => handleDownloadClick('Android APK', 'CuteCut-Pro-v2.5.3.apk')}
-                className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-green-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
-                title="Download Android APK Direct"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Smartphone className="w-4 h-4 text-green-400 shrink-0 group-hover:scale-110 transition" />
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-green-500/20 text-green-300 font-bold">APK</span>
-                </div>
-                <div className="text-left min-w-0">
-                  <div className="text-xs font-bold truncate">Android</div>
-                  <div className="text-[10px] text-gray-400 font-mono">.apk Mobile</div>
-                </div>
-              </a>
-
-              {/* F-Droid Store */}
-              <a
-                href={release.assets.fdroidUrl || 'https://github.com/MDIsmatullah/CuteCut-Pro/raw/main/fdroid/metadata/org.guldasta.cutecutpro.yml'}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => handleDownloadClick('F-Droid Store', 'F-Droid Metadata Recipe')}
-                className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-emerald-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
-                title="F-Droid Open Source Repository Recipe"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Smartphone className="w-4 h-4 text-emerald-400 shrink-0 group-hover:scale-110 transition" />
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">F-Droid</span>
-                </div>
-                <div className="text-left min-w-0">
-                  <div className="text-xs font-bold truncate">F-Droid</div>
-                  <div className="text-[10px] text-gray-400 font-mono">Store Catalog</div>
-                </div>
-              </a>
-
-              {/* Flathub / Flatpak */}
-              <a
-                href={release.assets.flatpak || 'https://flathub.org/apps/org.guldasta.cutecutpro'}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => handleDownloadClick('Flatpak', 'Flathub Portal')}
-                className="p-3 rounded-xl bg-[#141422] hover:bg-[#1a1a2e] border border-[#242438] hover:border-purple-400 text-gray-200 hover:text-white transition flex flex-col items-start gap-1.5 cursor-pointer shadow group"
-                title="Flathub Linux Portal"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Package className="w-4 h-4 text-purple-400 shrink-0 group-hover:scale-110 transition" />
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-purple-500/20 text-purple-300 font-bold">Flatpak</span>
-                </div>
-                <div className="text-left min-w-0">
-                  <div className="text-xs font-bold truncate">Flathub</div>
-                  <div className="text-[10px] text-gray-400 font-mono">Linux Flatpak</div>
-                </div>
-              </a>
-            </div>
-          </div>
 
           {/* ========================================================= */}
           {/* 4.5 CAPCUT-STYLE TRENDING TEMPLATES SECTION (ٹیمپلیٹس)     */}

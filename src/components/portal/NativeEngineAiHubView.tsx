@@ -36,6 +36,7 @@ export interface NativeEngineAiHubViewProps {
   onOpenVoiceoverTts?: () => void;
   onOpenImageEnhance?: () => void;
   onSwitchToWebsite?: () => void;
+  onSwitchToStudioHub?: () => void;
 }
 
 export const NativeEngineAiHubView: React.FC<NativeEngineAiHubViewProps> = ({
@@ -49,6 +50,7 @@ export const NativeEngineAiHubView: React.FC<NativeEngineAiHubViewProps> = ({
   onOpenVoiceoverTts,
   onOpenImageEnhance,
   onSwitchToWebsite,
+  onSwitchToStudioHub,
 }) => {
   const isDark = theme === 'dark';
   const sysProfile = detectSystemHardwareProfile();
@@ -109,15 +111,15 @@ export const NativeEngineAiHubView: React.FC<NativeEngineAiHubViewProps> = ({
     },
     {
       id: 'quran-studio',
-      title: 'Quran 4K Ayah Alignment AI Engine',
-      badge: '100% FREE',
+      title: 'CuteCut Pro Quran AI Model Engine',
+      badge: 'UNIVERSAL 114 SURAHS',
       badgeColor: 'bg-emerald-500 text-black',
       icon: <BookOpen className="w-6 h-6 text-emerald-400" />,
       accentColor: 'border-emerald-500/40 hover:border-emerald-400',
-      description: 'Automated Tajweed syllable sync, gold Uthmanic Arabic calligraphy, multilingual Urdu/English translation mapping, and authentic recitation alignment.',
-      capabilities: ['Tajweed Syllable Sync', 'Uthmanic Script Rendering', 'EveryAyah 128kbps Audio', 'Pexels/Pixabay 4K Footages'],
+      description: 'Auto-detects any Surah (Al-Baqarah to An-Nas) & auto-segments Mukammal Surah with Quran.com API text/translations. Syncs 1-breath 1-ayah with zero drift, aligns multi-ayahs in 1 breath (Wasl), and splits long ayahs over 2-4 breaths with voice matching.',
+      capabilities: ['114 Surahs (Al-Baqarah to An-Nas)', 'Quran.com API Uthmani & Urdu/English', '1-Breath 1-Ayah Voice Sync (Zero Drift)', '2-4 Ayahs in 1 Breath (Wasl Sync)', 'Long Ayah 2-4 Breaths Intra-Waqf Split'],
       onAction: onOpenQuranStudio || (() => onOpenEditor('9:16')),
-      btnText: 'Open Quran 4K Studio',
+      btnText: 'Open CuteCut Quran AI Model',
       btnColor: 'bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold'
     },
     {
@@ -173,9 +175,17 @@ export const NativeEngineAiHubView: React.FC<NativeEngineAiHubViewProps> = ({
             </p>
           </div>
 
-          {/* Official Website Button */}
+          {/* Navigation Action Button */}
           <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
-            {onSwitchToWebsite ? (
+            {onSwitchToStudioHub ? (
+              <button
+                onClick={onSwitchToStudioHub}
+                className="px-5 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs shadow-lg flex items-center gap-2 transition hover:scale-105 cursor-pointer"
+              >
+                <Scissors className="w-4 h-4 text-black" />
+                <span>🎬 Back to Studio Hub</span>
+              </button>
+            ) : onSwitchToWebsite ? (
               <button
                 onClick={onSwitchToWebsite}
                 className="px-5 py-3 rounded-2xl bg-white hover:bg-gray-100 text-slate-950 font-black text-xs shadow-lg flex items-center gap-2 transition hover:scale-105 cursor-pointer"

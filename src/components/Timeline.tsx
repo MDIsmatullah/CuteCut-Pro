@@ -3219,32 +3219,24 @@ export default function Timeline({
               </div>
             )}
 
-            {/* Playhead vertical red line with smooth Framer Motion glide */}
-            <motion.div
+            {/* Playhead vertical red line with smooth hardware transform */}
+            <div
               id="timeline-playhead"
               className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-30 pointer-events-none shadow-[0_0_8px_rgba(239,68,68,0.85)]"
-              initial={false}
-              animate={{ left: `${currentTime * zoom}px` }}
-              transition={
-                isPlaying || isScrubbing
-                  ? { duration: 0, ease: 'linear' }
-                  : { type: 'spring', damping: 28, stiffness: 350, mass: 0.4 }
-              }
+              style={{
+                left: `${currentTime * zoom}px`,
+                willChange: 'left',
+              }}
             >
               {/* CapCut Pro Downward Pentagon Playhead Head on Ruler */}
-              <motion.div 
+              <div 
                 className="absolute top-0 -left-[6px] w-[14px] h-[17px] bg-red-500 flex items-center justify-center shadow-[0_2px_8px_rgba(239,68,68,0.6)] pointer-events-none rounded-t-xs"
                 style={{
                   clipPath: 'polygon(0% 0%, 100% 0%, 100% 68%, 50% 100%, 0% 68%)'
                 }}
-                animate={{
-                  scale: isScrubbing ? 1.25 : 1,
-                  filter: isScrubbing ? 'drop-shadow(0 0 6px #ef4444)' : 'drop-shadow(0 0 2px rgba(239,68,68,0.5))'
-                }}
-                transition={{ type: 'spring', damping: 20, stiffness: 400 }}
               >
                 <div className="w-1.5 h-1.5 bg-white rounded-full opacity-95 -mt-1 shadow-xs ring-1 ring-red-600/50" />
-              </motion.div>
+              </div>
 
               {/* Glowing vertical laser beam runner */}
               <div className="absolute inset-0 bg-gradient-to-b from-red-400 via-red-500 to-red-600 opacity-90" />
@@ -3263,7 +3255,7 @@ export default function Timeline({
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.div>
+            </div>
 
           </div>
 

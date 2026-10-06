@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Scissors, Download, RefreshCw, Film, Type, Code, Terminal, Save, User, FolderOpen, Brain, Mic, Heart, Cloud, CloudUpload, X, LogOut, Check, ChevronDown, ChevronRight, Loader2, Keyboard, Zap, Wifi, WifiOff, Settings, MessageSquare, Bot, Sparkles, Wand2, Share2 } from 'lucide-react';
+import { Scissors, Download, RefreshCw, Film, Type, Code, Terminal, Save, User, FolderOpen, Brain, Mic, Heart, Cloud, CloudUpload, X, LogOut, Check, ChevronDown, ChevronRight, Loader2, Keyboard, Zap, Wifi, WifiOff, Settings, MessageSquare, Bot, Sparkles, Wand2, Share2, BookOpen } from 'lucide-react';
 import { Clip, ClipType, Track, WatermarkSettings, VisualStylePreset } from './types';
 import MediaPanel from './components/MediaPanel';
 import PreviewPlayer from './components/PreviewPlayer';
@@ -23,6 +23,8 @@ import { getClipEffectiveSpeedAtTime } from './utils/speedRampUtils';
 import { backgroundMediaPreloader } from './services/backgroundMediaPreloader';
 import { PreferencesModal } from './components/PreferencesModal';
 import { Quran100ProtocolsModal } from './components/Quran100ProtocolsModal';
+import { CuteCutQuranAiModelModal } from './components/CuteCutQuranAiModelModal';
+import { cuteCutQuranAiModel } from './services/quranAiModelEngine';
 import { VeoAnimateImageModal, VeoStudioMode } from './components/VeoAnimateImageModal';
 import { AiPromptVideoStudio } from './components/AiPromptVideoStudio';
 import { VideoExport } from './components/video/VideoExport';
@@ -426,6 +428,7 @@ export default function App() {
   const [showGeminiIntelligenceModal, setShowGeminiIntelligenceModal] = useState(false);
   const [showAiVideoStudioModal, setShowAiVideoStudioModal] = useState(false);
   const [showVeoAnimateModal, setShowVeoAnimateModal] = useState(false);
+  const [showCuteCutQuranAiModelModal, setShowCuteCutQuranAiModelModal] = useState(false);
   const [veoInitialMode, setVeoInitialMode] = useState<VeoStudioMode>('prompt_to_video');
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const settingsDropdownRef = useRef<HTMLDivElement>(null);
@@ -4072,60 +4075,72 @@ export default function App() {
     const clipDuration = clipData.duration || (isImg ? 8 : 15);
     const thumbnailRef = clipData.poster || clipData.thumbnailUrl || (clipData as any).thumbnail || (isImg ? clipData.url : undefined);
 
+    // Smart positioning: if explicit start given, use it; otherwise place directly at current playhead cursor
+    let clipStart = clipData.start !== undefined ? clipData.start : currentTime;
+    if (clipStart < 0) clipStart = 0;
+
+    const newClip: Clip = {
+      ...clipData,
+      id: uniqueClipId,
+      name: clipData.name || (targetType === ClipType.VIDEO ? 'Video Clip' : targetType === ClipType.IMAGE ? 'Image Clip' : targetType === ClipType.AUDIO ? 'Audio Track' : 'Text Overlay'),
+      type: targetType,
+      trackId: '',
+      start: clipStart,
+      duration: clipDuration,
+      sourceStart: clipData.sourceStart || 0,
+      sourceDuration: clipData.sourceDuration || clipDuration,
+      playbackRate: clipData.playbackRate || 1.0,
+      volume: clipData.volume !== undefined ? clipData.volume : 1.0,
+      url: clipData.url,
+      isImage: isImg,
+      poster: thumbnailRef,
+      thumbnailUrl: thumbnailRef,
+      fallbackUrl: thumbnailRef || clipData.fallbackUrl,
+      text: clipData.text,
+      fontSize: clipData.fontSize,
+      color: clipData.color,
+      fontFamily: clipData.fontFamily,
+      textStyle: clipData.textStyle,
+      textX: clipData.textX,
+      textY: clipData.textY,
+      textWrap: clipData.textWrap,
+      textMaxWidth: clipData.textMaxWidth,
+      textLineHeight: clipData.textLineHeight,
+      textAlignment: clipData.textAlignment,
+      filters: clipData.filters
+    };
+
+    // Pre-wake element in videoElementsRef immediately
+    if (clipData.url && (targetType === ClipType.VIDEO || targetType === ClipType.IMAGE)) {
+      const norm = normalizeMediaUrl(clipData.url);
+      if (isImg) {
+        const img = document.createElement('img');
+        const cr = getSafeCrossOrigin(clipData.url);
+        if (cr) img.crossOrigin = cr;
+        img.src = norm;
+        videoElementsRef.current[uniqueClipId] = img;
+      } else {
+        const vid = document.createElement('video');
+        const cr = getSafeCrossOrigin(clipData.url);
+        if (cr) vid.crossOrigin = cr;
+        vid.src = norm;
+        vid.muted = true;
+        vid.playsInline = true;
+        vid.preload = 'auto';
+        try { vid.load(); } catch {}
+        videoElementsRef.current[uniqueClipId] = vid;
+      }
+    }
+
+    // Ensure timeline editor duration expands so the new clip is completely visible
+    const neededDuration = Math.ceil(clipStart + clipDuration + 2);
+    setDuration(prev => Math.max(prev, neededDuration));
+    setCurrentTime(clipStart);
+
     setTracks(prevTracks => {
       let existingTrack = prevTracks.find(t => t.type === targetType);
       const trackId = existingTrack ? existingTrack.id : `track-${targetType}-${Date.now()}`;
-
-      // Smart positioning: if explicit start given, use it;
-      // if currentTime > 0, place at playhead;
-      // if track already has clips, append sequentially after the last clip so items don't collide at 0s
-      let clipStart = clipData.start;
-      if (clipStart === undefined) {
-        if (currentTime > 0) {
-          clipStart = currentTime;
-        } else if (existingTrack && existingTrack.clips.length > 0) {
-          const maxEnd = existingTrack.clips.reduce((max, c) => Math.max(max, c.start + c.duration), 0);
-          clipStart = maxEnd;
-        } else {
-          clipStart = 0;
-        }
-      }
-
-      const newClip: Clip = {
-        ...clipData,
-        id: uniqueClipId,
-        name: clipData.name || (targetType === ClipType.VIDEO ? 'Video Clip' : targetType === ClipType.IMAGE ? 'Image Clip' : targetType === ClipType.AUDIO ? 'Audio Track' : 'Text Overlay'),
-        type: targetType,
-        trackId: trackId,
-        start: clipStart,
-        duration: clipDuration,
-        sourceStart: clipData.sourceStart || 0,
-        sourceDuration: clipData.sourceDuration || clipDuration,
-        playbackRate: clipData.playbackRate || 1.0,
-        volume: clipData.volume !== undefined ? clipData.volume : 1.0,
-        url: clipData.url,
-        isImage: isImg,
-        poster: thumbnailRef,
-        thumbnailUrl: thumbnailRef,
-        fallbackUrl: thumbnailRef || clipData.fallbackUrl,
-        text: clipData.text,
-        fontSize: clipData.fontSize,
-        color: clipData.color,
-        fontFamily: clipData.fontFamily,
-        textStyle: clipData.textStyle,
-        textX: clipData.textX,
-        textY: clipData.textY,
-        textWrap: clipData.textWrap,
-        textMaxWidth: clipData.textMaxWidth,
-        textLineHeight: clipData.textLineHeight,
-        textAlignment: clipData.textAlignment,
-        filters: clipData.filters
-      };
-
-      // Ensure timeline editor duration expands so the new clip is completely visible
-      const neededDuration = Math.ceil(clipStart + clipDuration + 2);
-      setDuration(prev => Math.max(prev, neededDuration));
-      setCurrentTime(clipStart);
+      newClip.trackId = trackId;
 
       if (!existingTrack) {
         const trackCountOfType = prevTracks.filter(t => t.type === targetType).length + 1;
@@ -4160,6 +4175,7 @@ export default function App() {
     });
 
     setSelectedClipIds([uniqueClipId]);
+    setSelectedClipId(uniqueClipId);
   };
 
   // ------------------ CapCut Pro Timeline Handlers ------------------
@@ -4617,6 +4633,49 @@ export default function App() {
       }
       return track;
     }));
+  };
+
+  // ------------------ (D-2) CUTECUT QURAN AI MODEL ENGINE APPLICATION ------------------
+  const handleApplyQuranAiModelClips = (
+    arabicClips: Partial<Clip>[],
+    translationClips: Partial<Clip>[]
+  ) => {
+    const trackArId = 'track-quran-arabic';
+    const trackEnId = 'track-quran-english';
+
+    setTracks(prev => {
+      const existingArTrack = prev.find(t => t.id === trackArId);
+      const existingEnTrack = prev.find(t => t.id === trackEnId);
+
+      const newArTrack: Track = existingArTrack
+        ? { ...existingArTrack, clips: arabicClips as Clip[] }
+        : {
+            id: trackArId,
+            name: 'Quran Arabic (Uthmani)',
+            type: 'text' as const,
+            clips: arabicClips as Clip[],
+            locked: false,
+            muted: false
+          };
+
+      const newEnTrack: Track = existingEnTrack
+        ? { ...existingEnTrack, clips: translationClips as Clip[] }
+        : {
+            id: trackEnId,
+            name: 'Quran Translation',
+            type: 'text' as const,
+            clips: translationClips as Clip[],
+            locked: false,
+            muted: false
+          };
+
+      const remainingTracks = prev.filter(t => t.id !== trackArId && t.id !== trackEnId);
+      return [...remainingTracks, newArTrack, newEnTrack];
+    });
+
+    setCurrentView('editor');
+    setShowCuteCutQuranAiModelModal(false);
+    console.log(`[CuteCut Quran AI] Successfully applied ${arabicClips.length} aligned Quran Ayahs to timeline.`);
   };
 
   // ------------------ (D) AI AUTO CAPTION PARSER ------------------
@@ -7332,7 +7391,7 @@ export default function App() {
             setShowVeoAnimateModal(true);
           }}
           onOpenQuranStudio={() => {
-            handleLoadTemplate('tpl-quran-reels');
+            setShowCuteCutQuranAiModelModal(true);
           }}
           onSignOut={handleGoogleSignOut}
           onOpenPreferences={() => setShowPreferencesModal(true)}
@@ -7912,6 +7971,15 @@ export default function App() {
           totalAyahs={tracks.find(t => t.id === 'track-quran-arabic')?.clips.length || 7}
         />
 
+        {/* CuteCut Pro Quran AI Model Engine Modal */}
+        <CuteCutQuranAiModelModal
+          isOpen={showCuteCutQuranAiModelModal}
+          onClose={() => setShowCuteCutQuranAiModelModal(false)}
+          timelineAudioClips={tracks.find(t => t.id === 'track-audio' || t.id === 'track-audio-1')?.clips || []}
+          onApplyToTimeline={handleApplyQuranAiModelClips}
+          theme="dark"
+        />
+
         {showVideoSynthesis && (
           <VideoExport 
             projectId={Date.now().toString()} 
@@ -8078,6 +8146,18 @@ export default function App() {
             <Sparkles className="w-3.5 h-3.5 text-rose-400" />
             <span>Sora Photo</span>
             <span className="bg-rose-500/20 text-rose-300 text-[9px] px-1 py-0.5 rounded font-mono font-bold border border-rose-500/30">SORA</span>
+          </button>
+
+          {/* CuteCut Quran AI Model Engine Button */}
+          <button
+            id="btn-cutecut-quran-ai-model"
+            onClick={() => setShowCuteCutQuranAiModelModal(true)}
+            className="flex items-center gap-1.5 px-3 h-9 bg-[#0d2319] hover:bg-[#133425] border border-emerald-500/50 hover:border-emerald-400 text-emerald-200 text-xs font-semibold rounded-lg transition shadow-sm active:scale-95 cursor-pointer"
+            title="Open CuteCut Pro Quran AI Model Engine (Auto-Detect, Quran.com API, Mukammal Surah, Wasl & Long Ayah Splitting)"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Quran AI Model</span>
+            <span className="bg-emerald-500/20 text-emerald-300 text-[9px] px-1 py-0.5 rounded font-mono font-bold border border-emerald-500/30">114 SURAHS</span>
           </button>
 
           {/* Settings & System Menu Dropdown (Includes Save Project, Check Update, Shortcuts, and High Perf) */}
@@ -8930,6 +9010,15 @@ export default function App() {
         protocols={latestProtocolsEvaluation}
         surahName={tracks.find(t => t.id === 'track-audio-1')?.clips[0]?.name || 'Surah Al-Fatihah'}
         totalAyahs={tracks.find(t => t.id === 'track-quran-arabic')?.clips.length || 7}
+      />
+
+      {/* CuteCut Pro Quran AI Model Engine Modal */}
+      <CuteCutQuranAiModelModal
+        isOpen={showCuteCutQuranAiModelModal}
+        onClose={() => setShowCuteCutQuranAiModelModal(false)}
+        timelineAudioClips={tracks.find(t => t.id === 'track-audio' || t.id === 'track-audio-1')?.clips || []}
+        onApplyToTimeline={handleApplyQuranAiModelClips}
+        theme="dark"
       />
 
       {showVideoSynthesis && (

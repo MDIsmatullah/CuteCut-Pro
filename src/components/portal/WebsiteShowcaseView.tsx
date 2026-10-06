@@ -12,7 +12,6 @@ import {
   Smartphone,
   ShieldCheck,
   ArrowRight,
-  Cloud,
   Layers,
   Music,
   Video,
@@ -22,8 +21,6 @@ import {
   Laptop,
   Check,
   Star,
-  Server,
-  Lock,
   Sun,
   Moon
 } from 'lucide-react';
@@ -40,7 +37,8 @@ export interface WebsiteShowcaseViewProps {
   onDirectGoogleSignIn?: () => void;
   onOpenQuranStudio?: () => void;
   onOpenAiPromptStudio?: () => void;
-  onSwitchToStudioHub: () => void;
+  onSwitchToStudioHub?: () => void;
+  onSwitchToAiHub?: () => void;
   onOpenLegalModal: (tab: 'privacy' | 'terms' | 'about' | 'contact') => void;
 }
 
@@ -54,6 +52,7 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
   onOpenQuranStudio,
   onOpenAiPromptStudio,
   onSwitchToStudioHub,
+  onSwitchToAiHub,
   onOpenLegalModal,
 }) => {
   const isDark = theme === 'dark';
@@ -110,7 +109,7 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
             isDark ? 'text-gray-300' : 'text-slate-600'
           }`}>
             Full hardware-accelerated 60 FPS WebCodecs engine, frame-accurate multi-track timeline, 
-            instant Quran 4K ayah auto-sync, 32-bit DSP audio mastering, and automatic Firebase Cloud draft backups.
+            instant Quran 4K ayah auto-sync, 32-bit DSP audio mastering, and local timeline draft autosave.
           </p>
 
           {/* CTAs Row */}
@@ -124,28 +123,19 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
             </button>
 
             <button
-              onClick={onSwitchToStudioHub}
+              onClick={() => {
+                if (onSwitchToAiHub) onSwitchToAiHub();
+                else if (onSwitchToStudioHub) onSwitchToStudioHub();
+              }}
               className={`px-6 py-3.5 rounded-2xl font-bold text-sm border transition-all duration-200 flex items-center gap-2 cursor-pointer ${
                 isDark 
-                  ? 'bg-[#161628] hover:bg-[#202038] border-[#2c2c46] text-white hover:border-cyan-400/50' 
+                  ? 'bg-[#161628] hover:bg-[#202038] border-[#2c2c46] text-white hover:border-emerald-400/50' 
                   : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-800 shadow-sm'
               }`}
             >
-              <Scissors className="w-4 h-4 text-cyan-400" />
-              <span>🎬 Open Desktop Studio Hub</span>
+              <Cpu className="w-4 h-4 text-emerald-400" />
+              <span>⚡ Explore AI Models & Engine</span>
             </button>
-
-            <a
-              href="#native-downloads-section"
-              className={`px-5 py-3.5 rounded-2xl font-semibold text-xs border transition flex items-center gap-2 ${
-                isDark
-                  ? 'bg-black/40 hover:bg-black/60 border-white/10 text-gray-300 hover:text-white'
-                  : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
-              }`}
-            >
-              <Download className="w-4 h-4 text-emerald-400" />
-              <span>Download Native Apps</span>
-            </a>
           </div>
 
           {/* Quick Value Points */}
@@ -167,100 +157,7 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
       </section>
 
       {/* ========================================================================= */}
-      {/* 2. FIREBASE CLOUD ECOSYSTEM & MULTI-DEVICE SYNC SHOWCASE                 */}
-      {/* ========================================================================= */}
-      <section className={`p-6 sm:p-10 rounded-3xl border ${
-        isDark ? 'bg-[#12121e] border-[#222238]' : 'bg-white border-slate-200 shadow-md'
-      }`}>
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-gray-500/20">
-          <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 uppercase tracking-wider">
-              <Cloud className="w-4 h-4 text-cyan-400 animate-pulse" />
-              <span>Firebase Cloud Ecosystem</span>
-            </div>
-            <h2 className={`text-2xl sm:text-3xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              Seamless Multi-Device Draft Sync & Cloud Storage
-            </h2>
-            <p className={`text-xs sm:text-sm max-w-2xl ${isDark ? 'text-gray-400' : 'text-slate-600'}`}>
-              Sign in once with Google to automatically backup your timeline drafts. Start on your Windows or Mac PC, review on Android, and finalize in your Web Browser.
-            </p>
-          </div>
-
-          {/* User Sign-In CTA or Profile */}
-          {user ? (
-            <div className={`p-3.5 rounded-2xl border flex items-center gap-3 shrink-0 ${
-              isDark ? 'bg-[#18182c] border-[#2a2a44]' : 'bg-slate-50 border-slate-200'
-            }`}>
-              {user.photoURL ? (
-                <img src={user.photoURL} alt="Avatar" className="w-10 h-10 rounded-full border border-cyan-400 object-cover" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-600 text-black font-extrabold flex items-center justify-center">
-                  {user.displayName ? user.displayName.charAt(0) : 'U'}
-                </div>
-              )}
-              <div>
-                <div className="text-xs font-bold truncate max-w-[150px]">{user.displayName || 'Creator'}</div>
-                <div className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Cloud Active
-                </div>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => {
-                if (onDirectGoogleSignIn) onDirectGoogleSignIn();
-                else onOpenAuth();
-              }}
-              className="px-5 py-3 rounded-2xl bg-white hover:bg-gray-100 text-slate-950 font-extrabold text-xs shadow-lg hover:scale-105 transition flex items-center gap-2.5 cursor-pointer shrink-0"
-            >
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-              </svg>
-              <span>Connect Google & Firebase Sync</span>
-            </button>
-          )}
-        </div>
-
-        {/* 3 Pillars of Firebase Architecture */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 pt-8">
-          <div className={`p-5 rounded-2xl border ${isDark ? 'bg-[#151526] border-[#25253c]' : 'bg-slate-50 border-slate-200'}`}>
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-3">
-              <Globe className="w-5 h-5" />
-            </div>
-            <h3 className="text-sm font-bold mb-1">Single Sign-On (SSO)</h3>
-            <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-slate-600'}`}>
-              One-click instant Google Sign-In with zero friction. No cumbersome password management.
-            </p>
-          </div>
-
-          <div className={`p-5 rounded-2xl border ${isDark ? 'bg-[#151526] border-[#25253c]' : 'bg-slate-50 border-slate-200'}`}>
-            <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-3">
-              <Server className="w-5 h-5" />
-            </div>
-            <h3 className="text-sm font-bold mb-1">Firestore Realtime Storage</h3>
-            <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-slate-600'}`}>
-              High-speed distributed cloud storage for project schemas, timeline tracks, and custom presets.
-            </p>
-          </div>
-
-          <div className={`p-5 rounded-2xl border ${isDark ? 'bg-[#151526] border-[#25253c]' : 'bg-slate-50 border-slate-200'}`}>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-3">
-              <Lock className="w-5 h-5" />
-            </div>
-            <h3 className="text-sm font-bold mb-1">100% Private & Encrypted</h3>
-            <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-slate-600'}`}>
-              Your video files stay private on your local storage. Only blueprint metadata syncs securely.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 3. NATIVE DESKTOP & MOBILE APPS DOWNLOAD HUB MATRIX                      */}
+      {/* 2. NATIVE DESKTOP & MOBILE APPS DOWNLOAD HUB MATRIX                      */}
       {/* ========================================================================= */}
       <section id="native-downloads-section" className={`p-6 sm:p-10 rounded-3xl border ${
         isDark ? 'bg-[#12121e] border-[#222238]' : 'bg-white border-slate-200 shadow-md'
