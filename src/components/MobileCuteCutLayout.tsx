@@ -15,6 +15,7 @@ export type GlobalMobileTab =
   | 'sfx'
   | 'quran'
   | 'visuals'
+  | 'veo'
   | 'text' 
   | 'overlay' 
   | 'effects' 
@@ -64,6 +65,8 @@ interface MobileCuteCutLayoutProps {
   onAutoSyncVideoToAyahs?: () => void;
   onAutoRemoveSilence?: () => void;
   onAutoSegmentRhythm?: () => void;
+  onOpenVeoAnimateModal?: (mode?: 'prompt_to_video' | 'image_to_video') => void;
+  onOpenAiPromptStudio?: () => void;
   renderPreviewPlayer: () => React.ReactNode;
   renderTimeline: () => React.ReactNode;
   renderMediaPanel: (tab?: any) => React.ReactNode;
@@ -93,6 +96,8 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
   onAutoSyncVideoToAyahs,
   onAutoRemoveSilence,
   onAutoSegmentRhythm,
+  onOpenVeoAnimateModal,
+  onOpenAiPromptStudio,
   renderPreviewPlayer,
   renderTimeline,
   renderMediaPanel,
@@ -105,16 +110,17 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
   // Main Global Bottom Navigation Items (When NO clip is selected)
   const globalNavItems: { id: GlobalMobileTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'media', label: 'Media', icon: Layers },
+    { id: 'veo', label: 'Veo AI', icon: Sparkles },
+    { id: 'autosegment', label: 'Auto-Sync', icon: Zap },
     { id: 'audio', label: 'Audio', icon: Music },
     { id: 'sfx', label: 'Sound FX', icon: Bell },
     { id: 'quran', label: 'Quran AI', icon: BookOpen },
-    { id: 'visuals', label: 'Visuals', icon: Sparkles },
+    { id: 'visuals', label: 'Visuals', icon: Film },
     { id: 'text', label: 'Text', icon: Type },
     { id: 'overlay', label: 'Overlay', icon: ImageIcon },
     { id: 'effects', label: 'Effects', icon: Wand2 },
     { id: 'filters', label: 'Filters', icon: Palette },
     { id: 'adjustment', label: 'Adjust', icon: SlidersHorizontal },
-    { id: 'autosegment', label: 'Auto-Sync', icon: Zap },
     { id: 'stickers', label: 'Stickers', icon: Smile },
     { id: 'canvas', label: 'Canvas', icon: Sun },
   ];
@@ -320,6 +326,58 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
                     className="px-5 py-2 rounded-xl bg-cyan-500 text-black text-xs font-bold shadow-md shadow-cyan-500/20"
                   >
                     Save Changes
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Veo AI Video Generation Drawer */}
+            {activeGlobalDrawer === 'veo' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-1 border-b border-gray-800">
+                  <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+                    <span>CuteCut AI Video Engine (Google Veo 3.1)</span>
+                  </span>
+                  <span className="text-[9px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full font-mono font-bold">ONLINE AI</span>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Generate cinematic 1080p AI video clips and animated scenes directly into your timeline:
+                </p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    onClick={() => {
+                      if (onOpenVeoAnimateModal) onOpenVeoAnimateModal('prompt_to_video');
+                      setActiveGlobalDrawer(null);
+                    }}
+                    className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-gradient-to-br from-[#0c1824] to-[#122232] border border-cyan-500/50 hover:border-cyan-400 text-left active:scale-95 transition cursor-pointer shadow-md shadow-cyan-950/40"
+                  >
+                    <Film className="w-6 h-6 text-cyan-400 mb-1.5" />
+                    <span className="text-xs font-bold text-gray-100">Veo Text to Video</span>
+                    <span className="text-[10px] text-cyan-300/80 text-center mt-0.5">Type prompt & generate</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onOpenVeoAnimateModal) onOpenVeoAnimateModal('image_to_video');
+                      setActiveGlobalDrawer(null);
+                    }}
+                    className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-gradient-to-br from-[#1a1226] to-[#251636] border border-purple-500/50 hover:border-purple-400 text-left active:scale-95 transition cursor-pointer shadow-md shadow-purple-950/40"
+                  >
+                    <Sparkles className="w-6 h-6 text-purple-400 mb-1.5" />
+                    <span className="text-xs font-bold text-gray-100">Sora Photo Animator</span>
+                    <span className="text-[10px] text-purple-300/80 text-center mt-0.5">Bring images to life</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onOpenAiPromptStudio) onOpenAiPromptStudio();
+                      setActiveGlobalDrawer(null);
+                    }}
+                    className="col-span-2 flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white font-bold text-xs shadow-lg active:scale-95 transition cursor-pointer"
+                  >
+                    <Wand2 className="w-4 h-4 text-white" />
+                    <span>Open AI Prompt Video Studio (Full Script & Reel)</span>
                   </button>
                 </div>
               </div>

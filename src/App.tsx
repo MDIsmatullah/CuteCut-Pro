@@ -7469,6 +7469,11 @@ export default function App() {
           onAutoSyncVideoToAyahs={handleAutoSyncVideoToAyahs}
           onAutoRemoveSilence={handleAutoRemoveSilence}
           onAutoSegmentRhythm={handleAutoSegmentRhythm}
+          onOpenVeoAnimateModal={(mode) => {
+            setVeoInitialMode(mode || 'prompt_to_video');
+            setShowVeoAnimateModal(true);
+          }}
+          onOpenAiPromptStudio={() => setShowAiVideoStudioModal(true)}
           renderPreviewPlayer={() => (
             <PreviewPlayer
               tracks={tracks}

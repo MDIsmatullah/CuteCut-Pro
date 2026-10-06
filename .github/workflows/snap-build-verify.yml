@@ -1,11 +1,15 @@
 name: Snap Build & Verify (No Publishing)
 
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - 'snap/**'
-      - 'snapcraft.yaml'
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-verify:

@@ -1,11 +1,18 @@
 name: Build CuteCut Pro Android APK
 
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - 'android/**'
-      - 'capacitor.config.json'
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-android:

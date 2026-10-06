@@ -1990,46 +1990,64 @@ export default function Timeline({
 
               {showAutoSegmentMenu && (
                 <div
-                  className="absolute top-full left-0 mt-1 z-50 bg-[#16161e] border border-amber-500/40 rounded-xl shadow-2xl p-2 w-64 text-xs space-y-1.5 backdrop-blur-md"
+                  className="absolute top-full left-0 mt-1 z-50 bg-[#16161e] border border-amber-500/50 rounded-xl shadow-2xl p-2.5 w-72 text-xs flex flex-col max-h-[58vh] md:max-h-[68vh] backdrop-blur-md"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="flex items-center justify-between pb-1 border-b border-gray-800 px-1">
-                    <span className="font-extrabold text-[10px] text-amber-400 tracking-wider uppercase flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-amber-400" />
+                  {/* Sticky Header with Title and Close Button */}
+                  <div className="flex items-center justify-between pb-1.5 border-b border-gray-800 px-1 shrink-0 mb-1.5">
+                    <span className="font-extrabold text-[10.5px] text-amber-400 tracking-wider uppercase flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                       Auto-Segment Ayahs
                     </span>
                     <button
                       onClick={() => setShowAutoSegmentMenu(false)}
-                      className="text-gray-400 hover:text-white text-xs px-1 cursor-pointer"
+                      className="w-5 h-5 flex items-center justify-center rounded-md bg-gray-800/60 hover:bg-gray-700 text-gray-400 hover:text-white text-xs transition cursor-pointer"
+                      title="Close"
                     >
                       ✕
                     </button>
                   </div>
 
-                  {/* 100% Free Guarantee Banner */}
-                  <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-lg p-1.5 px-2 text-[10px] text-emerald-300 flex items-center justify-between">
-                    <span className="font-bold flex items-center gap-1">✨ 100% Free Feature</span>
-                    <span className="text-[9px] bg-emerald-500/20 px-1.5 py-0.5 rounded text-emerald-200">No License Required</span>
+                  {/* Scrollable Slider Body */}
+                  <div className="overflow-y-auto pr-1.5 space-y-1.5 flex-1 custom-scrollbar scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-amber-500/50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-amber-400 [&::-webkit-scrollbar-track]:bg-black/30">
+                    {/* Dual AI Engine Indicator */}
+                    <div className="bg-gradient-to-r from-cyan-950/60 to-amber-950/60 border border-cyan-500/30 rounded-lg p-1.5 px-2 text-[10px] text-cyan-200 flex items-center justify-between">
+                    <span className="font-bold flex items-center gap-1">🧠 CuteCut Neural Core</span>
+                    <span className="text-[8.5px] bg-cyan-500/20 px-1.5 py-0.5 rounded text-cyan-300 font-mono font-semibold">Dual Engine: Online + Offline</span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onAutoSegmentAudio(selectedClipId || undefined, 'quran-align');
-                      setShowAutoSegmentMenu(false);
-                    }}
-                    className="w-full text-left p-1.5 rounded-lg hover:bg-cyan-500/20 text-gray-200 hover:text-cyan-200 transition cursor-pointer flex items-center gap-2 border border-cyan-500/40 bg-cyan-500/15 shadow-md shadow-cyan-500/10 animate-pulse"
-                  >
-                    <span className="text-sm">🗣️</span>
-                    <div>
-                      <p className="font-bold text-[11.5px] leading-tight text-cyan-300 flex items-center gap-1">
-                        Quran-Align AI (Voice + Text Match)
-                      </p>
-                      <p className="text-[9px] text-cyan-400/90 font-bold">Full Speech Recognition & Subtitle Sync</p>
+                  {/* 1. ONLINE NEURAL ENGINE (Speech + Text Match) */}
+                  <div className="pt-0.5">
+                    <div className="text-[9px] font-mono text-cyan-400 font-bold uppercase tracking-wider px-1 pb-1 flex items-center justify-between">
+                      <span>🌐 Online Neural Engine</span>
+                      <span className="text-[8px] bg-cyan-500/20 text-cyan-300 px-1 rounded">High Accuracy</span>
                     </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onAutoSegmentAudio(selectedClipId || undefined, 'quran-align');
+                        setShowAutoSegmentMenu(false);
+                      }}
+                      className="w-full text-left p-1.5 rounded-lg hover:bg-cyan-500/20 text-gray-200 hover:text-cyan-200 transition cursor-pointer flex items-center gap-2 border border-cyan-500/40 bg-cyan-500/15 shadow-md shadow-cyan-500/10"
+                    >
+                      <span className="text-sm">🗣️</span>
+                      <div>
+                        <p className="font-bold text-[11.5px] leading-tight text-cyan-300 flex items-center gap-1">
+                          Quran-Align AI (Voice + Text Match)
+                        </p>
+                        <p className="text-[9px] text-cyan-400/90 font-bold">Full Speech Recognition & Subtitle Sync</p>
+                      </div>
+                    </button>
+                  </div>
 
-                  {/* Multi-Ayah Single Breath (Wasl) */}
+                  {/* 2. OFFLINE NEURAL ENGINE (100% Offline DSP & VAD) */}
+                  <div className="pt-1 border-t border-gray-800/80">
+                    <div className="text-[9px] font-mono text-amber-400 font-bold uppercase tracking-wider px-1 pb-1 flex items-center justify-between">
+                      <span>⚡ Offline Acoustic Engine</span>
+                      <span className="text-[8px] bg-amber-500/20 text-amber-300 px-1 rounded">No Internet Required</span>
+                    </div>
+
+                    {/* Multi-Ayah Single Breath (Wasl) */}
                   <button
                     type="button"
                     onClick={() => {
@@ -2239,9 +2257,11 @@ export default function Timeline({
                     </button>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
+        </div>
+      )}
 
           {/* Merge Selected Adjacent Clips (Ctrl + M) */}
           {onMergeClips && (
