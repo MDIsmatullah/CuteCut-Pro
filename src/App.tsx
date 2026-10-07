@@ -3211,10 +3211,14 @@ export default function App() {
           }
 
           if (audioHardwareClock !== null) {
-            const clockDrift = Math.abs(audioHardwareClock - next);
-            // Snap to true audio clock if drift exceeds 25ms
-            if (clockDrift > 0.025 && clockDrift < 0.5) {
+            const clockDrift = audioHardwareClock - next;
+            // Smoothly align software timeline with physical audio clock without abrupt backwards jumps or jitter
+            if (Math.abs(clockDrift) > 0.35) {
+              // User seeked or large jump: snap directly
               next = audioHardwareClock;
+            } else if (Math.abs(clockDrift) > 0.005) {
+              // Smooth small audio clock drift progressively (8% per frame) so time flows forward monotonically
+              next += clockDrift * 0.08;
             }
           }
 
@@ -4675,7 +4679,7 @@ export default function App() {
 
     setCurrentView('editor');
     setShowCuteCutQuranAiModelModal(false);
-    console.log(`[CuteCut Quran AI] Successfully applied ${arabicClips.length} aligned Quran Ayahs to timeline.`);
+    console.log(`[CuteCut Quran AI] Successfully applied ${arabicClips.length} aligned Quran Ayahs to timeline (Mukammal Surah with Wasl & Intra-Ayah rules).`);
   };
 
   // ------------------ (D) AI AUTO CAPTION PARSER ------------------
@@ -7521,6 +7525,19 @@ export default function App() {
           onDeleteClip={deleteClip}
           onDuplicateClip={duplicateClip}
           onUpdateClip={updateClipProperties}
+          tracks={tracks}
+          zoom={zoom}
+          onZoomChange={setZoom}
+          onSeek={setCurrentTime}
+          onUpdateClipTimes={updateClipTimes}
+          onSelectClip={(clip) => handleSelectClip(clip ? clip.id : null)}
+          onOpenQuranStudio={() => setShowCuteCutQuranAiModelModal(true)}
+          onToggleLoop={() => setIsLooping(prev => !prev)}
+          isLooping={isLooping}
+          onToggleTrackMute={toggleTrackMute}
+          onToggleTrackLock={toggleTrackLock}
+          onToggleTrackHidden={toggleTrackHidden}
+          onAddTrack={handleAddTrack}
           onAutoSegmentAudio={handleAutoSegmentAudio}
           onAutoSyncVideoToAyahs={handleAutoSyncVideoToAyahs}
           onAutoRemoveSilence={handleAutoRemoveSilence}
@@ -8002,6 +8019,35 @@ export default function App() {
             onClose={() => setShowVideoSynthesis(false)}
           />
         )}
+
+        {/* Export Module Modal for Mobile & Android devices */}
+        <ExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          isMinimized={isExportMinimized}
+          onToggleMinimize={() => setIsExportMinimized(prev => !prev)}
+          duration={duration}
+          aspectRatio={aspectRatio}
+          tracks={tracks}
+          watermark={watermark}
+          setWatermark={setWatermark}
+          exporting={exporting}
+          exportProgress={exportProgress}
+          exportTerminalLogs={exportTerminalLogs}
+          downloadUrl={downloadUrl}
+          savedLocalPath={savedLocalPath}
+          onStartExport={startFfmpegCompilation}
+          onCancelExport={handleCancelExport}
+          onSaveToNativeStorage={(url, filename) => handleExportToNativeStorage(url, filename || `export_${Date.now()}.mp4`)}
+          onOpenPromoteModal={() => setShowPromoteModal(true)}
+        />
+
+        {/* CuteCut Pro Promotion & Viral Growth Hub Modal */}
+        <PromoteShareModal
+          isOpen={showPromoteModal}
+          onClose={() => setShowPromoteModal(false)}
+          videoUrl={downloadUrl}
+        />
       </div>
     );
   }

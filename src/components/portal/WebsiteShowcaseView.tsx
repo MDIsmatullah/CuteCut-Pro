@@ -22,7 +22,9 @@ import {
   Check,
   Star,
   Sun,
-  Moon
+  Moon,
+  BookOpen,
+  FileText
 } from 'lucide-react';
 import { UserProfile } from '../AuthModal';
 import { ReleaseInfo } from '../../utils/releaseService';
@@ -40,6 +42,9 @@ export interface WebsiteShowcaseViewProps {
   onSwitchToStudioHub?: () => void;
   onSwitchToAiHub?: () => void;
   onOpenLegalModal: (tab: 'privacy' | 'terms' | 'about' | 'contact') => void;
+  onOpenGuides?: () => void;
+  onOpenReviews?: () => void;
+  onOpenBlog?: () => void;
 }
 
 export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
@@ -54,6 +59,9 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
   onSwitchToStudioHub,
   onSwitchToAiHub,
   onOpenLegalModal,
+  onOpenGuides,
+  onOpenReviews,
+  onOpenBlog,
 }) => {
   const isDark = theme === 'dark';
   const [downloadToast, setDownloadToast] = useState<string | null>(null);
@@ -135,6 +143,36 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
             >
               <Cpu className="w-4 h-4 text-emerald-400" />
               <span>⚡ Explore AI Models & Engine</span>
+            </button>
+          </div>
+
+          {/* User Help, Social Proof & Ranking Booster Quick Links (Guides | Reviews | Blog) */}
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs font-bold">
+            <button
+              onClick={onOpenGuides}
+              className="flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition cursor-pointer"
+              title="Step-by-step guides for Quran subtitles, audio editing & mobile timelines"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Guides & Tutorials</span>
+            </button>
+            <span className="text-gray-600">•</span>
+            <button
+              onClick={onOpenReviews}
+              className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 transition cursor-pointer"
+              title="Verified 5-star user feedback, trust ratings and creator proof"
+            >
+              <Star className="w-3.5 h-3.5 fill-amber-400" />
+              <span>Reviews (4.9★)</span>
+            </button>
+            <span className="text-gray-600">•</span>
+            <button
+              onClick={onOpenBlog}
+              className="flex items-center gap-1.5 text-purple-400 hover:text-purple-300 transition cursor-pointer"
+              title="Creator blog posts, Android video tips, and viral algorithm secrets"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Creator Blog & Tips</span>
             </button>
           </div>
 
@@ -347,23 +385,28 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
       <section className={`p-6 sm:p-10 rounded-3xl border ${
         isDark ? 'bg-[#12121e] border-[#222238]' : 'bg-white border-slate-200 shadow-md'
       }`}>
-        <div className="text-center max-w-2xl mx-auto space-y-2 mb-8">
+        <div className="text-center max-w-3xl mx-auto space-y-3 mb-8">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold">
+            <span>⚔️ Software Comparison & Benchmarks</span>
+          </div>
           <h2 className={`text-2xl sm:text-3xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            Why Creators Choose CuteCut Pro
+            The Free Alternative to CapCut, Filmora, Premiere Pro & DaVinci Resolve
           </h2>
-          <p className={`text-xs sm:text-sm ${isDark ? 'text-gray-400' : 'text-slate-600'}`}>
-            A side-by-side comparison with mainstream commercial video editors:
+          <p className={`text-xs sm:text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-slate-600'}`}>
+            Compare CuteCut Pro side-by-side with heavy commercial suites. Get professional multi-track speed, 4K 60FPS export, and AI captions without monthly subscriptions or intrusive watermarks.
           </p>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
+          <table className="w-full text-xs text-left min-w-[650px]">
             <thead>
               <tr className={`border-b ${isDark ? 'border-[#26263c] text-gray-400' : 'border-slate-200 text-slate-500'}`}>
                 <th className="py-3 px-4 font-bold">Feature / Capability</th>
                 <th className="py-3 px-4 font-extrabold text-cyan-400 bg-cyan-500/10 rounded-t-xl">CuteCut Pro v2.5.3</th>
                 <th className="py-3 px-4 font-semibold">CapCut Pro</th>
-                <th className="py-3 px-4 font-semibold">Wondershare Filmora</th>
+                <th className="py-3 px-4 font-semibold">Filmora 14</th>
+                <th className="py-3 px-4 font-semibold">Premiere Pro</th>
+                <th className="py-3 px-4 font-semibold">DaVinci Resolve</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-500/15">
@@ -372,39 +415,106 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
                 <td className="py-3 px-4 text-emerald-400 font-bold bg-cyan-500/5">✅ 100% Free & Unlimited</td>
                 <td className="py-3 px-4 text-amber-400">⚠️ Paid Subscription</td>
                 <td className="py-3 px-4 text-amber-400">⚠️ Watermarked / Paid</td>
+                <td className="py-3 px-4 text-gray-300">Full Support</td>
+                <td className="py-3 px-4 text-gray-300">Full Support</td>
               </tr>
               <tr>
                 <td className="py-3 px-4 font-semibold">Offline Operation (No Internet)</td>
                 <td className="py-3 px-4 text-emerald-400 font-bold bg-cyan-500/5">✅ 100% Offline Standalone</td>
                 <td className="py-3 px-4 text-rose-400">❌ Requires Login / Cloud</td>
                 <td className="py-3 px-4 text-amber-400">⚠️ Account Lock</td>
+                <td className="py-3 px-4 text-amber-400">⚠️ Creative Cloud Login</td>
+                <td className="py-3 px-4 text-emerald-400">✅ Offline Standalone</td>
               </tr>
               <tr>
                 <td className="py-3 px-4 font-semibold">Smart Bitrate 1080p Export</td>
                 <td className="py-3 px-4 text-emerald-400 font-bold bg-cyan-500/5">✅ ~25MB Ultra Compact HD</td>
                 <td className="py-3 px-4 text-gray-400">~110MB File Size</td>
                 <td className="py-3 px-4 text-gray-400">~95MB File Size</td>
+                <td className="py-3 px-4 text-gray-400">Complex Encoding</td>
+                <td className="py-3 px-4 text-gray-400">Complex Encoding</td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 font-semibold">Hardware Footprint & RAM</td>
+                <td className="py-3 px-4 text-emerald-400 font-bold bg-cyan-500/5">✅ Lightweight (2GB RAM)</td>
+                <td className="py-3 px-4 text-gray-300">Moderate Mobile</td>
+                <td className="py-3 px-4 text-amber-400">Heavy Installer</td>
+                <td className="py-3 px-4 text-rose-400">Heavy (16GB+ RAM)</td>
+                <td className="py-3 px-4 text-rose-400">Heavy (Dedicated GPU)</td>
               </tr>
               <tr>
                 <td className="py-3 px-4 font-semibold">Quran 4K Ayah & Subtitle Sync</td>
                 <td className="py-3 px-4 text-emerald-400 font-bold bg-cyan-500/5">✅ Automated Tajweed Engine</td>
                 <td className="py-3 px-4 text-rose-400">❌ None</td>
                 <td className="py-3 px-4 text-rose-400">❌ None</td>
+                <td className="py-3 px-4 text-rose-400">❌ Manual Only</td>
+                <td className="py-3 px-4 text-rose-400">❌ Manual Only</td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-semibold">32-Bit Float DSP Studio EQ & Limiter</td>
+                <td className="py-3 px-4 font-semibold">32-Bit Float DSP Studio Audio</td>
                 <td className="py-3 px-4 text-emerald-400 font-bold bg-cyan-500/5">✅ Built-in Mastering</td>
                 <td className="py-3 px-4 text-gray-400">Basic Audio</td>
                 <td className="py-3 px-4 text-gray-400">Basic Audio</td>
+                <td className="py-3 px-4 text-gray-300">Audition Linked</td>
+                <td className="py-3 px-4 text-emerald-400">✅ Fairlight Audio</td>
               </tr>
               <tr>
                 <td className="py-3 px-4 font-semibold">Watermark Policy</td>
                 <td className="py-3 px-4 text-emerald-400 font-bold bg-cyan-500/5">✅ Zero Watermark Ever</td>
                 <td className="py-3 px-4 text-amber-400">Removable via app</td>
                 <td className="py-3 px-4 text-rose-400">❌ Big Watermark in Free</td>
+                <td className="py-3 px-4 text-gray-300">No Watermark</td>
+                <td className="py-3 px-4 text-gray-300">No Watermark</td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        {/* Competitor Alternative SEO Explainer Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 pt-6 border-t border-white/5">
+          <div className={`p-4 rounded-2xl border space-y-1.5 ${
+            isDark ? 'bg-[#0f0f1c] border-[#222236]' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <h4 className="font-bold text-xs text-cyan-400">
+              Why CuteCut Pro is the #1 Free CapCut Alternative:
+            </h4>
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              Unlike CapCut, CuteCut Pro never forces watermarks on free exports, does not harvest user media on remote servers, and does not lock 60FPS or 4K rendering behind a paywall. Everything renders client-side on your local hardware.
+            </p>
+          </div>
+
+          <div className={`p-4 rounded-2xl border space-y-1.5 ${
+            isDark ? 'bg-[#0f0f1c] border-[#222236]' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <h4 className="font-bold text-xs text-amber-400">
+              Better than Wondershare Filmora for Everyday Creators:
+            </h4>
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              Filmora places a giant watermark across free exported videos and charges expensive renewal fees. CuteCut Pro gives you frame-accurate blade splitting, audio waveforms, and transitions 100% free with zero export watermarks.
+            </p>
+          </div>
+
+          <div className={`p-4 rounded-2xl border space-y-1.5 ${
+            isDark ? 'bg-[#0f0f1c] border-[#222236]' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <h4 className="font-bold text-xs text-purple-400">
+              Lightweight Alternative to Adobe Premiere Pro:
+            </h4>
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              Premiere Pro requires high-end workstations with 16GB+ RAM and expensive monthly Creative Cloud plans. CuteCut Pro runs instantly in any browser or lightweight laptop, letting you slice, grade, and export reels in seconds.
+            </p>
+          </div>
+
+          <div className={`p-4 rounded-2xl border space-y-1.5 ${
+            isDark ? 'bg-[#0f0f1c] border-[#222236]' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <h4 className="font-bold text-xs text-emerald-400">
+              Fast Alternative to DaVinci Resolve for Reels & Shorts:
+            </h4>
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              While DaVinci Resolve is ideal for Hollywood color grading, its steep learning curve and massive GPU requirements make fast social media editing tedious. CuteCut Pro delivers instant 9:16 vertical workflows and automated subtitles on any device.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -424,6 +534,18 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold">
+            <button onClick={onOpenGuides} className="hover:text-cyan-400 transition cursor-pointer">
+              Guides & Help
+            </button>
+            <span>•</span>
+            <button onClick={onOpenReviews} className="hover:text-amber-400 transition cursor-pointer">
+              Reviews (4.9★)
+            </button>
+            <span>•</span>
+            <button onClick={onOpenBlog} className="hover:text-purple-400 transition cursor-pointer">
+              Blog & Posts
+            </button>
+            <span>•</span>
             <button onClick={() => onOpenLegalModal('privacy')} className="hover:text-cyan-400 transition cursor-pointer">
               Privacy Policy
             </button>

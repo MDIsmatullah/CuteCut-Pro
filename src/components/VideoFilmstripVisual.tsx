@@ -10,7 +10,20 @@ interface VideoFilmstripVisualProps {
 }
 
 // Global persistent cache for thumbnail snapshots across all clips and re-renders
-const globalThumbnailCache = new Map<string, string>();
+export const globalThumbnailCache = new Map<string, string>();
+
+export function getCachedThumbnail(url: string, timeSec?: number): string | undefined {
+  if (!url) return undefined;
+  if (timeSec !== undefined) {
+    const key = `${url}_${timeSec.toFixed(1)}`;
+    if (globalThumbnailCache.has(key)) return globalThumbnailCache.get(key);
+  }
+  // Search any cached thumbnail for this URL
+  for (const [k, v] of globalThumbnailCache.entries()) {
+    if (k.startsWith(url)) return v;
+  }
+  return undefined;
+}
 
 // High-performance sequential global queue to prevent browser video decoder choke
 interface QueueItem {

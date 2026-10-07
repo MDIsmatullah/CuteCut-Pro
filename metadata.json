@@ -1,6 +1,6 @@
 {
   "name": "CuteCut Pro",
-  "description": "A standalone, multi-track studio video editor with timeline blade splits, speed velocity controls, real-time color grading, hardware audio meters, and a production-ready Quran video synthesis engine.",
+  "description": "CuteCut Pro is the modern free online & offline video editor alternative to CapCut, Filmora, Premiere Pro, and DaVinci Resolve. 4K 60FPS export without watermark, multi-track timeline, AI Quran captions, speed curves, and 32-bit audio mixing.",
   "requestFramePermissions": [
     "microphone"
   ],

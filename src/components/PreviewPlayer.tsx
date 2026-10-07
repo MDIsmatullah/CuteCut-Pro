@@ -26,6 +26,7 @@ import {
 import { getSurahMeta, formatSurahHeader } from '../utils/quranSurahData';
 import { getClipEffectiveSpeedAtTime } from '../utils/speedRampUtils';
 import { backgroundMediaPreloader } from '../services/backgroundMediaPreloader';
+import { getCachedThumbnail } from './VideoFilmstripVisual';
 
 /**
  * Extracts the Surah number from clip metadata
@@ -1282,17 +1283,27 @@ export default function PreviewPlayer({
               if (!clip.isImage) {
                 isFallbackMotion = true;
               }
+            } else if (videoEl && !isImg) {
+              // Proactively load video metadata if readyState is 0
+              if (videoEl.readyState === 0 && !(videoEl as any)._isLoading) {
+                (videoEl as any)._isLoading = true;
+                try {
+                  videoEl.load();
+                } catch {}
+              }
             }
           }
 
-          // If primary video source is buffering or errored, load & render clip poster / fallbackUrl
+          // If primary video source is buffering or initializing, load & render cached video frame or poster
           if (!drawTarget) {
-            const fallbackUrl = clip.poster || clip.thumbnailUrl || clip.fallbackUrl || (clip.url && !clip.url.includes('.mp4') ? clip.url : undefined);
+            const cachedThumb = clip.url ? getCachedThumbnail(clip.url, Math.max(0, t - clip.start)) : undefined;
+            const fallbackUrl = cachedThumb || clip.poster || clip.thumbnailUrl || clip.fallbackUrl || (clip.url && !clip.url.includes('.mp4') ? clip.url : undefined);
             if (fallbackUrl) {
               const fbKey = `${clip.id}_fb_poster`;
               let fbImg = fallbackMediaRef.current[fbKey] as HTMLImageElement;
-              if (!fbImg) {
+              if (!fbImg || fbImg.getAttribute('data-src') !== fallbackUrl) {
                 fbImg = document.createElement('img');
+                fbImg.setAttribute('data-src', fallbackUrl);
                 fbImg.crossOrigin = getSafeCrossOrigin(fallbackUrl) || 'anonymous';
                 fbImg.src = normalizeMediaUrl(fallbackUrl);
                 fbImg.addEventListener('error', () => {
@@ -1961,12 +1972,12 @@ export default function PreviewPlayer({
 
       activeTextClips.forEach((clip) => {
         const transState = computeClipTransitionState(clip, t, dimensions.width, dimensions.height);
-        const xPos = (((clip.textX ?? 50) / 100) * dimensions.width) + transState.offsetX;
-        const yPos = (((clip.textY ?? 50) / 100) * dimensions.height) + transState.offsetY;
+        const xPos = Math.round((((clip.textX ?? 50) / 100) * dimensions.width) + transState.offsetX);
+        const yPos = Math.round((((clip.textY ?? 50) / 100) * dimensions.height) + transState.offsetY);
         const rawFontSize = clip.fontSize ?? 32;
         const referenceWidth = 390;
         const fontScale = dimensions.width / referenceWidth;
-        let fontSize = rawFontSize * fontScale;
+        let fontSize = Math.round(rawFontSize * fontScale);
 
         const color = clip.color ?? '#FFFFFF';
         const alignment = (clip.textAlignment ?? 'center') as CanvasTextAlign;
@@ -2118,10 +2129,10 @@ export default function PreviewPlayer({
           if (w > maxLineWidth) maxLineWidth = w;
         });
 
-        const blockW = Math.max(80, maxLineWidth + 24);
-        const blockH = Math.max(40, lines.length * lineGap + 16);
-        const boxLeft = alignment === 'center' ? xPos - blockW / 2 : alignment === 'right' ? xPos - blockW : xPos;
-        const boxTop = yPos - blockH / 2;
+        const blockW = Math.round(Math.max(80, maxLineWidth + 24));
+        const blockH = Math.round(Math.max(40, lines.length * lineGap + 16));
+        const boxLeft = Math.round(alignment === 'center' ? xPos - blockW / 2 : alignment === 'right' ? xPos - blockW : xPos);
+        const boxTop = Math.round(yPos - blockH / 2);
 
         // ------------------ CapCut Text Animation Calculations ------------------
         const clipTime = Math.max(0, t - clip.start);
@@ -2562,25 +2573,25 @@ export default function PreviewPlayer({
 
           renderLines.forEach((lineText, idx) => {
             if (!lineText) return;
-            const currentY = startY + idx * lineGap;
+            const currentY = Math.round(startY + idx * lineGap);
 
             // Calculate lineX with optical compensation for inline medallion on the target line
-            let lineX = xPos;
+            let lineX = Math.round(xPos);
             const isTargetLine = Boolean(layer.hasInlineMedallion && idx === layer.targetLineIdx && layer.medallionTotalW);
             if (isTargetLine && layer.medallionTotalW) {
               if (alignment === 'center') {
                 if (layer.ayahSymbolPosition === 'start') {
-                  lineX = xPos - (layer.medallionTotalW / 2);
+                  lineX = Math.round(xPos - (layer.medallionTotalW / 2));
                 } else {
-                  lineX = xPos + (layer.medallionTotalW / 2);
+                  lineX = Math.round(xPos + (layer.medallionTotalW / 2));
                 }
               } else if (alignment === 'right') {
                 if (layer.ayahSymbolPosition === 'start') {
-                  lineX = xPos - layer.medallionTotalW;
+                  lineX = Math.round(xPos - layer.medallionTotalW);
                 }
               } else if (alignment === 'left') {
                 if (layer.ayahSymbolPosition === 'end') {
-                  lineX = xPos + layer.medallionTotalW;
+                  lineX = Math.round(xPos + layer.medallionTotalW);
                 }
               }
             }
@@ -2733,7 +2744,7 @@ export default function PreviewPlayer({
                   ctx.shadowColor = (clip as any).karaokeColor || '#F59E0B';
                   ctx.shadowBlur = 22;
                   ctx.fillStyle = (clip as any).karaokeColor || '#FBBF24';
-                  ctx.fillText(activeTok, wordStartX + runningOffset, currentY);
+                  ctx.fillText(activeTok, Math.round(wordStartX + runningOffset), currentY);
                   ctx.restore();
                 }
               }
@@ -3336,7 +3347,7 @@ export default function PreviewPlayer({
     const coords = getCanvasCoords(e);
     const boundsList: TextBound[] = Object.values(textBoundsRef.current);
 
-    // Check group corner handles first if group bounds active
+    // 1. Check group corner handles first if group bounds active
     if (groupBoundsRef.current && groupBoundsRef.current.clips.length > 1) {
       const gb = groupBoundsRef.current;
       const corners = [
@@ -3380,7 +3391,63 @@ export default function PreviewPlayer({
       }
     }
 
-    // Check single selected video clip dragging & handle
+    // 2. Check corner handles of single selected text clip (to allow resizing)
+    if (selectedClip && selectedClip.type === ClipType.TEXT) {
+      const bound = textBoundsRef.current[selectedClip.id];
+      if (bound) {
+        const corners = [
+          { x: bound.left, y: bound.top },
+          { x: bound.left + bound.width, y: bound.top },
+          { x: bound.left, y: bound.top + bound.height },
+          { x: bound.left + bound.width, y: bound.top + bound.height },
+        ];
+        for (const c of corners) {
+          if (Math.hypot(coords.x - c.x, coords.y - c.y) <= 18) {
+            setIsResizingText(true);
+            setDragStart(coords);
+            setInitialTextPos({
+              x: selectedClip.textX ?? 50,
+              y: selectedClip.textY ?? 50,
+              fontSize: selectedClip.fontSize ?? 32,
+            });
+            return;
+          }
+        }
+      }
+    }
+
+    // 3. PRIORITIZED INTERSECTION CHECK: Check if click is inside any text/caption bounds first!
+    // This solves the multi-layer selection issue where a background video covers the whole screen.
+    for (const item of boundsList) {
+      if (
+        coords.x >= item.left &&
+        coords.x <= item.left + item.width &&
+        coords.y >= item.top &&
+        coords.y <= item.top + item.height
+      ) {
+        const isMulti = e.shiftKey || e.ctrlKey || e.metaKey;
+        if (isMulti && onSelectClips) {
+          const currentIds = selectedClipIds && selectedClipIds.length > 0 ? selectedClipIds : (selectedClip ? [selectedClip.id] : []);
+          if (currentIds.includes(item.clip.id)) {
+            onSelectClips(currentIds.filter(id => id !== item.clip.id));
+          } else {
+            onSelectClips([...currentIds, item.clip.id]);
+          }
+        } else {
+          onSelectClip?.(item.clip);
+        }
+        setIsDraggingText(true);
+        setDragStart(coords);
+        setInitialTextPos({
+          x: item.clip.textX ?? 50,
+          y: item.clip.textY ?? 50,
+          fontSize: item.clip.fontSize ?? 32,
+        });
+        return;
+      }
+    }
+
+    // 4. Check single selected video clip dragging & handle ONLY if no text bound was clicked
     if (selectedClip && selectedClip.type === ClipType.VIDEO) {
       const interpolated = getInterpolatedClipProperties(selectedClip, currentTime);
       const scale = interpolated.scale / 100;
@@ -3424,61 +3491,6 @@ export default function PreviewPlayer({
           initialFontSize: 32,
           initialScale: scale * 100,
         }];
-        return;
-      }
-    }
-
-    // Check corner handles of single selected clip
-    if (selectedClip && selectedClip.type === ClipType.TEXT) {
-      const bound = textBoundsRef.current[selectedClip.id];
-      if (bound) {
-        const corners = [
-          { x: bound.left, y: bound.top },
-          { x: bound.left + bound.width, y: bound.top },
-          { x: bound.left, y: bound.top + bound.height },
-          { x: bound.left + bound.width, y: bound.top + bound.height },
-        ];
-        for (const c of corners) {
-          if (Math.hypot(coords.x - c.x, coords.y - c.y) <= 18) {
-            setIsResizingText(true);
-            setDragStart(coords);
-            setInitialTextPos({
-              x: selectedClip.textX ?? 50,
-              y: selectedClip.textY ?? 50,
-              fontSize: selectedClip.fontSize ?? 32,
-            });
-            return;
-          }
-        }
-      }
-    }
-
-    // Check inside bounding boxes for click selection & drag
-    for (const item of boundsList) {
-      if (
-        coords.x >= item.left &&
-        coords.x <= item.left + item.width &&
-        coords.y >= item.top &&
-        coords.y <= item.top + item.height
-      ) {
-        const isMulti = e.shiftKey || e.ctrlKey || e.metaKey;
-        if (isMulti && onSelectClips) {
-          const currentIds = selectedClipIds && selectedClipIds.length > 0 ? selectedClipIds : (selectedClip ? [selectedClip.id] : []);
-          if (currentIds.includes(item.clip.id)) {
-            onSelectClips(currentIds.filter(id => id !== item.clip.id));
-          } else {
-            onSelectClips([...currentIds, item.clip.id]);
-          }
-        } else {
-          onSelectClip?.(item.clip);
-        }
-        setIsDraggingText(true);
-        setDragStart(coords);
-        setInitialTextPos({
-          x: item.clip.textX ?? 50,
-          y: item.clip.textY ?? 50,
-          fontSize: item.clip.fontSize ?? 32,
-        });
         return;
       }
     }
@@ -3636,6 +3648,7 @@ export default function PreviewPlayer({
     if (isDraggingText && selectedClip) {
       const deltaX = coords.x - dragStart.x;
       const deltaY = coords.y - dragStart.y;
+      if (Math.hypot(deltaX, deltaY) < 4) return;
       const rawX = initialTextPos.x + (deltaX / dimensions.width) * 100;
       const rawY = initialTextPos.y + (deltaY / dimensions.height) * 100;
 
@@ -3828,6 +3841,82 @@ export default function PreviewPlayer({
     activeSnapRef.current = { x: null, y: null };
   };
 
+  // Touch Support for Mobile & Android devices
+  const touchStartPosRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const getTouchCanvasCoords = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current || e.touches.length === 0) return { x: 0, y: 0 };
+    const touch = e.touches[0];
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = dimensions.width / rect.width;
+    const scaleY = dimensions.height / rect.height;
+    return {
+      x: (touch.clientX - rect.left) * scaleX,
+      y: (touch.clientY - rect.top) * scaleY,
+    };
+  };
+
+  const handleCanvasTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 0) return;
+    const touch = e.touches[0];
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+
+    const coords = getTouchCanvasCoords(e);
+    const boundsList: TextBound[] = Object.values(textBoundsRef.current);
+
+    // Check if touching any text/overlay bound
+    let touchedItem = false;
+    for (const item of boundsList) {
+      if (
+        coords.x >= item.left &&
+        coords.x <= item.left + item.width &&
+        coords.y >= item.top &&
+        coords.y <= item.top + item.height
+      ) {
+        touchedItem = true;
+        onSelectClip?.(item.clip);
+        setIsDraggingText(true);
+        setDragStart(coords);
+        setInitialTextPos({
+          x: item.clip.textX ?? 50,
+          y: item.clip.textY ?? 50,
+          fontSize: item.clip.fontSize ?? 32,
+        });
+        break;
+      }
+    }
+  };
+
+  const handleCanvasTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDraggingText && !isResizingText && !isDraggingGroup && !isResizingGroup) return;
+    const coords = getTouchCanvasCoords(e);
+    
+    if (isDraggingText && selectedClip) {
+      const deltaX = coords.x - dragStart.x;
+      const deltaY = coords.y - dragStart.y;
+      if (Math.hypot(deltaX, deltaY) < 6) return;
+      const rawX = initialTextPos.x + (deltaX / dimensions.width) * 100;
+      const rawY = initialTextPos.y + (deltaY / dimensions.height) * 100;
+      const finalPctX = Math.max(2, Math.min(98, rawX));
+      const finalPctY = Math.max(2, Math.min(98, rawY));
+      onUpdateClip?.(selectedClip.id, { textX: finalPctX, textY: finalPctY });
+    }
+  };
+
+  const handleCanvasTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    // If it was a quick tap (< 250ms, < 10px move) and not dragging an item, toggle play/pause
+    if (touchStartPosRef.current && isMobile) {
+      const duration = Date.now() - touchStartPosRef.current.time;
+      const touch = e.changedTouches[0];
+      const dist = touch ? Math.hypot(touch.clientX - touchStartPosRef.current.x, touch.clientY - touchStartPosRef.current.y) : 0;
+      if (duration < 280 && dist < 12 && !isDraggingText && !isResizingText) {
+        onPlayPause?.();
+      }
+    }
+    handleCanvasMouseUp();
+    touchStartPosRef.current = null;
+  };
+
   return (
     <div id="preview-player" ref={playerFrameRef} className={`flex-1 bg-[#141418] ${isMobile ? 'border-0 rounded-none' : 'rounded-lg border border-[#23232b] shadow-sm'} flex flex-col h-full select-none overflow-hidden`}>
       
@@ -3908,11 +3997,14 @@ export default function PreviewPlayer({
             width={dimensions.width}
             height={dimensions.height}
             className="w-full h-full object-contain block"
-            style={{ cursor: activeCursor }}
+            style={{ cursor: activeCursor, touchAction: 'none' }}
             onMouseDown={handleCanvasMouseDown}
             onMouseMove={handleCanvasMouseMove}
             onMouseUp={handleCanvasMouseUp}
             onMouseLeave={handleCanvasMouseUp}
+            onTouchStart={handleCanvasTouchStart}
+            onTouchMove={handleCanvasTouchMove}
+            onTouchEnd={handleCanvasTouchEnd}
           />
 
           {/* Empty Timeline Stage: Beautiful Background Image, App Info, and Support / Donation Card */}

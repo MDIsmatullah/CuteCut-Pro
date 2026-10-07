@@ -99,6 +99,7 @@ temp/
 logs/
 *.log
 server_debug.log
+.gemini_user_key
 bun.lock
 dist-installer/
 build-resources/

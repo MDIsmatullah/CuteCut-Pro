@@ -25,13 +25,14 @@ import {
 } from 'lucide-react';
 import { ALL_114_SURAHS, SurahMeta } from '../utils/quranSurahData';
 import { QURAN_TRANSLATION_OPTIONS } from '../utils/quranTranslations';
+import { QuranTranslationOption } from '../types';
 import {
   cuteCutQuranAiModel,
   CuteCutQuranSegment,
   CuteCutQuranAiModelReport,
   BreathAcousticSpan
 } from '../services/quranAiModelEngine';
-import { Clip, QuranTranslationOption } from '../types';
+import { Clip } from '../types';
 
 interface CuteCutQuranAiModelModalProps {
   isOpen: boolean;

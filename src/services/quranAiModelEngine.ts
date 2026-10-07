@@ -64,6 +64,8 @@ export interface CuteCutQuranSegment {
   totalSubPhrases: number;
   breathIndex: number;
   confidenceScore: number;
+  isTaawwuz?: boolean;
+  isTasmiyah?: boolean;
   ruleApplied: 
     | 'rule-4-single-breath-single-ayah'
     | 'rule-5-multi-ayah-single-breath'
@@ -187,25 +189,183 @@ export class CuteCutQuranAiModel {
    */
   public autoDetectSurahFromAudio(audioDurationSec: number, audioNameHint?: string): SurahMeta {
     if (audioNameHint) {
-      const lower = audioNameHint.toLowerCase();
-      // Match Arabic / English names
+      const cleanHint = audioNameHint
+        .toLowerCase()
+        .replace(/\.[a-z0-9]+$/i, '')
+        .replace(/[_\-+.]/g, ' ')
+        .trim();
+      const lower = ` ${cleanHint} `;
+
+      // 1. Direct keywords and popular Surah aliases
+      const specialAliases: Record<string, number> = {
+        'mulk': 67,
+        'al mulk': 67,
+        'almulk': 67,
+        'tabarak': 67,
+        'tabarakallazi': 67,
+        'tabarakalladhi': 67,
+        'yasin': 36,
+        'yaseen': 36,
+        'ya sin': 36,
+        'rahman': 55,
+        'ar rahman': 55,
+        'rehman': 55,
+        'waqiah': 56,
+        'waqia': 56,
+        'al waqiah': 56,
+        'kahf': 18,
+        'al kahf': 18,
+        'baqarah': 2,
+        'al baqarah': 2,
+        'baqra': 2,
+        'fatihah': 1,
+        'al fatihah': 1,
+        'fatiha': 1,
+        'ikhlas': 112,
+        'al ikhlas': 112,
+        'falaq': 113,
+        'al falaq': 113,
+        'nas': 114,
+        'an nas': 114,
+        'naas': 114,
+        'sajdah': 32,
+        'as sajdah': 32,
+        'jumuah': 62,
+        'al jumuah': 62,
+        'juma': 62,
+        'naba': 78,
+        'an naba': 78,
+        'amma': 78,
+        'maryam': 19,
+        'yusuf': 12,
+        'ibrahim': 14,
+        'isra': 17,
+        'bani israel': 17,
+        'taha': 20,
+        'anbiya': 21,
+        'hajj': 22,
+        'muminun': 23,
+        'nur': 24,
+        'furqan': 25,
+        'shuara': 26,
+        'naml': 27,
+        'qasas': 28,
+        'ankabut': 29,
+        'rum': 30,
+        'luqman': 31,
+        'ahzab': 33,
+        'saba': 34,
+        'fatir': 35,
+        'saffat': 37,
+        'sad': 38,
+        'zumar': 39,
+        'ghafir': 40,
+        'fussilat': 41,
+        'shura': 42,
+        'zukhruf': 43,
+        'dukhan': 44,
+        'jathiyah': 45,
+        'ahqaf': 46,
+        'muhammad': 47,
+        'fath': 48,
+        'hujurat': 49,
+        'qaf': 50,
+        'dhariyat': 51,
+        'tur': 52,
+        'najm': 53,
+        'qamar': 54,
+        'hadid': 57,
+        'mujadila': 58,
+        'hashr': 59,
+        'mumtahanah': 60,
+        'saff': 61,
+        'munafiqun': 63,
+        'taghabun': 64,
+        'talaq': 65,
+        'tahrim': 66,
+        'qalam': 68,
+        'haqqah': 69,
+        'maarij': 70,
+        'nuh': 71,
+        'jinn': 72,
+        'muzzammil': 73,
+        'muddathir': 74,
+        'qiyamah': 75,
+        'insan': 76,
+        'dahr': 76,
+        'mursalat': 77,
+        'naziat': 79,
+        'abasa': 80,
+        'takwir': 81,
+        'infitar': 82,
+        'mutaffifin': 83,
+        'inshiqaq': 84,
+        'buruj': 85,
+        'tariq': 86,
+        'ala': 87,
+        'ghashiyah': 88,
+        'fajr': 89,
+        'balad': 90,
+        'shams': 91,
+        'layl': 92,
+        'duha': 93,
+        'sharh': 94,
+        'inshirah': 94,
+        'tin': 95,
+        'alaq': 96,
+        'qadr': 97,
+        'bayyinah': 98,
+        'zalzalah': 99,
+        'adiyat': 100,
+        'qariah': 101,
+        'takathur': 102,
+        'asr': 103,
+        'humazah': 104,
+        'fil': 105,
+        'quraysh': 106,
+        'maun': 107,
+        'kawthar': 108,
+        'kafirun': 109,
+        'nasr': 110,
+        'masad': 111,
+        'lahab': 111,
+      };
+
+      for (const [alias, sId] of Object.entries(specialAliases)) {
+        if (lower.includes(` ${alias} `) || lower.includes(alias.replace(/\s+/g, '')) || cleanHint.includes(alias)) {
+          return this.getSurah(sId);
+        }
+      }
+
+      // 2. Match numbers like "surah 67", "67", "067", "surah_67"
       for (const s of ALL_114_SURAHS) {
-        const engClean = s.nameEnglish.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const arabicClean = s.nameArabic.replace(/[^\u0600-\u06FF]/g, '');
-        if (lower.includes(engClean) || (arabicClean && lower.includes(arabicClean))) {
+        const numPattern = new RegExp(`\\b0*${s.id}\\b`);
+        if (numPattern.test(cleanHint)) {
           return s;
         }
-        // Match numbers like "surah 2", "002", "114"
-        const numPattern = new RegExp(`\\b0*${s.id}\\b`);
-        if (numPattern.test(lower)) {
+      }
+
+      // 3. Match against all 114 Surah English & Arabic titles
+      for (const s of ALL_114_SURAHS) {
+        const engStripped = s.nameEnglish
+          .toLowerCase()
+          .replace(/^surah\s*/i, '')
+          .replace(/^(al|ar|an|at|as|az|ad|ash|adh|al-)[-\s]*/i, '')
+          .replace(/[^a-z0-9]/g, '');
+
+        const arabicClean = s.nameArabic.replace(/[^\u0600-\u06FF]/g, '').replace(/^سورة/i, '').trim();
+
+        if (engStripped.length >= 3 && cleanHint.replace(/[^a-z0-9]/g, '').includes(engStripped)) {
+          return s;
+        }
+        if (arabicClean.length >= 3 && audioNameHint.includes(arabicClean)) {
           return s;
         }
       }
     }
 
-    // Heuristic estimation based on typical recitation length
+    // Heuristic estimation based on typical recitation length if no title hint matches
     if (audioDurationSec <= 40) {
-      // Short surahs: Al-Kawthar (108), Al-Ikhlas (112), An-Nas (114)
       return this.getSurah(112); // Al-Ikhlas
     } else if (audioDurationSec <= 90) {
       return this.getSurah(1); // Al-Fatihah
@@ -286,7 +446,7 @@ export class CuteCutQuranAiModel {
         canonicalVerses.forEach((cv, idx) => {
           const vNum = cv.verse_number || idx + 1;
           const offlineUrdu = OFFLINE_SURAH_TRANSLATIONS[`${surahNumber}:${vNum}`]?.['ur'];
-          const offlineEn = cv.text_english || cv.translation || OFFLINE_SURAH_TRANSLATIONS[`${surahNumber}:${vNum}`]?.['en'] || `Verse ${vNum}`;
+          const offlineEn = cv.text_english || OFFLINE_SURAH_TRANSLATIONS[`${surahNumber}:${vNum}`]?.['en'] || cv.translation || `Verse ${vNum}`;
 
           verses.push({
             surahNumber,

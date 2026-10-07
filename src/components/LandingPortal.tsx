@@ -73,6 +73,9 @@ import { ProLicenseService } from '../services/proLicenseService';
 import LegalPagesModal, { LegalTab } from './legal/LegalPagesModal';
 import { WebsiteShowcaseView } from './portal/WebsiteShowcaseView';
 import { NativeEngineAiHubView } from './portal/NativeEngineAiHubView';
+import { GuidesPageView } from './portal/GuidesPageView';
+import { ReviewsPageView } from './portal/ReviewsPageView';
+import { BlogPageView } from './portal/BlogPageView';
 import { isOfflineNativeApp } from '../utils/platformEngineDetector';
 import PromoteShareModal from './PromoteShareModal';
 
@@ -353,7 +356,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
   onOpenPreferences,
 }) => {
   const isOfflineNative = useMemo(() => isOfflineNativeApp(), []);
-  const [activeNav, setActiveNav] = useState<'website' | 'home' | 'templates' | 'projects' | 'ai' | 'quran' | 'downloads' | 'native_engine'>(() => {
+  const [activeNav, setActiveNav] = useState<'website' | 'home' | 'templates' | 'projects' | 'ai' | 'quran' | 'downloads' | 'native_engine' | 'guides' | 'reviews' | 'blog'>(() => {
     return isOfflineNativeApp() ? 'home' : 'website';
   });
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -940,6 +943,63 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               AdSense
             </span>
           </button>
+
+          {/* User Help & SEO Guides Page */}
+          <button
+            onClick={() => {
+              setActiveNav('guides');
+              if (isMobile) setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+              activeNav === 'guides'
+                ? 'bg-gradient-to-r from-cyan-500/20 to-transparent text-cyan-400 border-l-2 border-cyan-400 font-bold'
+                : 'text-gray-400 hover:bg-[#161626] hover:text-cyan-300'
+            }`}
+          >
+            <BookOpen className="w-4 h-4 text-cyan-400" />
+            <span className="flex-1 text-left">Guides & Help (رہنمائی)</span>
+            <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              SEO
+            </span>
+          </button>
+
+          {/* User Reviews & Social Proof Page */}
+          <button
+            onClick={() => {
+              setActiveNav('reviews');
+              if (isMobile) setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+              activeNav === 'reviews'
+                ? 'bg-gradient-to-r from-amber-500/20 to-transparent text-amber-400 border-l-2 border-amber-400 font-bold'
+                : 'text-gray-400 hover:bg-[#161626] hover:text-amber-300'
+            }`}
+          >
+            <Star className="w-4 h-4 text-amber-400 fill-amber-400/30" />
+            <span className="flex-1 text-left">User Reviews (4.9★)</span>
+            <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              Trust
+            </span>
+          </button>
+
+          {/* Creator Blog & Traffic Booster Page */}
+          <button
+            onClick={() => {
+              setActiveNav('blog');
+              if (isMobile) setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+              activeNav === 'blog'
+                ? 'bg-gradient-to-r from-purple-500/20 to-transparent text-purple-400 border-l-2 border-purple-400 font-bold'
+                : 'text-gray-400 hover:bg-[#161626] hover:text-purple-300'
+            }`}
+          >
+            <FileText className="w-4 h-4 text-purple-400" />
+            <span className="flex-1 text-left">Creator Blog (بلاگ)</span>
+            <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              Posts
+            </span>
+          </button>
         </nav>
       </div>
 
@@ -1076,6 +1136,48 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                 <span className="hidden md:inline">AI Models & Engine</span>
                 <span className="md:hidden">AI Hub</span>
               </button>
+
+              {/* Guides Page Quick Tab */}
+              <button
+                onClick={() => setActiveNav('guides')}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  activeNav === 'guides'
+                    ? 'bg-cyan-500 text-black shadow-md font-black'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="Step-by-step user guides & tutorials"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden lg:inline">Guides</span>
+              </button>
+
+              {/* Reviews Page Quick Tab */}
+              <button
+                onClick={() => setActiveNav('reviews')}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  activeNav === 'reviews'
+                    ? 'bg-amber-400 text-black shadow-md font-black'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="Creator reviews, ratings & trust certificates"
+              >
+                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400/40" />
+                <span className="hidden lg:inline">Reviews (4.9★)</span>
+              </button>
+
+              {/* Blog Page Quick Tab */}
+              <button
+                onClick={() => setActiveNav('blog')}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  activeNav === 'blog'
+                    ? 'bg-purple-600 text-white shadow-md font-black'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="SEO blog articles & viral tips"
+              >
+                <FileText className="w-3.5 h-3.5 text-purple-400" />
+                <span className="hidden lg:inline">Blog</span>
+              </button>
             </div>
           </div>
 
@@ -1181,7 +1283,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
           {/* VIEW A: OFFICIAL WEBSITE SHOWCASE VIEW                     */}
           {/* (Rendered ONLY on Web Browser Website)                    */}
           {/* ========================================================= */}
-          {!isOfflineNative && activeNav !== 'native_engine' && (
+          {!isOfflineNative && activeNav === 'website' && (
             <WebsiteShowcaseView
               theme={theme}
               user={user}
@@ -1197,6 +1299,44 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
                 setLegalModalTab(tab);
                 setShowLegalModal(true);
               }}
+              onOpenGuides={() => setActiveNav('guides')}
+              onOpenReviews={() => setActiveNav('reviews')}
+              onOpenBlog={() => setActiveNav('blog')}
+            />
+          )}
+
+          {/* ========================================================= */}
+          {/* VIEW B1: USER HELP & SEO GUIDES PAGE                      */}
+          {/* ========================================================= */}
+          {activeNav === 'guides' && (
+            <GuidesPageView
+              theme={theme}
+              onOpenEditor={onOpenEditor}
+              onOpenQuranStudio={onOpenQuranStudio}
+              onBackToWebsite={() => setActiveNav(isOfflineNative ? 'home' : 'website')}
+            />
+          )}
+
+          {/* ========================================================= */}
+          {/* VIEW B2: TRUST, SOCIAL PROOF & CREATOR REVIEWS PAGE       */}
+          {/* ========================================================= */}
+          {activeNav === 'reviews' && (
+            <ReviewsPageView
+              theme={theme}
+              onOpenEditor={onOpenEditor}
+              onBackToWebsite={() => setActiveNav(isOfflineNative ? 'home' : 'website')}
+            />
+          )}
+
+          {/* ========================================================= */}
+          {/* VIEW B3: BLOG, TRAFFIC MAGNET & RANKING BOOSTER PAGE      */}
+          {/* ========================================================= */}
+          {activeNav === 'blog' && (
+            <BlogPageView
+              theme={theme}
+              onOpenEditor={onOpenEditor}
+              onOpenQuranStudio={onOpenQuranStudio}
+              onBackToWebsite={() => setActiveNav(isOfflineNative ? 'home' : 'website')}
             />
           )}
 
@@ -1224,7 +1364,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
           {/* VIEW D: CAPCUT-STYLE STUDIO HUB & PROJECT MANAGER (DEFAULT)*/}
           {/* (Rendered ONLY in Desktop & Android Offline Native Apps)   */}
           {/* ========================================================= */}
-          {isOfflineNative && activeNav !== 'native_engine' && (
+          {isOfflineNative && activeNav !== 'native_engine' && activeNav !== 'guides' && activeNav !== 'reviews' && activeNav !== 'blog' && (
             <>
           
           {/* ========================================================= */}
