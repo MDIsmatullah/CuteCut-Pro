@@ -356,9 +356,117 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
   onOpenPreferences,
 }) => {
   const isOfflineNative = useMemo(() => isOfflineNativeApp(), []);
-  const [activeNav, setActiveNav] = useState<'website' | 'home' | 'templates' | 'projects' | 'ai' | 'quran' | 'downloads' | 'native_engine' | 'guides' | 'reviews' | 'blog'>(() => {
+
+  type NavSection = 'website' | 'home' | 'templates' | 'projects' | 'ai' | 'quran' | 'downloads' | 'native_engine' | 'guides' | 'reviews' | 'blog';
+
+  const NAV_ROUTE_MAP: Record<NavSection, { path: string; title: string; desc: string }> = useMemo(() => ({
+    website: {
+      path: '/',
+      title: 'CuteCut Pro - Free Desktop & Web Video Editor | Native 4K & AI Studio',
+      desc: 'Full hardware-accelerated 60 FPS WebCodecs engine, frame-accurate multi-track timeline, instant Quran 4K auto-sync, 32-bit DSP audio mastering.'
+    },
+    home: {
+      path: '/home',
+      title: 'CuteCut Pro - Video Creator Studio & Project Hub',
+      desc: 'Explore native AI video generation, creative templates, and professional video editing tools.'
+    },
+    native_engine: {
+      path: '/models',
+      title: 'Creative AI Models & Offline Engine Hub | CuteCut Pro',
+      desc: 'Local AI video processing, Veo & Sora integration, text-to-speech voiceover synthesis with zero cloud latency.'
+    },
+    guides: {
+      path: '/tutorials',
+      title: 'Step-by-Step Tutorials, Guides & Masterclasses | CuteCut Pro',
+      desc: 'Master the art of viral video creation, Quran subtitles, multi-track audio, color grading, and timeline workflow.'
+    },
+    reviews: {
+      path: '/reviews',
+      title: 'Creator Reviews, Ratings & Verified Community Feedback | CuteCut Pro',
+      desc: 'Read authentic creator reviews and testimonials from video editors worldwide.'
+    },
+    blog: {
+      path: '/blog',
+      title: 'The Creator Blog & Video Editing Ranking Booster | CuteCut Pro',
+      desc: 'Expert guides, editing masterclasses, CapCut & Filmora comparisons, and video optimization strategies.'
+    },
+    templates: {
+      path: '/templates',
+      title: 'Trending Video Templates & CapCut-Style Presets | CuteCut Pro',
+      desc: 'Free 4K customizable templates for TikTok, YouTube Shorts, Reels, and cinematic videos.'
+    },
+    projects: {
+      path: '/projects',
+      title: 'My Saved Projects & Video Timeline Drafts | CuteCut Pro',
+      desc: 'Access and continue editing your saved video projects with local browser persistence.'
+    },
+    downloads: {
+      path: '/download',
+      title: 'Download CuteCut Pro for Windows, macOS, Linux & Android',
+      desc: 'Download standalone offline native desktop and mobile installers with full hardware GPU rendering.'
+    },
+    ai: {
+      path: '/ai-studio',
+      title: 'AI Script-to-Video & Intelligence Studio | CuteCut Pro',
+      desc: 'Generate viral AI videos, prompts, and kinetic captions instantly.'
+    },
+    quran: {
+      path: '/quran-studio',
+      title: 'Quran 4K Video Studio & Auto-Alignment Engine | CuteCut Pro',
+      desc: '114 Surahs authentic Uthmani scripture, word-by-word karaoke sync, and 4K Islamic video maker.'
+    }
+  }), []);
+
+  const getNavFromPath = (path: string): NavSection => {
+    if (isOfflineNativeApp()) return 'home';
+    const clean = path.toLowerCase().replace(/\/+$/, '') || '/';
+    if (clean === '/models' || clean === '/ai-models' || clean === '/engine') return 'native_engine';
+    if (clean === '/tutorials' || clean === '/guides' || clean === '/help' || clean === '/masterclasses') return 'guides';
+    if (clean === '/reviews' || clean === '/ratings') return 'reviews';
+    if (clean === '/blog' || clean === '/articles' || clean === '/news') return 'blog';
+    if (clean === '/templates' || clean === '/template') return 'templates';
+    if (clean === '/projects' || clean === '/my-projects') return 'projects';
+    if (clean === '/download' || clean === '/downloads' || clean === '/install') return 'downloads';
+    if (clean === '/quran' || clean === '/quran-studio') return 'quran';
+    if (clean === '/ai-studio' || clean === '/ai') return 'ai';
+    if (clean === '/home') return 'home';
+    return 'website';
+  };
+
+  const [activeNav, setActiveNavState] = useState<NavSection>(() => {
+    if (typeof window !== 'undefined') {
+      return getNavFromPath(window.location.pathname);
+    }
     return isOfflineNativeApp() ? 'home' : 'website';
   });
+
+  const setActiveNav = (newNav: NavSection) => {
+    setActiveNavState(newNav);
+    if (typeof window !== 'undefined' && !isOfflineNative) {
+      const meta = NAV_ROUTE_MAP[newNav] || NAV_ROUTE_MAP.website;
+      if (window.location.pathname !== meta.path) {
+        window.history.pushState({ nav: newNav, path: meta.path }, '', meta.path);
+      }
+      document.title = meta.title;
+      const descMeta = document.querySelector('meta[name="description"]');
+      if (descMeta) {
+        descMeta.setAttribute('content', meta.desc);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined' && !isOfflineNative) {
+        const nav = getNavFromPath(window.location.pathname);
+        setActiveNavState(nav);
+        const meta = NAV_ROUTE_MAP[nav] || NAV_ROUTE_MAP.website;
+        document.title = meta.title;
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isOfflineNative, NAV_ROUTE_MAP]);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('cutecut_portal_theme') as 'dark' | 'light') || 'dark';

@@ -84,11 +84,28 @@ export const CuteCutTextInspector: React.FC<CuteCutTextInspectorProps> = ({
     if (clip.ayahNumber) return String(clip.ayahNumber);
     if (clip.verse_key) {
       const parts = clip.verse_key.split(':');
-      if (parts[1]) return parts[1];
+      if (parts[1]) return parts[1].replace(/\[.*\]/, '').trim();
     }
     const match = (clip.name || '').match(/:(\d+)/);
     return match ? match[1] : '1';
   });
+
+  // Synchronize ayahNumber when clip selection changes
+  useEffect(() => {
+    if (clip.ayahNumber) {
+      setAyahNumber(String(clip.ayahNumber));
+    } else if (clip.verse_key) {
+      const parts = clip.verse_key.split(':');
+      if (parts[1]) {
+        const clean = parts[1].replace(/\[.*\]/, '').trim();
+        setAyahNumber(clean);
+      }
+    } else {
+      const match = (clip.name || '').match(/:(\d+)/);
+      if (match) setAyahNumber(match[1]);
+      else setAyahNumber('1');
+    }
+  }, [clip.id, clip.ayahNumber, clip.verse_key, clip.name]);
 
   // Determine current active Surah number (defaults to 1 - Al-Fatihah)
   const currentSurahNumber: number = (() => {

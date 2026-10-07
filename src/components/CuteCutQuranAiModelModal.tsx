@@ -55,6 +55,7 @@ export const CuteCutQuranAiModelModal: React.FC<CuteCutQuranAiModelModalProps> =
   const [selectedSurahNum, setSelectedSurahNum] = useState<number>(1);
   const [selectedTranslationId, setSelectedTranslationId] = useState<string>('ur-jalandhry');
   const [breathMode, setBreathMode] = useState<'smart-auto' | 'split-long-ayahs' | 'combine-wasl'>('smart-auto');
+  const [introMode, setIntroMode] = useState<'both' | 'taawwuz-only' | 'bismillah-only' | 'none'>('both');
   const [audioSource, setAudioSource] = useState<'timeline' | 'demo-reciter' | 'custom-upload'>('demo-reciter');
   
   // Reciter Demo Selection
@@ -135,7 +136,8 @@ export const CuteCutQuranAiModelModal: React.FC<CuteCutQuranAiModelModalProps> =
         audioDuration,
         translationOption: selectedTransOpt,
         autoDetectSurah: false,
-        audioNameHint: customAudioFile?.name || (audioSource === 'timeline' ? timelineAudioClips[0]?.name : selectedDemoQari)
+        audioNameHint: customAudioFile?.name || (audioSource === 'timeline' ? timelineAudioClips[0]?.name : selectedDemoQari),
+        introMode
       });
 
       await new Promise(r => setTimeout(r, 400));
@@ -155,52 +157,113 @@ export const CuteCutQuranAiModelModal: React.FC<CuteCutQuranAiModelModalProps> =
     if (isOpen && !report) {
       handleRunAiModel();
     }
-  }, [isOpen, selectedSurahNum]);
+  }, [isOpen, selectedSurahNum, introMode]);
 
   // Apply aligned segments to video timeline
   const handleApply = () => {
     if (!report || report.segments.length === 0) return;
 
     const timestamp = Date.now();
-    const arabicClips: Partial<Clip>[] = report.segments.map((seg, idx) => ({
-      id: `clip-quran-ar-${timestamp}-${idx}`,
-      name: `Ayah ${seg.verseNumber} (Arabic)`,
-      type: 'text' as const,
-      start: seg.startTime,
-      duration: Math.max(0.6, seg.endTime - seg.startTime),
-      content: seg.textArabic,
-      textStyle: {
+    const arabicClips: Partial<Clip>[] = report.segments.map((seg, idx) => {
+      const arId = `clip-quran-ar-${timestamp}-${idx}`;
+      const transId = `clip-quran-trans-${timestamp}-${idx}`;
+      const isIntro = Boolean(seg.isTaawwuz || seg.isTasmiyah);
+      const isMulti = seg.totalSubPhrases > 1;
+      const clipName = seg.isTaawwuz 
+        ? "AR: Ta'awwuz" 
+        : seg.isTasmiyah 
+        ? "AR: Tasmiyah" 
+        : isMulti 
+        ? `AR: Ayah ${seg.verseNumber} [${seg.subPhraseIndex}/${seg.totalSubPhrases}]` 
+        : `AR: Ayah ${seg.verseNumber}`;
+
+      return {
+        id: arId,
+        name: clipName,
+        type: 'text' as const,
+        trackId: 'track-quran-arabic',
+        start: seg.startTime,
+        duration: Math.max(0.6, seg.endTime - seg.startTime),
+        sourceStart: 0,
+        sourceDuration: Math.max(0.6, seg.endTime - seg.startTime),
+        playbackRate: 1.0,
+        volume: 1.0,
+        text: seg.textArabic,
+        content: seg.textArabic,
+        surahNumber: seg.surahNumber,
+        ayahNumber: seg.verseNumber,
+        verseKey: seg.verseKey,
+        subPhraseIndex: seg.subPhraseIndex,
+        totalSubPhrases: seg.totalSubPhrases,
+        isSubPhrase: seg.isSubPhrase,
+        isTaawwuz: seg.isTaawwuz,
+        isTasmiyah: seg.isTasmiyah,
+        language: 'ar',
         fontSize: 38,
         fontFamily: 'QPC Uthmani Hafs',
-        fill: '#FACC15',
-        textAlign: 'center',
-        stroke: '#000000',
-        strokeWidth: 2,
-        shadowColor: 'rgba(0,0,0,0.8)',
-        shadowBlur: 8,
-        yPercent: 42
-      }
-    }));
+        color: '#FACC15',
+        textStyle: 'gold-glow' as const,
+        textX: 50,
+        textY: 42,
+        textAlignment: 'center' as const,
+        textStrokeWidth: 2,
+        textStrokeColor: '#000000',
+        karaokeHighlight: { enabled: true, color: '#FACC15', intensity: 1.0 },
+        karaokeColor: '#FACC15',
+        textAnimation: { inAnimation: 'karaoke', inDuration: 0.3 },
+        linkedClipId: transId,
+        groupId: `group-quran-${seg.surahNumber}-${seg.verseNumber}-${seg.subPhraseIndex || 1}`
+      };
+    });
 
-    const translationClips: Partial<Clip>[] = report.segments.map((seg, idx) => ({
-      id: `clip-quran-trans-${timestamp}-${idx}`,
-      name: `Ayah ${seg.verseNumber} (Translation)`,
-      type: 'text' as const,
-      start: seg.startTime,
-      duration: Math.max(0.6, seg.endTime - seg.startTime),
-      content: seg.textTranslation,
-      textStyle: {
+    const translationClips: Partial<Clip>[] = report.segments.map((seg, idx) => {
+      const arId = `clip-quran-ar-${timestamp}-${idx}`;
+      const transId = `clip-quran-trans-${timestamp}-${idx}`;
+      const isMulti = seg.totalSubPhrases > 1;
+      const langPrefix = (selectedTransOpt.languageCode || 'EN').toUpperCase();
+      const clipName = seg.isTaawwuz 
+        ? `${langPrefix}: Ta'awwuz` 
+        : seg.isTasmiyah 
+        ? `${langPrefix}: Tasmiyah` 
+        : isMulti 
+        ? `${langPrefix}: Ayah ${seg.verseNumber} [${seg.subPhraseIndex}/${seg.totalSubPhrases}]` 
+        : `${langPrefix}: Ayah ${seg.verseNumber}`;
+
+      return {
+        id: transId,
+        name: clipName,
+        type: 'text' as const,
+        trackId: 'track-quran-english',
+        start: seg.startTime,
+        duration: Math.max(0.6, seg.endTime - seg.startTime),
+        sourceStart: 0,
+        sourceDuration: Math.max(0.6, seg.endTime - seg.startTime),
+        playbackRate: 1.0,
+        volume: 1.0,
+        text: seg.textTranslation,
+        content: seg.textTranslation,
+        surahNumber: seg.surahNumber,
+        ayahNumber: seg.verseNumber,
+        verseKey: seg.verseKey,
+        subPhraseIndex: seg.subPhraseIndex,
+        totalSubPhrases: seg.totalSubPhrases,
+        isSubPhrase: seg.isSubPhrase,
+        isTaawwuz: seg.isTaawwuz,
+        isTasmiyah: seg.isTasmiyah,
+        language: selectedTransOpt.languageCode,
         fontSize: 22,
         fontFamily: selectedTransOpt.defaultFont || 'Noto Nastaliq Urdu',
-        fill: '#FFFFFF',
-        textAlign: 'center',
-        stroke: '#000000',
-        strokeWidth: 1.5,
-        shadowColor: 'rgba(0,0,0,0.8)',
-        shadowBlur: 6,
-        yPercent: 78
-      }
-    }));
+        color: '#FFFFFF',
+        textStyle: 'shadow' as const,
+        textX: 50,
+        textY: 78,
+        textAlignment: 'center' as const,
+        textStrokeWidth: 1.5,
+        textStrokeColor: '#000000',
+        linkedClipId: arId,
+        groupId: `group-quran-${seg.surahNumber}-${seg.verseNumber}-${seg.subPhraseIndex || 1}`
+      };
+    });
 
     onApplyToTimeline(arabicClips, translationClips);
     onClose();
@@ -429,6 +492,63 @@ export const CuteCutQuranAiModelModal: React.FC<CuteCutQuranAiModelModalProps> =
               <p className="mt-2 text-xs text-gray-400">
                 {audioSource === 'demo-reciter' ? demoReciters.find(d => d.id === selectedDemoQari)?.style : 'Direct acoustic VAD tracking'}
               </p>
+            </div>
+
+            {/* Quran Intro Selector (Auzubillah & Bismillah) */}
+            <div className={`p-4 rounded-2xl border col-span-1 md:col-span-3 ${isDark ? 'bg-[#141624] border-[#222738]' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Quran Recitation Opening Intro (A'udhu & Bismillah)</span>
+                  </label>
+                  <p className="text-xs text-gray-400">
+                    Auto-include authentic Ta'awwuz (A'udhu billahi minash-shaytanir-rajim) and Tasmiyah (Bismillahir-Rahmanir-Rahim) at recitation start.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-black/30 border border-white/10">
+                  <button
+                    onClick={() => setIntroMode('both')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      introMode === 'both'
+                        ? 'bg-amber-500 text-black shadow-md'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    ⭐ Both (A'udhu + Bismillah)
+                  </button>
+                  <button
+                    onClick={() => setIntroMode('bismillah-only')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      introMode === 'bismillah-only'
+                        ? 'bg-emerald-500 text-black shadow-md'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Bismillah Only
+                  </button>
+                  <button
+                    onClick={() => setIntroMode('taawwuz-only')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      introMode === 'taawwuz-only'
+                        ? 'bg-purple-500 text-white shadow-md'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    A'udhu Only
+                  </button>
+                  <button
+                    onClick={() => setIntroMode('none')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      introMode === 'none'
+                        ? 'bg-gray-600 text-white shadow-md'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Start directly from Ayah 1
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 

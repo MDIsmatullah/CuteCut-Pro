@@ -88,6 +88,7 @@ export interface Clip {
   
   // Text specific properties
   text?: string;
+  content?: string; // Fallback / alias for text
   fontSize?: number;
   fontFamily?: string;
   textX?: number; // percentage 0-100
@@ -139,6 +140,12 @@ export interface Clip {
   surahNumber?: number;
   ayahNumber?: number;
   ayahKey?: string; // e.g., "67:22"
+  verseKey?: string; // e.g. "67:1 [1/2]" or "aux"
+  subPhraseIndex?: number; // 1-based index within the Ayah
+  totalSubPhrases?: number; // Total sub-phrases for this Ayah
+  isSubPhrase?: boolean; // True if this is an intra-ayah breath split
+  isTaawwuz?: boolean; // True for A'udhu billahi minash-shaytanir-rajim
+  isTasmiyah?: boolean; // True for Bismillahir-Rahmanir-Rahim
   language?: 'ar' | 'en' | string;
   ayahSymbolPosition?: 'end' | 'start' | 'divider';
   ayahSymbolStyle?: string;
@@ -455,7 +462,8 @@ export type TextAnimationIn =
   | 'typewriter'
   | 'bounce'
   | 'zoom-in'
-  | 'glitch';
+  | 'glitch'
+  | 'karaoke';
 
 export type TextAnimationOut =
   | 'none'

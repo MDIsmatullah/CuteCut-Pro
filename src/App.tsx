@@ -360,7 +360,44 @@ export default function App() {
 
   const [showNativeSplash, setShowNativeSplash] = useState<boolean>(false);
 
-  const [currentView, setCurrentView] = useState<'portal' | 'editor'>('portal');
+  const [currentView, setCurrentView] = useState<'portal' | 'editor'>(() => {
+    if (typeof window !== 'undefined') {
+      const p = window.location.pathname.toLowerCase();
+      if (p === '/editor' || p.startsWith('/editor/')) {
+        return 'editor';
+      }
+    }
+    return 'portal';
+  });
+
+  const navigateToView = (view: 'portal' | 'editor', path?: string) => {
+    setCurrentView(view);
+    if (typeof window !== 'undefined') {
+      const targetPath = path || (view === 'editor' ? '/editor' : '/');
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({ view, path: targetPath }, '', targetPath);
+      }
+      if (view === 'editor') {
+        document.title = 'CuteCut Pro Studio - Professional Video Editor';
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined') {
+        const p = window.location.pathname.toLowerCase();
+        if (p === '/editor' || p.startsWith('/editor/')) {
+          setCurrentView('editor');
+          document.title = 'CuteCut Pro Studio - Professional Video Editor';
+        } else {
+          setCurrentView('portal');
+        }
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Timeline Loop Playback & Grid Snapping state
   const [isLooping, setIsLooping] = useState(true);
@@ -4642,44 +4679,218 @@ export default function App() {
   // ------------------ (D-2) CUTECUT QURAN AI MODEL ENGINE APPLICATION ------------------
   const handleApplyQuranAiModelClips = (
     arabicClips: Partial<Clip>[],
-    translationClips: Partial<Clip>[]
+    translationClips: Partial<Clip>[],
+    audioClip?: Partial<Clip>
   ) => {
+    if (!arabicClips || arabicClips.length === 0) {
+      setShowCuteCutQuranAiModelModal(false);
+      return;
+    }
+
     const trackArId = 'track-quran-arabic';
     const trackEnId = 'track-quran-english';
+    const trackAudId = 'track-audio-1';
 
-    setTracks(prev => {
-      const existingArTrack = prev.find(t => t.id === trackArId);
-      const existingEnTrack = prev.find(t => t.id === trackEnId);
+    // Locate active audio track on timeline to dynamically anchor word-by-word text to audio waveform
+    const existingAudioTrack = tracks.find(t => t.id === trackAudId || t.id === 'track-audio' || t.type === ClipType.AUDIO);
+    const primaryAudioClip = existingAudioTrack?.clips[0];
+    const audioWaveformOffset = primaryAudioClip?.start || 0;
 
-      const newArTrack: Track = existingArTrack
-        ? { ...existingArTrack, clips: arabicClips as Clip[] }
-        : {
-            id: trackArId,
-            name: 'Quran Arabic (Uthmani)',
-            type: 'text' as const,
-            clips: arabicClips as Clip[],
-            locked: false,
-            muted: false
-          };
+    const fullArabicClips: Clip[] = arabicClips.map((c, idx) => {
+      const transId = c.linkedClipId || translationClips[idx]?.id || `clip-quran-trans-${Date.now()}-${idx}`;
+      const totalPhrases = c.totalSubPhrases || 1;
+      const subIdx = c.subPhraseIndex || 1;
+      const isMulti = totalPhrases > 1;
 
-      const newEnTrack: Track = existingEnTrack
-        ? { ...existingEnTrack, clips: translationClips as Clip[] }
-        : {
-            id: trackEnId,
-            name: 'Quran Translation',
-            type: 'text' as const,
-            clips: translationClips as Clip[],
-            locked: false,
-            muted: false
-          };
-
-      const remainingTracks = prev.filter(t => t.id !== trackArId && t.id !== trackEnId);
-      return [...remainingTracks, newArTrack, newEnTrack];
+      return {
+        id: c.id || `clip-quran-ar-${Date.now()}-${idx}`,
+        name: c.name || (c.isTaawwuz ? "AR: Ta'awwuz" : c.isTasmiyah ? "AR: Tasmiyah" : isMulti ? `AR: Ayah ${c.ayahNumber} [${subIdx}/${totalPhrases}]` : `AR: Ayah ${c.ayahNumber || idx + 1}`),
+        type: ClipType.TEXT,
+        trackId: trackArId,
+        start: Number(((c.start !== undefined ? c.start : 0)).toFixed(2)),
+        duration: Math.max(0.5, Number((c.duration || 5).toFixed(2))),
+        sourceStart: 0,
+        sourceDuration: Math.max(0.5, Number((c.duration || 5).toFixed(2))),
+        playbackRate: 1.0,
+        volume: 1.0,
+        text: c.text || c.content || '',
+        content: c.text || c.content || '',
+        surahNumber: c.surahNumber,
+        ayahNumber: c.ayahNumber,
+        verseKey: c.verseKey || (c.ayahNumber ? `${c.surahNumber || 1}:${c.ayahNumber}${isMulti ? ` [${subIdx}/${totalPhrases}]` : ''}` : undefined),
+        subPhraseIndex: subIdx,
+        totalSubPhrases: totalPhrases,
+        isSubPhrase: isMulti,
+        isTaawwuz: c.isTaawwuz,
+        isTasmiyah: c.isTasmiyah,
+        language: 'ar',
+        fontSize: c.fontSize || quranArabicSize,
+        color: c.color || quranArabicColor,
+        fontFamily: c.fontFamily || quranArabicFont || 'QPC Uthmani Hafs',
+        textStyle: (c.textStyle as any) || quranArabicStyle || 'gold-glow',
+        textX: 50,
+        textY: c.textY !== undefined ? c.textY : quranArabicY,
+        textWrap: quranArabicWrap,
+        textMaxWidth: quranArabicMaxWidth,
+        textLineHeight: quranArabicLineHeight,
+        textAlignment: quranArabicAlign,
+        textStrokeWidth: c.textStrokeWidth !== undefined ? c.textStrokeWidth : 2,
+        textStrokeColor: c.textStrokeColor || '#000000',
+        textBackgroundColor: quranBgColor,
+        textBackgroundOpacity: quranBgOpacity,
+        textBackgroundPadding: quranBgPadding,
+        textBackgroundRadius: quranBgRadius,
+        textBackgroundBlur: quranBgBlur,
+        textBackgroundStyle: quranBgStyle,
+        karaokeHighlight: c.karaokeHighlight !== undefined ? c.karaokeHighlight : { enabled: true, color: '#FACC15', intensity: 1.0 },
+        karaokeColor: '#FACC15',
+        syncOffsetMs: quranKaraokeSyncOffsetMs || 0,
+        captionDisplayMode: quranCaptionDisplayMode || 'full-ayah',
+        textAnimation: c.textAnimation || { inAnimation: 'karaoke', outAnimation: 'fade', inDuration: 0.3, outDuration: 0.3 },
+        linkedClipId: transId,
+        groupId: c.groupId || `group-quran-${c.surahNumber || 1}-${c.ayahNumber || idx}-${subIdx}`
+      };
     });
+
+    const fullTranslationClips: Clip[] = translationClips.map((c, idx) => {
+      const arId = c.linkedClipId || fullArabicClips[idx]?.id || `clip-quran-ar-${Date.now()}-${idx}`;
+      const totalPhrases = c.totalSubPhrases || 1;
+      const subIdx = c.subPhraseIndex || 1;
+      const isMulti = totalPhrases > 1;
+
+      return {
+        id: c.id || `clip-quran-trans-${Date.now()}-${idx}`,
+        name: c.name || (c.isTaawwuz ? "EN: Ta'awwuz" : c.isTasmiyah ? "EN: Tasmiyah" : isMulti ? `EN: Ayah ${c.ayahNumber} [${subIdx}/${totalPhrases}]` : `EN: Ayah ${c.ayahNumber || idx + 1}`),
+        type: ClipType.TEXT,
+        trackId: trackEnId,
+        start: Number(((c.start !== undefined ? c.start : 0)).toFixed(2)),
+        duration: Math.max(0.5, Number((c.duration || 5).toFixed(2))),
+        sourceStart: 0,
+        sourceDuration: Math.max(0.5, Number((c.duration || 5).toFixed(2))),
+        playbackRate: 1.0,
+        volume: 1.0,
+        text: c.text || c.content || '',
+        content: c.text || c.content || '',
+        surahNumber: c.surahNumber,
+        ayahNumber: c.ayahNumber,
+        verseKey: c.verseKey || (c.ayahNumber ? `${c.surahNumber || 1}:${c.ayahNumber}${isMulti ? ` [${subIdx}/${totalPhrases}]` : ''}` : undefined),
+        subPhraseIndex: subIdx,
+        totalSubPhrases: totalPhrases,
+        isSubPhrase: isMulti,
+        isTaawwuz: c.isTaawwuz,
+        isTasmiyah: c.isTasmiyah,
+        language: c.language || 'en',
+        fontSize: c.fontSize || quranEnglishSize,
+        color: c.color || quranEnglishColor,
+        fontFamily: c.fontFamily || quranEnglishFont || 'Noto Nastaliq Urdu',
+        textStyle: (c.textStyle as any) || quranEnglishStyle || 'shadow',
+        textX: 50,
+        textY: c.textY !== undefined ? c.textY : quranEnglishY,
+        textWrap: quranEnglishWrap,
+        textMaxWidth: quranEnglishMaxWidth,
+        textLineHeight: quranEnglishLineHeight,
+        textAlignment: quranEnglishAlign,
+        textStrokeWidth: c.textStrokeWidth !== undefined ? c.textStrokeWidth : 1.5,
+        textStrokeColor: c.textStrokeColor || '#000000',
+        textBackgroundColor: quranBgColor,
+        textBackgroundOpacity: quranBgOpacity,
+        textBackgroundPadding: quranBgPadding,
+        textBackgroundRadius: quranBgRadius,
+        textBackgroundBlur: quranBgBlur,
+        textBackgroundStyle: quranBgStyle,
+        karaokeHighlight: c.karaokeHighlight !== undefined ? c.karaokeHighlight : { enabled: true, color: '#FFFFFF', intensity: 1.0 },
+        karaokeColor: '#FFFFFF',
+        syncOffsetMs: quranKaraokeSyncOffsetMs || 0,
+        captionDisplayMode: quranCaptionDisplayMode || 'full-ayah',
+        textAnimation: c.textAnimation || { inAnimation: 'karaoke', outAnimation: 'fade', inDuration: 0.3, outDuration: 0.3 },
+        linkedClipId: arId,
+        groupId: c.groupId || `group-quran-${c.surahNumber || 1}-${c.ayahNumber || idx}-${subIdx}`
+      };
+    });
+
+    const filteredTracks = tracks.filter(t => t.id !== trackArId && t.id !== trackEnId);
+    let newTracks: Track[] = [...filteredTracks];
+
+    if (fullArabicClips.length > 0) {
+      newTracks = insertTrackInProperOrder(newTracks, {
+        id: trackArId,
+        name: 'Quran Arabic (Uthmani)',
+        type: ClipType.TEXT,
+        clips: fullArabicClips.sort((a, b) => a.start - b.start),
+        locked: false,
+        muted: false
+      });
+    }
+
+    if (fullTranslationClips.length > 0) {
+      newTracks = insertTrackInProperOrder(newTracks, {
+        id: trackEnId,
+        name: 'Quran Translation',
+        type: ClipType.TEXT,
+        clips: fullTranslationClips.sort((a, b) => a.start - b.start),
+        locked: false,
+        muted: false
+      });
+    }
+
+    // If audioClip provided and no audio clips exist, insert it
+    if (audioClip && (!existingAudioTrack || existingAudioTrack.clips.length === 0)) {
+      const newAudioClip: Clip = {
+        id: audioClip.id || `clip-audio-${Date.now()}`,
+        name: audioClip.name || 'Quran Recitation Audio',
+        type: ClipType.AUDIO,
+        trackId: trackAudId,
+        start: audioClip.start || 0,
+        duration: audioClip.duration || 60,
+        sourceStart: 0,
+        sourceDuration: audioClip.duration || 60,
+        playbackRate: 1.0,
+        volume: 1.0,
+        url: audioClip.url
+      };
+
+      const audioTrackIdx = newTracks.findIndex(t => t.id === trackAudId);
+      if (audioTrackIdx >= 0) {
+        newTracks[audioTrackIdx] = {
+          ...newTracks[audioTrackIdx],
+          clips: [newAudioClip]
+        };
+      } else {
+        newTracks = insertTrackInProperOrder(newTracks, {
+          id: trackAudId,
+          name: 'Quran Recitation Audio',
+          type: ClipType.AUDIO,
+          clips: [newAudioClip],
+          locked: false,
+          muted: false
+        });
+      }
+    }
+
+    // Update state and history
+    setTracks(newTracks);
+    setTracksHistory(prev => [...prev.slice(0, historyIndex + 1), newTracks]);
+    setHistoryIndex(prev => prev + 1);
+
+    // Dynamic timeline length adjustment
+    let maxClipEnd = 0;
+    [...fullArabicClips, ...fullTranslationClips].forEach(c => {
+      if (c.start + c.duration > maxClipEnd) {
+        maxClipEnd = c.start + c.duration;
+      }
+    });
+    if (maxClipEnd > 0) {
+      setDuration(prev => Math.max(prev, Math.ceil(maxClipEnd + 5)));
+    }
+
+    if (fullArabicClips.length > 0) {
+      setSelectedClipId(fullArabicClips[0].id);
+      setCurrentTime(fullArabicClips[0].start);
+    }
 
     setCurrentView('editor');
     setShowCuteCutQuranAiModelModal(false);
-    console.log(`[CuteCut Quran AI] Successfully applied ${arabicClips.length} aligned Quran Ayahs to timeline (Mukammal Surah with Wasl & Intra-Ayah rules).`);
+    console.log(`[CuteCut Quran AI] Successfully anchored ${fullArabicClips.length} Quran Ayah phrases to audio waveform (Mukammal Surah with Wasl & Intra-Ayah subPhraseIndex mapping).`);
   };
 
   // ------------------ (D) AI AUTO CAPTION PARSER ------------------
@@ -7370,7 +7581,7 @@ export default function App() {
           user={currentUser}
           onOpenEditor={(ratio) => {
             if (ratio) setAspectRatio(ratio);
-            setCurrentView('editor');
+            navigateToView('editor', '/editor');
           }}
           onOpenAuth={() => setShowAuthModal(true)}
           onDirectGoogleSignIn={handleGoogleSignIn}
@@ -7378,7 +7589,7 @@ export default function App() {
           onLoadTemplate={handleLoadTemplate}
           onLoadProject={(proj) => {
             handleLoadSavedProject(proj);
-            setCurrentView('editor');
+            navigateToView('editor', '/editor');
           }}
           onOpenAiPromptStudio={() => {
             setShowAiVideoStudioModal(true);
@@ -7408,7 +7619,7 @@ export default function App() {
           onAddClip={(newClip) => {
             addNewClip(newClip);
             setShowGeminiIntelligenceModal(false);
-            setCurrentView('editor');
+            navigateToView('editor', '/editor');
           }}
           onExecuteAction={handleExecuteVoiceAction}
           currentTime={currentTime}
@@ -7439,7 +7650,7 @@ export default function App() {
           onLoadProject={(proj) => {
             handleLoadSavedProject(proj);
             setShowSaveModal(false);
-            setCurrentView('editor');
+            navigateToView('editor', '/editor');
           }}
           onApplyStylePreset={handleApplyStylePreset}
         />
@@ -7460,7 +7671,7 @@ export default function App() {
                 onSetTracks={(newTracks) => {
                   setTracks(newTracks);
                   setShowAiVideoStudioModal(false);
-                  setCurrentView('editor');
+                  navigateToView('editor', '/editor');
                 }}
                 onSetDuration={setDuration}
                 currentAspectRatio={aspectRatio}
@@ -7478,7 +7689,7 @@ export default function App() {
           onAddClip={(newClip) => {
             addNewClip(newClip);
             setShowVeoAnimateModal(false);
-            setCurrentView('editor');
+            navigateToView('editor', '/editor');
           }}
           tracks={tracks}
           currentTime={currentTime}
@@ -7507,7 +7718,7 @@ export default function App() {
           />
         )}
         <MobileCuteCutLayout
-          onBackToPortal={() => setCurrentView('portal')}
+          onBackToPortal={() => navigateToView('portal', '/')}
           onOpenExport={triggerExport}
           aspectRatio={aspectRatio}
           onSetAspectRatio={setAspectRatio}
@@ -8107,7 +8318,7 @@ export default function App() {
           {/* Home Portal Button (Always Enabled) */}
           <button
             id="btn-back-to-portal-header"
-            onClick={() => setCurrentView('portal')}
+            onClick={() => navigateToView('portal', '/')}
             className="flex items-center gap-1.5 px-3 h-9 bg-[#131726] hover:bg-[#1a2136] border border-blue-500/40 hover:border-blue-400 text-blue-200 text-xs font-bold rounded-lg transition shadow-sm active:scale-95 cursor-pointer group"
             title="Return to Home Landing Portal & Project Templates"
           >

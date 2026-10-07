@@ -20,7 +20,7 @@
  */
 
 import { ALL_114_SURAHS, SurahMeta } from '../utils/quranSurahData';
-import { QURAN_TRANSLATION_OPTIONS, OFFLINE_SURAH_TRANSLATIONS } from '../utils/quranTranslations';
+import { QURAN_TRANSLATION_OPTIONS, OFFLINE_SURAH_TRANSLATIONS, getTaawwuzTranslation, getTasmiyahTranslation } from '../utils/quranTranslations';
 import { QuranTranslationOption } from '../types';
 import { runQuranAlignmentEngine, QuranVerseInput, QuranAlignmentSegment } from '../utils/quranAlignmentEngine';
 import { reconcileSingleBreathVerses } from '../utils/editorUtils';
@@ -387,12 +387,43 @@ export class CuteCutQuranAiModel {
    */
   public async fetchSurahScriptureAndTranslations(
     surahNumber: number,
-    translationOption?: QuranTranslationOption
+    translationOption?: QuranTranslationOption,
+    introMode?: 'both' | 'taawwuz-only' | 'bismillah-only' | 'none'
   ): Promise<QuranAiVerse[]> {
     const surah = this.getSurah(surahNumber);
     const transOpt = translationOption || QURAN_TRANSLATION_OPTIONS[0]; // English or Urdu
     const transApiId = transOpt.apiId || 20;
     const verses: QuranAiVerse[] = [];
+
+    // Prepend Ta'awwuz and/or Tasmiyah (Bismillah) if requested
+    const currentIntroMode = introMode || 'none';
+    if (currentIntroMode === 'both' || currentIntroMode === 'taawwuz-only') {
+      verses.push({
+        surahNumber,
+        verseNumber: 0,
+        verseKey: 'aux',
+        textArabic: 'أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ',
+        textEnglish: getTaawwuzTranslation(transOpt.languageCode),
+        textUrdu: transOpt.languageCode === 'ur' ? getTaawwuzTranslation('ur') : undefined,
+        isTaawwuz: true,
+        wordCount: 5,
+        phoneticWeight: 24
+      });
+    }
+
+    if ((currentIntroMode === 'both' || currentIntroMode === 'bismillah-only') && surahNumber !== 9) {
+      verses.push({
+        surahNumber,
+        verseNumber: 0,
+        verseKey: 'bis',
+        textArabic: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+        textEnglish: getTasmiyahTranslation(transOpt.languageCode),
+        textUrdu: transOpt.languageCode === 'ur' ? getTasmiyahTranslation('ur') : undefined,
+        isTasmiyah: true,
+        wordCount: 4,
+        phoneticWeight: 22
+      });
+    }
 
     // 1. Try Quran.com v4 API with pagination loop for long Surahs like Al-Baqarah
     try {
@@ -611,6 +642,7 @@ export class CuteCutQuranAiModel {
     translationOption?: QuranTranslationOption;
     autoDetectSurah?: boolean;
     audioNameHint?: string;
+    introMode?: 'both' | 'taawwuz-only' | 'bismillah-only' | 'none';
   }): Promise<CuteCutQuranAiModelReport> {
     const {
       audioDuration,
@@ -618,7 +650,8 @@ export class CuteCutQuranAiModel {
       sampleRate = 44100,
       translationOption,
       autoDetectSurah = false,
-      audioNameHint
+      audioNameHint,
+      introMode = 'none'
     } = params;
 
     // 1. Surah Selection / Auto-Detection (Rule 1)
@@ -641,7 +674,7 @@ export class CuteCutQuranAiModel {
     }
 
     // 3. Fetch Authentic Scripture & Translation from Quran.com API (Rule 2)
-    const rawVerses = await this.fetchSurahScriptureAndTranslations(surah.id, translationOption);
+    const rawVerses = await this.fetchSurahScriptureAndTranslations(surah.id, translationOption, introMode);
 
     // 4. Execute Alignment & Segmentation applying Rules 3, 4, 5, 6
     const segments: CuteCutQuranSegment[] = [];
@@ -671,6 +704,8 @@ export class CuteCutQuranAiModel {
           subPhraseIndex: 1,
           totalSubPhrases: 1,
           breathIndex: b.id,
+          isTaawwuz: v.isTaawwuz,
+          isTasmiyah: v.isTasmiyah,
           confidenceScore: 98.4,
           ruleApplied: 'rule-4-single-breath-single-ayah',
           ruleDescription: 'Recited 1 Ayah in 1 Breath: Audio onset and waqf pause locked to scripture with zero drift.',
@@ -716,6 +751,8 @@ export class CuteCutQuranAiModel {
             subPhraseIndex: 1,
             totalSubPhrases: 1,
             breathIndex: breath.id,
+            isTaawwuz: v.isTaawwuz,
+            isTasmiyah: v.isTasmiyah,
             confidenceScore: 97.8,
             ruleApplied: 'rule-4-single-breath-single-ayah',
             ruleDescription: 'Single Ayah in breath: exact onset and waqf offset alignment.',
@@ -749,6 +786,8 @@ export class CuteCutQuranAiModel {
               subPhraseIndex: 1,
               totalSubPhrases: 1,
               breathIndex: breath.id,
+              isTaawwuz: gv.isTaawwuz,
+              isTasmiyah: gv.isTasmiyah,
               confidenceScore: 96.5,
               ruleApplied: 'rule-5-multi-ayah-single-breath',
               ruleDescription: `Rule 5 Wasl Applied: Qari recited ${groupVerses.length} ayahs in 1 single breath. Acoustic voice matching correctly partitioned Ayah ${gv.verseNumber} sequentially.`,
@@ -799,6 +838,8 @@ export class CuteCutQuranAiModel {
             subPhraseIndex: 1,
             totalSubPhrases: 1,
             breathIndex: b.id,
+            isTaawwuz: v.isTaawwuz,
+            isTasmiyah: v.isTasmiyah,
             confidenceScore: 98.2,
             ruleApplied: 'rule-4-single-breath-single-ayah',
             ruleDescription: 'Single Ayah in 1 Breath: Voice activity locked.',
@@ -826,6 +867,8 @@ export class CuteCutQuranAiModel {
               subPhraseIndex: bIdx + 1,
               totalSubPhrases: partsCount,
               breathIndex: b.id,
+              isTaawwuz: v.isTaawwuz,
+              isTasmiyah: v.isTasmiyah,
               confidenceScore: 97.4,
               ruleApplied: 'rule-6-long-ayah-multi-breath',
               ruleDescription: `Rule 6 Intra-Ayah Waqf Applied: Qari recited long Ayah ${v.verseNumber} across ${partsCount} breaths. Part [${bIdx + 1}/${partsCount}] locked to breath ${b.id} with zero drift.`,

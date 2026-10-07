@@ -2112,7 +2112,8 @@ export default function PreviewPlayer({
         const startY = yPos - totalHeight / 2;
 
         // Ayah medallion belongs exclusively to Quran Arabic Ayahs (NEVER for translation!)
-        const ayahNum = isQuranArabic ? (clip.ayahNumber || extractAyahNumberFromClip(clip)) : undefined;
+        const isSubPhraseOngoing = Boolean(clip.isSubPhrase && clip.subPhraseIndex && clip.totalSubPhrases && clip.subPhraseIndex < clip.totalSubPhrases);
+        const ayahNum = isQuranArabic && !isSubPhraseOngoing ? (clip.ayahNumber || extractAyahNumberFromClip(clip)) : undefined;
         const hasInlineMedallion = Boolean(isQuranArabic && hasDoubleCircleIssue && ayahNum && ayahSymbolPosition !== 'divider');
         const targetLineIdx = ayahSymbolPosition === 'start' ? 0 : lines.length - 1;
         const medH = Math.max(22, Math.round(fontSize * 1.05));
@@ -2794,7 +2795,8 @@ export default function PreviewPlayer({
           ctx.restore(); // Restore Canvas Context after Animation Transforms
 
           // Divider Ayah medallion if position === 'divider' (strictly for Quran Arabic!)
-          if (isQuranArabicClip(clip)) {
+          const isDividerSubOngoing = Boolean(clip.isSubPhrase && clip.subPhraseIndex && clip.totalSubPhrases && clip.subPhraseIndex < clip.totalSubPhrases);
+          if (isQuranArabicClip(clip) && !isDividerSubOngoing) {
             const ayahNum = clip.ayahNumber || extractAyahNumberFromClip(clip);
             const ayahSymbolStyle = clip.ayahSymbolStyle && clip.ayahSymbolStyle !== 'none' ? clip.ayahSymbolStyle : 'ornate-medallion';
             const ayahSymbolPosition = clip.ayahSymbolPosition || 'end';
