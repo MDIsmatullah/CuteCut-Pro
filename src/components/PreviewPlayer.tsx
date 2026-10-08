@@ -22,6 +22,7 @@ import {
   isTranslationClip,
   isQuranArabicClip,
   getNormalizedClipVolume,
+  getOrCreateMediaPool,
 } from '../utils/editorUtils';
 import { getSurahMeta, formatSurahHeader } from '../utils/quranSurahData';
 import { getClipEffectiveSpeedAtTime } from '../utils/speedRampUtils';
@@ -1187,6 +1188,10 @@ export default function PreviewPlayer({
                 img.decode().catch(() => {});
               }
 
+              try {
+                getOrCreateMediaPool().appendChild(img);
+              } catch {}
+
               fallbackMediaRef.current[clip.id] = img;
               media = img;
             } else {
@@ -1195,6 +1200,7 @@ export default function PreviewPlayer({
                 video.crossOrigin = safeCrossOrigin;
               }
               video.src = normUrl;
+              video.setAttribute('muted', '');
               video.muted = true;
               video.defaultMuted = true;
               video.playsInline = true;
@@ -1224,6 +1230,11 @@ export default function PreviewPlayer({
               } catch {
                 // ignore
               }
+
+              try {
+                getOrCreateMediaPool().appendChild(video);
+              } catch {}
+
               fallbackMediaRef.current[clip.id] = video;
               media = video;
             }
@@ -1916,7 +1927,7 @@ export default function PreviewPlayer({
                 applyColorGrading(ctx, dimensions.width, dimensions.height, clip.filters.colorGrading);
               }
             } else {
-              // Seamless dark background fallback while media buffers
+              // Seamless interactive card while media buffers so the screen is never a black void
               ctx.save();
               const grad = ctx.createLinearGradient(0, 0, dimensions.width, dimensions.height);
               grad.addColorStop(0, '#0a0d14');
@@ -1924,10 +1935,122 @@ export default function PreviewPlayer({
               grad.addColorStop(1, '#080a10');
               ctx.fillStyle = grad;
               ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+
+              const cardW = Math.min(dimensions.width * 0.75, 340);
+              const cardH = 110;
+              const cardX = (dimensions.width - cardW) / 2;
+              const cardY = (dimensions.height - cardH) / 2;
+
+              ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+              ctx.strokeStyle = '#06b6d4';
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.roundRect(cardX, cardY, cardW, cardH, 12);
+              ctx.fill();
+              ctx.stroke();
+
+              ctx.fillStyle = '#38bdf8';
+              ctx.font = 'bold 13px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(`🎬 ${clip.name || 'Video Media'}`, dimensions.width / 2, cardY + 34);
+
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '11px sans-serif';
+              ctx.fillText(isPlaying ? '⚡ Decoding 60FPS Video Stream...' : 'Ready to Play (Tap ▶)', dimensions.width / 2, cardY + 62);
+
+              const barW = cardW - 60;
+              const barX = (dimensions.width - barW) / 2;
+              const barY = cardY + 84;
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+              ctx.fillRect(barX, barY, barW, 4);
+              const pulse = isPlaying ? ((t * 80) % barW) : barW;
+              ctx.fillStyle = '#06b6d4';
+              ctx.fillRect(barX, barY, Math.min(barW, pulse + 30), 4);
               ctx.restore();
             }
           }
         });
+
+      // ------------------ DYNAMIC AUDIO VISUALIZER LAYER (When Audio is Active) ------------------
+      const hasVisualMedia = activeFrameClips.some(c => c.type === ClipType.VIDEO || c.type === ClipType.IMAGE || Boolean(c.isImage));
+      const activeAudioClips = activeFrameClips.filter(c => c.type === ClipType.AUDIO);
+
+      if (!hasVisualMedia && activeAudioClips.length > 0) {
+        const activeAudio = activeAudioClips[0];
+        ctx.save();
+        // Deep atmospheric gradient
+        const radGrad = ctx.createRadialGradient(
+          dimensions.width / 2, dimensions.height / 2, 20,
+          dimensions.width / 2, dimensions.height / 2, Math.max(dimensions.width, dimensions.height) * 0.7
+        );
+        radGrad.addColorStop(0, '#15172b');
+        radGrad.addColorStop(0.55, '#0b0c16');
+        radGrad.addColorStop(1, '#05060a');
+        ctx.fillStyle = radGrad;
+        ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+
+        // Animated Spectrum EQ Bars
+        const numBars = 32;
+        const barW = Math.max(3, Math.floor(dimensions.width * 0.014));
+        const gap = Math.max(2, Math.floor(barW * 0.5));
+        const totalW = numBars * (barW + gap);
+        const startX = (dimensions.width - totalW) / 2;
+        const centerY = dimensions.height / 2 + 15;
+
+        for (let b = 0; b < numBars; b++) {
+          const freq = Math.sin(t * 8 + b * 0.5) * 0.5 + 0.5;
+          const wave = Math.cos(t * 11 + b * 0.35) * 0.3 + 0.7;
+          const isCenter = 1 - Math.abs(b - numBars / 2) / (numBars / 2);
+          const amp = isPlaying ? Math.max(0.12, freq * wave * isCenter) : (0.18 * isCenter);
+          const barH = Math.max(6, amp * (dimensions.height * 0.32));
+
+          const x = startX + b * (barW + gap);
+          const y = centerY - barH / 2;
+
+          const grad = ctx.createLinearGradient(x, y, x, y + barH);
+          grad.addColorStop(0, '#38bdf8');
+          grad.addColorStop(0.5, '#06b6d4');
+          grad.addColorStop(1, '#6366f1');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.roundRect(x, y, barW, barH, 3);
+          ctx.fill();
+        }
+
+        // Glassmorphic Audio Metadata Disc Badge
+        const badgeW = Math.min(dimensions.width * 0.82, 360);
+        const badgeH = 52;
+        const badgeX = (dimensions.width - badgeW) / 2;
+        const badgeY = centerY - (dimensions.height * 0.22);
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 12);
+        ctx.fill();
+        ctx.stroke();
+
+        // Pulsing Live Sound Indicator
+        ctx.fillStyle = isPlaying ? '#10b981' : '#64748b';
+        ctx.beginPath();
+        ctx.arc(badgeX + 22, badgeY + badgeH / 2, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        const audioName = activeAudio.name || 'Recitation Audio Track';
+        ctx.fillText(audioName.length > 28 ? audioName.substring(0, 26) + '...' : audioName, badgeX + 38, badgeY + badgeH / 2 - 8);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '10px monospace';
+        ctx.fillText(`${formatTimeCode(t)} • ${isPlaying ? '60FPS Audio Playing' : 'Playback Paused'}`, badgeX + 38, badgeY + badgeH / 2 + 10);
+
+        ctx.restore();
+      }
 
       // ------------------ PRE-CALCULATE TEXT LAYERS & CINEMA OVERLAYS ------------------
       interface PreparedTextLayer {

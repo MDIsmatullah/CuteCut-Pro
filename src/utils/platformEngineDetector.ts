@@ -26,12 +26,28 @@ export function isOfflineNativeApp(): boolean {
   if (typeof window === 'undefined') return false;
 
   try {
-    // URL search param override for testing (?mode=desktop or ?mode=web)
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get('mode') === 'desktop' || searchParams.get('mode') === 'app' || searchParams.get('shell') === 'native') {
+    // Build-time environment variable for offline bundles (.exe, .dmg, Linux, Android)
+    if (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_OFFLINE_BUILD === 'true' || import.meta.env.VITE_APP_SHELL === 'native')) {
       return true;
     }
-    if (searchParams.get('mode') === 'web' || searchParams.get('mode') === 'website') {
+  } catch {
+    // ignore
+  }
+
+  try {
+    // Explicit runtime window flag for standalone wrappers
+    if ((window as any).__IS_OFFLINE_BUILD__ === true || (window as any).isOfflineBuild === true) {
+      return true;
+    }
+
+    // URL search param override for testing (?mode=desktop, ?mode=offline, ?mode=android, ?mode=exe, etc.)
+    const searchParams = new URLSearchParams(window.location.search);
+    const mode = (searchParams.get('mode') || '').toLowerCase();
+    const shell = (searchParams.get('shell') || '').toLowerCase();
+    if (['desktop', 'app', 'offline', 'native', 'android', 'exe', 'dmg', 'linux'].includes(mode) || shell === 'native') {
+      return true;
+    }
+    if (mode === 'web' || mode === 'website') {
       return false;
     }
   } catch {
@@ -40,7 +56,7 @@ export function isOfflineNativeApp(): boolean {
 
   const userAgent = (navigator.userAgent || '').toLowerCase();
 
-  // 1. Electron Desktop (.exe, .dmg, .deb, .snap, AppImage)
+  // 1. Electron Desktop (.exe, .dmg, .deb, .snap, AppImage, Linux)
   const isElectron = !!(window as any).process?.versions?.electron ||
     /electron/i.test(userAgent) ||
     !!(window as any).ipcRenderer ||
@@ -50,7 +66,10 @@ export function isOfflineNativeApp(): boolean {
   const isTauri = !!(window as any).__TAURI__;
   const isLocalFile = window.location.protocol === 'file:';
 
-  // 3. Capacitor Native Android / iOS APK shell
+  // 3. Custom offline local schemes used by Electron, Cordova, Capacitor, Tauri
+  const isCustomOfflineProtocol = ['file:', 'capacitor:', 'ionic:', 'app:', 'vscode-file:'].includes(window.location.protocol);
+
+  // 4. Capacitor Native Android / iOS APK shell
   const isCapacitor = !!(window as any).Capacitor;
   const isCapacitorNative = isCapacitor && (
     (typeof (window as any).Capacitor.isNativePlatform === 'function' && (window as any).Capacitor.isNativePlatform()) ||
@@ -58,10 +77,16 @@ export function isOfflineNativeApp(): boolean {
     (window as any).Capacitor.getPlatform?.() === 'ios'
   );
 
-  // 4. Native Android bridge interface (injected by WebChromeClient / WebView)
-  const isAndroidBridge = !!(window as any).Android || !!(window as any).AndroidBridge;
+  // 5. Native Android bridge interface (injected by WebChromeClient / WebView / Android APK)
+  const isAndroidBridge = !!(window as any).Android ||
+    !!(window as any).AndroidBridge ||
+    !!(window as any).NativeBridge ||
+    !!(window as any).CuteCutAndroid;
 
-  return !!(isElectron || isTauri || isLocalFile || isCapacitorNative || isAndroidBridge);
+  // 6. Android standalone WebView token
+  const isAndroidWebView = /android/i.test(userAgent) && (/; wv\)/i.test(userAgent) || /version\/4\.0 chrome/i.test(userAgent));
+
+  return !!(isElectron || isTauri || isLocalFile || isCustomOfflineProtocol || isCapacitorNative || isAndroidBridge || isAndroidWebView);
 }
 
 /**

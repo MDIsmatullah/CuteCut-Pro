@@ -142,6 +142,37 @@ export const AboutSupportModal: React.FC<AboutSupportModalProps> = ({
             </div>
           </div>
 
+          {/* Core Capabilities & Feature Badges */}
+          <div className="space-y-2.5 bg-[#12121c] p-3.5 rounded-xl border border-[#202030]">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-cyan-400" />
+              <span>Key Features & Capabilities</span>
+            </h4>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                'Free alternative to CapCut and Filmora',
+                'Auto Quran captions video editor',
+                'Word by word Al Quran subtitle generator',
+                'AI Quran video editor with auto subtitles',
+                'Best video editor for Islamic status and Reels',
+                'In-editor AI video workflow software',
+                'AI text to speech video editor',
+                'Automated audio and text alignment editor',
+                'Multi track video editor with AI support',
+                'AI waveform audio editing software',
+                'CuteCut Pro video editor download',
+                'Best open source video editor alternative'
+              ].map((kw, i) => (
+                <span
+                  key={i}
+                  className="px-2.5 py-1 text-[11px] rounded-lg bg-[#1a1a28] hover:bg-[#232338] text-gray-300 border border-[#2a2a3e] transition cursor-default"
+                >
+                  {kw}
+                </span>
+              ))}
+            </div>
+          </div>
+
           {/* Support & Donation Card (Sadqa-e-Jariyah / Buy Me a Coffee) */}
           <div className="bg-gradient-to-br from-[#1d1524] via-[#1a1526] to-[#12121e] border-2 border-pink-500/40 rounded-2xl p-5 shadow-xl relative overflow-hidden">
             <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-pink-500/10 rounded-full blur-2xl pointer-events-none" />

@@ -2851,9 +2851,7 @@ export default function App() {
     applyWebAudioEffects(element, clip);
   };
 
-  // Maintain hidden audio/video elements map matching tracks state
-  useEffect(() => {
-    // Create hidden media pool container with optimal mobile hardware surface allocation
+  const getOrCreateMediaPool = (): HTMLElement => {
     let mediaPool = document.getElementById('hidden-media-pool');
     if (!mediaPool) {
       mediaPool = document.createElement('div');
@@ -2870,6 +2868,13 @@ export default function App() {
       mediaPool.style.visibility = 'visible';
       document.body.appendChild(mediaPool);
     }
+    return mediaPool;
+  };
+
+  // Maintain hidden audio/video elements map matching tracks state
+  useEffect(() => {
+    // Create hidden media pool container with optimal mobile hardware surface allocation
+    const mediaPool = getOrCreateMediaPool();
 
     // Global unlock listener for Android mobile browsers on first touch/click
     const unlockMobileMedia = () => {
@@ -3084,9 +3089,12 @@ export default function App() {
     const now = Date.now();
     const isPlayingActive = isPlaying;
     
-    // Throttling: if playing, we only run drift sync checks every 500ms
-    const shouldCheckDrift = !isPlayingActive || (now - lastDriftCheckRef.current >= 500);
-    if (isPlayingActive && shouldCheckDrift) {
+    // Throttling: if playing, we only run drift sync checks every 600ms to avoid locking mobile GPU/decoder
+    const shouldCheckDrift = !isPlayingActive || (now - lastDriftCheckRef.current >= 600);
+    if (isPlayingActive) {
+      if (!shouldCheckDrift) {
+        return;
+      }
       lastDriftCheckRef.current = now;
     }
 
@@ -3297,6 +3305,12 @@ export default function App() {
       }
     };
   }, [isPlaying, duration]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__cuteCutIsPlaying = isPlaying;
+    }
+  }, [isPlaying]);
 
   // Handle global key binds
   const selectedClipIdRef = useRef(selectedClipId);
@@ -4151,25 +4165,50 @@ export default function App() {
       filters: clipData.filters
     };
 
-    // Pre-wake element in videoElementsRef immediately
-    if (clipData.url && (targetType === ClipType.VIDEO || targetType === ClipType.IMAGE)) {
+    // Pre-wake element in videoElementsRef and audioElementRef immediately inside DOM media pool
+    if (clipData.url) {
+      const pool = getOrCreateMediaPool();
       const norm = normalizeMediaUrl(clipData.url);
+      const cr = getSafeCrossOrigin(clipData.url);
+
       if (isImg) {
         const img = document.createElement('img');
-        const cr = getSafeCrossOrigin(clipData.url);
         if (cr) img.crossOrigin = cr;
         img.src = norm;
+        img.setAttribute('data-clip-url', norm);
+        if (typeof img.decode === 'function') {
+          img.decode().catch(() => {});
+        }
+        pool.appendChild(img);
         videoElementsRef.current[uniqueClipId] = img;
-      } else {
+      } else if (targetType === ClipType.VIDEO) {
         const vid = document.createElement('video');
-        const cr = getSafeCrossOrigin(clipData.url);
         if (cr) vid.crossOrigin = cr;
         vid.src = norm;
+        vid.setAttribute('muted', '');
+        vid.defaultMuted = true;
         vid.muted = true;
+        vid.setAttribute('playsinline', 'true');
+        vid.setAttribute('webkit-playsinline', 'true');
+        vid.setAttribute('x5-playsinline', 'true');
+        vid.setAttribute('x5-video-player-type', 'h5');
+        vid.setAttribute('x5-video-player-fullscreen', 'false');
         vid.playsInline = true;
         vid.preload = 'auto';
+        vid.loop = true;
+        vid.setAttribute('data-clip-url', norm);
         try { vid.load(); } catch {}
+        pool.appendChild(vid);
         videoElementsRef.current[uniqueClipId] = vid;
+      } else if (targetType === ClipType.AUDIO) {
+        const audio = document.createElement('audio');
+        if (cr) audio.crossOrigin = cr;
+        audio.src = norm;
+        audio.preload = 'auto';
+        audio.setAttribute('data-clip-url', norm);
+        try { audio.load(); } catch {}
+        pool.appendChild(audio);
+        audioElementRef.current[uniqueClipId] = audio;
       }
     }
 

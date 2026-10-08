@@ -187,6 +187,13 @@ async function processNextQueueItem() {
     };
 
     try {
+      // Pause background thumbnail extraction during continuous playback to protect 60FPS video decoder
+      if (typeof window !== 'undefined' && (window as any).__cuteCutIsPlaying) {
+        isProcessingQueue = false;
+        setTimeout(processNextQueueItem, 350);
+        return;
+      }
+
       const isReady = await prepareVideoForExtraction(item.url, item.crossOrigin);
       const video = activeVideoEl;
 
@@ -415,8 +422,10 @@ export const VideoFilmstripVisual = React.memo<VideoFilmstripVisualProps>(({
   zoom,
 }) => {
   // CapCut Pro frame slice width (approx 68px to 80px per frame slice)
+  const isMobile = typeof window !== 'undefined' && (window.innerWidth < 800 || /android|iphone|ipad|mobile/i.test(navigator.userAgent));
+  const maxSlices = isMobile ? 8 : 48;
   const targetFrameWidth = Math.max(56, Math.min(90, Math.round(68 * (zoom > 25 ? 1 : 0.85))));
-  const frameCount = Math.max(1, Math.min(48, Math.floor(width / targetFrameWidth)));
+  const frameCount = Math.max(1, Math.min(maxSlices, Math.floor(width / targetFrameWidth)));
   const frameWidth = width / Math.max(1, frameCount);
 
   const normalizedUrl = useMemo(() => normalizeMediaUrl(clip.url), [clip.url]);

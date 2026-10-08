@@ -6,7 +6,7 @@ import {
   Check, Volume2, Split, Trash2, Copy, Zap, ArrowLeft,
   Ratio, Smile, Move, Eye, RotateCw, ZoomIn, ZoomOut, Mic, Film,
   AlignLeft, Sun, MessageSquare, Gauge, Bell, BookOpen,
-  Maximize2, Plus, VolumeX, Repeat, Volume1, FileAudio
+  Maximize2, Plus, VolumeX, Repeat, Volume1, FileAudio, ShieldCheck
 } from 'lucide-react';
 import { Track, Clip, ClipType } from '../types';
 import VideoFilmstripVisual from './VideoFilmstripVisual';
@@ -452,6 +452,14 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
           </button>
 
           <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-capcut-permissions'))}
+            className="p-1.5 rounded-lg bg-[#161622] border border-[#242436] text-cyan-400 hover:text-white transition active:scale-95"
+            title="CapCut Permissions & Hardware Access"
+          >
+            <ShieldCheck className="w-4 h-4" />
+          </button>
+
+          <button
             onClick={onOpenExport}
             className="flex items-center gap-1 px-3.5 py-1 rounded-full bg-gradient-to-r from-cyan-400 to-teal-400 text-black font-black text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition cursor-pointer"
           >
@@ -859,11 +867,17 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
                           {clip.url && (
                             <div className="absolute inset-0 pointer-events-none opacity-80">
                               <AudioWaveformGraph
-                                audioUrl={clip.url}
+                                clipId={clip.id}
+                                url={clip.url}
                                 width={clipWidth}
                                 height={36}
+                                isSelected={isSelected}
+                                volume={clip.volume ?? 1.0}
+                                clipStart={clip.start}
+                                clipDuration={clip.duration}
                                 isPlaying={isPlaying}
-                                color="#22D3EE"
+                                showSilenceHighlights={false}
+                                showBeatMarkers={true}
                               />
                             </div>
                           )}

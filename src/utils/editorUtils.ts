@@ -701,6 +701,34 @@ export function getSafeCrossOrigin(url: string | undefined): 'anonymous' | undef
   return undefined;
 }
 
+/**
+ * Ensures or retrieves the hidden media pool container in DOM.
+ * Essential for mobile Android/iOS hardware video decoding and WebAudio synchronization.
+ */
+export function getOrCreateMediaPool(): HTMLElement {
+  if (typeof document === 'undefined') {
+    return {} as HTMLElement;
+  }
+  let mediaPool = document.getElementById('hidden-media-pool');
+  if (!mediaPool) {
+    mediaPool = document.createElement('div');
+    mediaPool.id = 'hidden-media-pool';
+    mediaPool.style.position = 'fixed';
+    mediaPool.style.bottom = '0px';
+    mediaPool.style.right = '0px';
+    mediaPool.style.width = '4px';
+    mediaPool.style.height = '4px';
+    mediaPool.style.overflow = 'hidden';
+    mediaPool.style.pointerEvents = 'none';
+    mediaPool.style.opacity = '0.01';
+    mediaPool.style.zIndex = '-9999';
+    mediaPool.style.visibility = 'visible';
+    mediaPool.style.transform = 'translateZ(0)';
+    document.body.appendChild(mediaPool);
+  }
+  return mediaPool;
+}
+
 export function convertToArabicDigits(num: number | string): string {
   const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
   return String(num).replace(/\d/g, (d) => arabicDigits[parseInt(d, 10)]);
