@@ -45,6 +45,24 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["id", "userId", "name", "styleConfig"]
+    },
+    "CreatorPost": {
+      "title": "CreatorPost",
+      "description": "Official admin creator post with audio, video, or text for community audience",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorEmail": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "mediaName": { "type": "string" },
+        "youtubeUrl": { "type": "string" },
+        "likes": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "authorEmail", "title", "type", "createdAt"]
     }
   },
   "firestore": {
@@ -59,6 +77,10 @@
     "/users/{userId}/presets/{presetId}": {
       "schema": "Preset",
       "description": "User saved visual styling presets"
+    },
+    "/creator_posts/{postId}": {
+      "schema": "CreatorPost",
+      "description": "Broadcast updates, sample audio/video, and announcements from the creator"
     }
   }
 }

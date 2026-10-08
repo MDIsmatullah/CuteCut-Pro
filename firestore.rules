@@ -89,5 +89,14 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
       }
     }
+
+    // Official Creator Posts Collection (Public can read, Admin can create/update/delete)
+    match /creator_posts/{postId} {
+      allow read: if true;
+      allow create, update, delete: if isSignedIn() && (
+        request.auth.token.email == 'guldastaislamorquran@gmail.com' ||
+        request.auth.uid == 'admin'
+      );
+    }
   }
 }

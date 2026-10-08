@@ -63,7 +63,9 @@ import {
   Laptop,
   Star,
   CheckCheck,
-  Compass
+  Compass,
+  Heart,
+  CreditCard
 } from 'lucide-react';
 import { UserProfile } from './AuthModal';
 import { SavedProjectSession } from './ProjectSaveModal';
@@ -76,6 +78,10 @@ import { NativeEngineAiHubView } from './portal/NativeEngineAiHubView';
 import { GuidesPageView } from './portal/GuidesPageView';
 import { ReviewsPageView } from './portal/ReviewsPageView';
 import { BlogPageView } from './portal/BlogPageView';
+import { CreatorFeedPageView } from './portal/CreatorFeedPageView';
+import { CreatorChannelsModal } from './modals/CreatorChannelsModal';
+import { BuyAiLicenseModal } from './modals/BuyAiLicenseModal';
+import { DonationSupportModal } from './modals/DonationSupportModal';
 import { isOfflineNativeApp } from '../utils/platformEngineDetector';
 import PromoteShareModal from './PromoteShareModal';
 
@@ -357,13 +363,18 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
 }) => {
   const isOfflineNative = useMemo(() => isOfflineNativeApp(), []);
 
-  type NavSection = 'website' | 'home' | 'templates' | 'projects' | 'ai' | 'quran' | 'downloads' | 'native_engine' | 'guides' | 'reviews' | 'blog';
+  type NavSection = 'website' | 'home' | 'templates' | 'projects' | 'ai' | 'quran' | 'downloads' | 'native_engine' | 'guides' | 'reviews' | 'blog' | 'updates';
 
   const NAV_ROUTE_MAP: Record<NavSection, { path: string; title: string; desc: string }> = useMemo(() => ({
     website: {
       path: '/',
       title: 'CuteCut Pro - Free Desktop & Web Video Editor | Native 4K & AI Studio',
       desc: 'Full hardware-accelerated 60 FPS WebCodecs engine, frame-accurate multi-track timeline, instant Quran 4K auto-sync, 32-bit DSP audio mastering.'
+    },
+    updates: {
+      path: '/updates',
+      title: 'Official Creator Broadcast & Audio Video Feed | CuteCut Pro',
+      desc: 'Exclusive Quran recitations, sound effects, tutorial clips, and template updates posted directly by the creator.'
     },
     home: {
       path: '/home',
@@ -420,6 +431,7 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
   const getNavFromPath = (path: string): NavSection => {
     if (isOfflineNativeApp()) return 'home';
     const clean = path.toLowerCase().replace(/\/+$/, '') || '/';
+    if (clean === '/updates' || clean === '/feed' || clean === '/broadcast') return 'updates';
     if (clean === '/models' || clean === '/ai-models' || clean === '/engine') return 'native_engine';
     if (clean === '/tutorials' || clean === '/guides' || clean === '/help' || clean === '/masterclasses') return 'guides';
     if (clean === '/reviews' || clean === '/ratings') return 'reviews';
@@ -441,8 +453,8 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
   });
 
   const setActiveNav = (newNav: NavSection) => {
-    // Web-only pages (Guides, Reviews, Blogs, Website) are strictly disabled in offline native builds (.exe, .dmg, Linux, Android)
-    if (isOfflineNative && (newNav === 'guides' || newNav === 'reviews' || newNav === 'blog' || newNav === 'website')) {
+    // Web-only pages (Guides, Reviews, Blogs, Website, Updates) are strictly disabled in offline native builds (.exe, .dmg, Linux, Android)
+    if (isOfflineNative && (newNav === 'guides' || newNav === 'reviews' || newNav === 'blog' || newNav === 'website' || newNav === 'updates')) {
       setActiveNavState('home');
       return;
     }
@@ -518,6 +530,11 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
   // Legal & AdSense Compliance Pages Modal State
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<LegalTab>('privacy');
+
+  // Creator Channels, AI License, and Donation Modals State
+  const [showChannelsModal, setShowChannelsModal] = useState(false);
+  const [showBuyLicenseModal, setShowBuyLicenseModal] = useState(false);
+  const [showDonateModal, setShowDonateModal] = useState(false);
 
   // Quran Studio state
   const [quranSurah, setQuranSurah] = useState<'067' | '036' | '055' | '001' | '094'>('067');
@@ -874,6 +891,78 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             </button>
           )}
 
+          {/* Creator Broadcast & Updates Feed (Visible ONLY on Web Browser Website) */}
+          {!isOfflineNative && (
+            <button
+              onClick={() => {
+                setActiveNav('updates');
+                if (isMobile) setIsMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                activeNav === 'updates'
+                  ? 'bg-gradient-to-r from-red-500/20 to-transparent text-red-400 border-l-2 border-red-400 font-bold'
+                  : 'text-gray-400 hover:bg-[#161626] hover:text-white'
+              }`}
+            >
+              <Radio className="w-4 h-4 text-red-400 animate-pulse" />
+              <span className="flex-1 text-left">Creator Updates (براڈکاسٹ)</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">
+                LIVE
+              </span>
+            </button>
+          )}
+
+          {/* Official YouTube Channels (Visible ONLY on Web Browser Website) */}
+          {!isOfflineNative && (
+            <button
+              onClick={() => {
+                setShowChannelsModal(true);
+                if (isMobile) setIsMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-[#161626] hover:text-red-300 transition cursor-pointer group"
+            >
+              <Youtube className="w-4 h-4 text-red-500 group-hover:scale-110 transition" />
+              <span className="flex-1 text-left">YouTube Channels</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">
+                2 CHANNELS
+              </span>
+            </button>
+          )}
+
+          {/* Buy AI Model License (Visible ONLY on Web Browser Website) */}
+          {!isOfflineNative && (
+            <button
+              onClick={() => {
+                setShowBuyLicenseModal(true);
+                if (isMobile) setIsMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-blue-300 hover:bg-[#161626] hover:text-white transition cursor-pointer group"
+            >
+              <CreditCard className="w-4 h-4 text-blue-400 group-hover:scale-110 transition" />
+              <span className="flex-1 text-left font-bold">Buy AI License (PRO)</span>
+              <span className="text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                $19
+              </span>
+            </button>
+          )}
+
+          {/* Support & Donate (Visible ONLY on Web Browser Website) */}
+          {!isOfflineNative && (
+            <button
+              onClick={() => {
+                setShowDonateModal(true);
+                if (isMobile) setIsMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-rose-300 hover:bg-[#161626] hover:text-white transition cursor-pointer group"
+            >
+              <Heart className="w-4 h-4 text-rose-400 fill-rose-400/30 group-hover:scale-110 transition" />
+              <span className="flex-1 text-left font-bold">Donate / Support</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                SADQAH
+              </span>
+            </button>
+          )}
+
           {/* Home / Studio Hub (Visible ONLY in Desktop & Android Offline Apps) */}
           {isOfflineNative && (
             <button
@@ -1209,19 +1298,35 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
             <div className="flex items-center gap-1 bg-[#141424] p-1 rounded-2xl border border-[#222238]">
               {/* Official Website (Visible ONLY on Web Browser Website) */}
               {!isOfflineNative && (
-                <button
-                  onClick={() => setActiveNav('website')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                    activeNav === 'website'
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                  title="Official Website & Feature Showcase"
-                >
-                  <Globe className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Official Website</span>
-                  <span className="sm:hidden">Web</span>
-                </button>
+                <>
+                  <button
+                    onClick={() => setActiveNav('website')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                      activeNav === 'website'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                    title="Official Website & Feature Showcase"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Official Website</span>
+                    <span className="sm:hidden">Web</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveNav('updates')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                      activeNav === 'updates'
+                        ? 'bg-red-600 text-white shadow-md'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                    title="Creator Broadcast & Media Updates"
+                  >
+                    <Radio className="w-3.5 h-3.5 text-red-400 animate-pulse" />
+                    <span className="hidden sm:inline">Creator Updates</span>
+                    <span className="sm:hidden">Updates</span>
+                  </button>
+                </>
               )}
 
               {/* Studio Hub (Visible ONLY in Desktop & Android Offline Native Apps) */}
@@ -1306,6 +1411,38 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* Quick Monetization & Community Buttons in Header */}
+            {!isOfflineNative && (
+              <div className="hidden lg:flex items-center gap-1.5">
+                <button
+                  onClick={() => setShowBuyLicenseModal(true)}
+                  className="px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                  title="Buy AI License ($19 Lifetime)"
+                >
+                  <CreditCard className="w-3 h-3 text-blue-400" />
+                  <span>Buy License</span>
+                </button>
+
+                <button
+                  onClick={() => setShowDonateModal(true)}
+                  className="px-2.5 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                  title="Support & Donate"
+                >
+                  <Heart className="w-3 h-3 text-rose-400 fill-rose-400/30" />
+                  <span>Donate</span>
+                </button>
+
+                <button
+                  onClick={() => setShowChannelsModal(true)}
+                  className="px-2.5 py-1.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                  title="Official YouTube Channels"
+                >
+                  <Youtube className="w-3 h-3 text-red-400" />
+                  <span>YouTube</span>
+                </button>
+              </div>
+            )}
+
             {/* Quick Search */}
             <div className="relative hidden xl:block">
               <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1426,6 +1563,10 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               onOpenGuides={() => setActiveNav('guides')}
               onOpenReviews={() => setActiveNav('reviews')}
               onOpenBlog={() => setActiveNav('blog')}
+              onOpenChannelsModal={() => setShowChannelsModal(true)}
+              onOpenBuyLicenseModal={() => setShowBuyLicenseModal(true)}
+              onOpenDonateModal={() => setShowDonateModal(true)}
+              onOpenCreatorFeed={() => setActiveNav('updates')}
             />
           )}
 
@@ -1464,6 +1605,25 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
               onOpenEditor={onOpenEditor}
               onOpenQuranStudio={onOpenQuranStudio}
               onBackToWebsite={() => setActiveNav(isOfflineNative ? 'home' : 'website')}
+            />
+          )}
+
+          {/* ========================================================= */}
+          {/* VIEW B4: CREATOR FEED & OFFICIAL BROADCAST UPDATES PAGE   */}
+          {/* (Rendered ONLY on Web Browser Website)                    */}
+          {/* ========================================================= */}
+          {!isOfflineNative && activeNav === 'updates' && (
+            <CreatorFeedPageView
+              theme={theme}
+              user={user}
+              onOpenEditor={onOpenEditor}
+              onOpenQuranStudio={onOpenQuranStudio}
+              onBackToWebsite={() => setActiveNav('website')}
+              onOpenChannelsModal={() => setShowChannelsModal(true)}
+              onOpenDonateModal={() => setShowDonateModal(true)}
+              onImportMediaToEditor={(url, type, name) => {
+                onOpenEditor('9:16');
+              }}
             />
           )}
 
@@ -3061,6 +3221,22 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
       <PromoteShareModal
         isOpen={showPromoteModal}
         onClose={() => setShowPromoteModal(false)}
+      />
+
+      {/* 6.8 CREATOR CHANNELS, BUY LICENSE, AND DONATION MODALS */}
+      <CreatorChannelsModal
+        isOpen={showChannelsModal}
+        onClose={() => setShowChannelsModal(false)}
+      />
+
+      <BuyAiLicenseModal
+        isOpen={showBuyLicenseModal}
+        onClose={() => setShowBuyLicenseModal(false)}
+      />
+
+      <DonationSupportModal
+        isOpen={showDonateModal}
+        onClose={() => setShowDonateModal(false)}
       />
     </div>
   );

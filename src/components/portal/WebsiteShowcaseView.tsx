@@ -24,7 +24,12 @@ import {
   Sun,
   Moon,
   BookOpen,
-  FileText
+  FileText,
+  Youtube,
+  Heart,
+  CreditCard,
+  Radio,
+  MessageCircle
 } from 'lucide-react';
 import { UserProfile } from '../AuthModal';
 import { ReleaseInfo } from '../../utils/releaseService';
@@ -45,6 +50,10 @@ export interface WebsiteShowcaseViewProps {
   onOpenGuides?: () => void;
   onOpenReviews?: () => void;
   onOpenBlog?: () => void;
+  onOpenChannelsModal?: () => void;
+  onOpenBuyLicenseModal?: () => void;
+  onOpenDonateModal?: () => void;
+  onOpenCreatorFeed?: () => void;
 }
 
 export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
@@ -62,6 +71,10 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
   onOpenGuides,
   onOpenReviews,
   onOpenBlog,
+  onOpenChannelsModal,
+  onOpenBuyLicenseModal,
+  onOpenDonateModal,
+  onOpenCreatorFeed,
 }) => {
   const isDark = theme === 'dark';
   const [downloadToast, setDownloadToast] = useState<string | null>(null);
@@ -144,6 +157,54 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
               <Cpu className="w-4 h-4 text-emerald-400" />
               <span>⚡ Explore AI Models & Engine</span>
             </button>
+          </div>
+
+          {/* Creator & Monetization Action Bar (Buy AI License | Donate | YouTube Channels | Creator Updates) */}
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 text-xs font-bold">
+            {onOpenBuyLicenseModal && (
+              <button
+                onClick={onOpenBuyLicenseModal}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg shadow-blue-600/30 flex items-center gap-1.5 transition cursor-pointer active:scale-95 animate-pulse"
+                title="Buy AI Model Pro License ($19 / PKR 3,500 Lifetime)"
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>⚡ Buy AI License (PRO)</span>
+                <span className="text-[10px] bg-white/20 px-1.5 py-0.2 rounded font-mono font-black">$19</span>
+              </button>
+            )}
+
+            {onOpenDonateModal && (
+              <button
+                onClick={onOpenDonateModal}
+                className="px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 hover:text-white flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+                title="Support & Donate to CuteCut Pro (Sadqah-e-Jariyah)"
+              >
+                <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400/40" />
+                <span>❤️ Donate (Support)</span>
+              </button>
+            )}
+
+            {onOpenChannelsModal && (
+              <button
+                onClick={onOpenChannelsModal}
+                className="px-4 py-2 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 hover:text-white flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+                title="Official YouTube Channels: Guldasta Islam & CuteCut Pro"
+              >
+                <Youtube className="w-3.5 h-3.5 text-red-400" />
+                <span>📺 YouTube Channels</span>
+              </button>
+            )}
+
+            {onOpenCreatorFeed && (
+              <button
+                onClick={onOpenCreatorFeed}
+                className="px-4 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 hover:text-white flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+                title="Creator Audio, Video & Official Broadcast Updates"
+              >
+                <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                <span>📢 Creator Updates & Audio</span>
+              </button>
+            )}
           </div>
 
           {/* User Help, Social Proof & Ranking Booster Quick Links (Guides | Reviews | Blog) */}
@@ -534,6 +595,40 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold">
+            {onOpenBuyLicenseModal && (
+              <>
+                <button onClick={onOpenBuyLicenseModal} className="text-blue-400 hover:text-blue-300 transition cursor-pointer font-bold">
+                  ⚡ Buy AI License
+                </button>
+                <span>•</span>
+              </>
+            )}
+            {onOpenDonateModal && (
+              <>
+                <button onClick={onOpenDonateModal} className="text-rose-400 hover:text-rose-300 transition cursor-pointer font-bold">
+                  ❤️ Donate / Support
+                </button>
+                <span>•</span>
+              </>
+            )}
+            {onOpenChannelsModal && (
+              <>
+                <button onClick={onOpenChannelsModal} className="text-red-400 hover:text-red-300 transition cursor-pointer font-bold flex items-center gap-1">
+                  <Youtube className="w-3.5 h-3.5" />
+                  <span>YouTube Channels</span>
+                </button>
+                <span>•</span>
+              </>
+            )}
+            {onOpenCreatorFeed && (
+              <>
+                <button onClick={onOpenCreatorFeed} className="text-emerald-400 hover:text-emerald-300 transition cursor-pointer font-bold flex items-center gap-1">
+                  <Radio className="w-3 h-3 animate-pulse" />
+                  <span>Creator Updates</span>
+                </button>
+                <span>•</span>
+              </>
+            )}
             <button onClick={onOpenGuides} className="hover:text-cyan-400 transition cursor-pointer">
               Guides & Help
             </button>
@@ -561,6 +656,39 @@ export const WebsiteShowcaseView: React.FC<WebsiteShowcaseViewProps> = ({
             <button onClick={() => onOpenLegalModal('contact')} className="hover:text-cyan-400 transition cursor-pointer">
               Contact & Support
             </button>
+          </div>
+        </div>
+
+        {/* Social Channels Bar */}
+        <div className="py-4 border-t border-white/5 flex flex-wrap items-center justify-between gap-4 text-xs">
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Official Channels:</span>
+            <a
+              href="https://www.youtube.com/channel/UCVP3RNRdficqmriDszLjzcQ"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold"
+            >
+              <Youtube className="w-3.5 h-3.5" />
+              <span>Guldasta Islam (Quran)</span>
+            </a>
+            <span className="text-gray-600">•</span>
+            <a
+              href="https://www.youtube.com/channel/UCgTnf68omNLAr4kHTYXa10g"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold"
+            >
+              <Youtube className="w-3.5 h-3.5" />
+              <span>CuteCut Pro Studio</span>
+            </a>
+          </div>
+
+          <div className="flex items-center gap-3 text-gray-400 text-xs">
+            <a href="https://whatsapp.com/channel/cutecutpro" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition flex items-center gap-1">
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+              <span>WhatsApp Channel</span>
+            </a>
           </div>
         </div>
 
