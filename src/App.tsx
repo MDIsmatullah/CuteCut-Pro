@@ -15,6 +15,7 @@ import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import AboutSupportModal from './components/AboutSupportModal';
 import ExportModal, { ExportConfig } from './components/ExportModal';
 import PromoteShareModal from './components/PromoteShareModal';
+import FirstTimeExportShareModal, { FIRST_TIME_EXPORT_SHARED_KEY } from './components/modals/FirstTimeExportShareModal';
 import { checkWebCodecsSupport, exportWithWebCodecs } from './services/webCodecsExportService';
 import { executeNativeHardwareRender, detectHardwareAVEngine } from './services/rendering/nativeHardwareRenderEngine';
 import { detectPlatformAndOptimalEngine } from './utils/platformEngineDetector';
@@ -405,6 +406,7 @@ export default function App() {
 
   // Export overlay state
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showFirstTimeExportShareModal, setShowFirstTimeExportShareModal] = useState(false);
   const [isExportMinimized, setIsExportMinimized] = useState(false);
   const [exportResolution, setExportResolution] = useState<'4K' | '2K' | '1080p' | '720p' | '480p'>('1080p');
   const [exportProgress, setExportProgress] = useState(0);
@@ -6785,15 +6787,19 @@ export default function App() {
     }
 
     // 3.5 Direct Android Capacitor Filesystem & Native Share Sheet
-    if (!savedPath && typeof window !== 'undefined' && Capacitor.isNativePlatform() && binaryBytes && binaryBytes.length > 0) {
+    if (!savedPath && typeof window !== 'undefined' && Capacitor.isNativePlatform() && ((binaryBytes && binaryBytes.length > 0) || sourceBlob)) {
       try {
-        let binaryStr = '';
-        const chunkSize = 8192;
-        for (let i = 0; i < binaryBytes.length; i += chunkSize) {
-          const chunk = binaryBytes.subarray(i, i + chunkSize);
-          binaryStr += String.fromCharCode.apply(null, chunk as any);
-        }
-        const base64Data = btoa(binaryStr);
+        const blobToSave = sourceBlob || new Blob([binaryBytes!], { type: 'video/mp4' });
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const res = (reader.result as string) || '';
+            const commaIdx = res.indexOf(',');
+            resolve(commaIdx !== -1 ? res.substring(commaIdx + 1) : res);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blobToSave);
+        });
 
         const writeResult = await Filesystem.writeFile({
           path: defaultFilename,
@@ -6949,7 +6955,7 @@ export default function App() {
     });
   };
 
-  const triggerExport = () => {
+  const openActualExportModal = useCallback(() => {
     setShowExportModal(true);
     setIsExportMinimized(false);
     setExportProgress(0);
@@ -6957,6 +6963,22 @@ export default function App() {
     setDownloadUrl(null);
     setSavedLocalPath(null);
     setExportTerminalLogs([]);
+  }, []);
+
+  const triggerExport = () => {
+    let hasShared = false;
+    try {
+      hasShared = localStorage.getItem(FIRST_TIME_EXPORT_SHARED_KEY) === 'true';
+    } catch {
+      hasShared = true;
+    }
+
+    if (!hasShared) {
+      setShowFirstTimeExportShareModal(true);
+      return;
+    }
+
+    openActualExportModal();
   };
 
   const handleCancelExport = () => {
@@ -8318,6 +8340,17 @@ export default function App() {
           onClose={() => setShowPromoteModal(false)}
           videoUrl={downloadUrl}
         />
+
+        {/* First-Time Export Social Share Modal (1-time only for official website) */}
+        <FirstTimeExportShareModal
+          isOpen={showFirstTimeExportShareModal}
+          onClose={() => setShowFirstTimeExportShareModal(false)}
+          onProceedToExport={() => {
+            setShowFirstTimeExportShareModal(false);
+            openActualExportModal();
+          }}
+          isMobileMode={true}
+        />
       </div>
     );
   }
@@ -9317,6 +9350,17 @@ export default function App() {
       <PromoteShareModal
         isOpen={showPromoteModal}
         onClose={() => setShowPromoteModal(false)}
+      />
+
+      {/* First-Time Export Social Share Modal (1-time only for official website) */}
+      <FirstTimeExportShareModal
+        isOpen={showFirstTimeExportShareModal}
+        onClose={() => setShowFirstTimeExportShareModal(false)}
+        onProceedToExport={() => {
+          setShowFirstTimeExportShareModal(false);
+          openActualExportModal();
+        }}
+        isMobileMode={false}
       />
 
       {/* 100 Master Quran Alignment Protocols Diagnostic Inspector Modal */}
