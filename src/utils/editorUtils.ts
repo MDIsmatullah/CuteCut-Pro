@@ -714,16 +714,16 @@ export function getOrCreateMediaPool(): HTMLElement {
     mediaPool = document.createElement('div');
     mediaPool.id = 'hidden-media-pool';
     mediaPool.style.position = 'fixed';
-    mediaPool.style.bottom = '0px';
-    mediaPool.style.right = '0px';
-    mediaPool.style.width = '4px';
-    mediaPool.style.height = '4px';
+    mediaPool.style.top = '0px';
+    mediaPool.style.left = '0px';
+    mediaPool.style.width = '320px';
+    mediaPool.style.height = '180px';
     mediaPool.style.overflow = 'hidden';
     mediaPool.style.pointerEvents = 'none';
-    mediaPool.style.opacity = '0.01';
-    mediaPool.style.zIndex = '-9999';
+    mediaPool.style.opacity = '0.02';
+    mediaPool.style.zIndex = '1';
     mediaPool.style.visibility = 'visible';
-    mediaPool.style.transform = 'translateZ(0)';
+    mediaPool.style.transform = 'translate3d(0, 0, 0)';
     document.body.appendChild(mediaPool);
   }
   return mediaPool;

@@ -1073,7 +1073,8 @@ export default function PreviewPlayer({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const defaultCtx = canvas.getContext('2d', { alpha: false, desynchronized: true }) || canvas.getContext('2d');
+    // Avoid desynchronized: true on Android/mobile as it bypasses the SurfaceComposer and renders solid black on mobile GPUs
+    const defaultCtx = canvas.getContext('2d', { alpha: false, willReadFrequently: false }) || canvas.getContext('2d');
     if (!defaultCtx) return;
     const defaultDimensions = dimensions;
 
@@ -1152,7 +1153,8 @@ export default function PreviewPlayer({
       // ------------------ VIDEO & IMAGE LAYERS ------------------
       let hasBufferingStream = false;
       activeFrameClips.forEach((clip) => {
-        if (clip.type === ClipType.VIDEO || clip.type === ClipType.IMAGE) {
+        try {
+          if (clip.type === ClipType.VIDEO || clip.type === ClipType.IMAGE) {
           let media = videoNodes[clip.id] || fallbackMediaRef.current[clip.id];
 
           if (clip.type === ClipType.VIDEO && !clip.isImage) {
@@ -1248,7 +1250,7 @@ export default function PreviewPlayer({
             const isImg = clip.isImage || clip.type === ClipType.IMAGE || (media instanceof HTMLImageElement);
             const videoEl = media as HTMLVideoElement;
 
-            const isVideoReady = !isImg && !(videoEl as any).hasError && (videoEl.readyState >= 1 || videoEl.videoWidth > 0);
+            const isVideoReady = !isImg && !(videoEl as any).hasError && !(videoEl as any)._isTainted && (videoEl.readyState >= 2 && videoEl.videoWidth > 0);
             const isImageReady = isImg && ((media as HTMLImageElement).complete && (media as HTMLImageElement).naturalWidth > 0);
 
             if (isVideoReady) {
@@ -1276,7 +1278,7 @@ export default function PreviewPlayer({
                 }
                 // Only seek if drift is significant to avoid video decoder stuttering during playback
                 const drift = Math.abs(videoEl.currentTime - clampedSrcTime);
-                if (drift > 0.8 && !videoEl.seeking) {
+                if (drift > 1.2 && !videoEl.seeking) {
                   try {
                     videoEl.currentTime = clampedSrcTime;
                   } catch {}
@@ -1295,11 +1297,20 @@ export default function PreviewPlayer({
                 isFallbackMotion = true;
               }
             } else if (videoEl && !isImg) {
-              // Proactively load video metadata if readyState is 0
-              if (videoEl.readyState === 0 && !(videoEl as any)._isLoading) {
+              // Proactively load and prime video on mobile/Android
+              if (isPlaying && videoEl.paused) {
+                videoEl.muted = true;
+                videoEl.playsInline = true;
+                videoEl.play().catch(() => {});
+              } else if (videoEl.readyState === 0 && !(videoEl as any)._isLoading) {
                 (videoEl as any)._isLoading = true;
+                videoEl.muted = true;
+                videoEl.playsInline = true;
                 try {
                   videoEl.load();
+                  videoEl.play().then(() => {
+                    if (!isPlaying) videoEl.pause();
+                  }).catch(() => {});
                 } catch {}
               }
             }
@@ -1308,7 +1319,7 @@ export default function PreviewPlayer({
           // If primary video source is buffering or initializing, load & render cached video frame or poster
           if (!drawTarget) {
             const cachedThumb = clip.url ? getCachedThumbnail(clip.url, Math.max(0, t - clip.start)) : undefined;
-            const fallbackUrl = cachedThumb || clip.poster || clip.thumbnailUrl || clip.fallbackUrl || (clip.url && !clip.url.includes('.mp4') ? clip.url : undefined);
+            const fallbackUrl = cachedThumb || clip.poster || clip.thumbnailUrl || clip.fallbackUrl || (clip as any).thumbnail || (clip.url && !clip.url.includes('.mp4') ? clip.url : undefined);
             if (fallbackUrl) {
               const fbKey = `${clip.id}_fb_poster`;
               let fbImg = fallbackMediaRef.current[fbKey] as HTMLImageElement;
@@ -1354,7 +1365,8 @@ export default function PreviewPlayer({
 
             // Render video/image onto canvas with safe matrix transforms
             ctx.save();
-            ctx.globalAlpha = Math.max(0, Math.min(1, interpolated.opacity * transState.alphaMultiplier));
+            try {
+              ctx.globalAlpha = Math.max(0, Math.min(1, interpolated.opacity * transState.alphaMultiplier));
             if (clip.blendMode) {
               ctx.globalCompositeOperation = clip.blendMode as GlobalCompositeOperation;
             }
@@ -1535,18 +1547,27 @@ export default function PreviewPlayer({
 
             try {
               ctx.drawImage(drawTarget, -dimensions.width / 2, -dimensions.height / 2, dimensions.width, dimensions.height);
-            } catch {
+            } catch (drawErr) {
+              if (drawTarget instanceof HTMLVideoElement) {
+                (drawTarget as any)._isTainted = true;
+              }
               const fbKey = `${clip.id}_fb_poster`;
               const backupImg = fallbackMediaRef.current[fbKey];
               if (backupImg && backupImg instanceof HTMLImageElement && backupImg.complete && backupImg.naturalWidth > 0) {
                 try {
                   ctx.drawImage(backupImg, -dimensions.width / 2, -dimensions.height / 2, dimensions.width, dimensions.height);
                 } catch {
-                  ctx.fillStyle = '#0f172a';
+                  const g = ctx.createLinearGradient(-dimensions.width / 2, -dimensions.height / 2, dimensions.width / 2, dimensions.height / 2);
+                  g.addColorStop(0, '#0f172a');
+                  g.addColorStop(1, '#1e293b');
+                  ctx.fillStyle = g;
                   ctx.fillRect(-dimensions.width / 2, -dimensions.height / 2, dimensions.width, dimensions.height);
                 }
               } else {
-                ctx.fillStyle = '#0f172a';
+                const g = ctx.createLinearGradient(-dimensions.width / 2, -dimensions.height / 2, dimensions.width / 2, dimensions.height / 2);
+                g.addColorStop(0, '#0f172a');
+                g.addColorStop(1, '#1e293b');
+                ctx.fillStyle = g;
                 ctx.fillRect(-dimensions.width / 2, -dimensions.height / 2, dimensions.width, dimensions.height);
               }
             }
@@ -1865,8 +1886,9 @@ export default function PreviewPlayer({
 
                 ctx.restore();
               }
-
+            } finally {
               ctx.restore();
+            }
 
               // Draw CapCut Pro Selected Clip Bounding Outline
               if (selectedClip?.id === clip.id && !isExporting) {
@@ -1970,7 +1992,10 @@ export default function PreviewPlayer({
               ctx.restore();
             }
           }
-        });
+        } catch (clipErr) {
+          console.warn('Clip render error for clip:', clip.id, clipErr);
+        }
+      });
 
       // ------------------ DYNAMIC AUDIO VISUALIZER LAYER (When Audio is Active) ------------------
       const hasVisualMedia = activeFrameClips.some(c => c.type === ClipType.VIDEO || c.type === ClipType.IMAGE || Boolean(c.isImage));

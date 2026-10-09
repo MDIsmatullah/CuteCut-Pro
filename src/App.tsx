@@ -2857,15 +2857,16 @@ export default function App() {
       mediaPool = document.createElement('div');
       mediaPool.id = 'hidden-media-pool';
       mediaPool.style.position = 'fixed';
-      mediaPool.style.bottom = '0px';
-      mediaPool.style.right = '0px';
+      mediaPool.style.top = '0px';
+      mediaPool.style.left = '0px';
       mediaPool.style.width = '320px';
       mediaPool.style.height = '180px';
       mediaPool.style.overflow = 'hidden';
       mediaPool.style.pointerEvents = 'none';
-      mediaPool.style.opacity = '0.001';
-      mediaPool.style.zIndex = '-9999';
+      mediaPool.style.opacity = '0.02';
+      mediaPool.style.zIndex = '1';
       mediaPool.style.visibility = 'visible';
+      mediaPool.style.transform = 'translate3d(0, 0, 0)';
       document.body.appendChild(mediaPool);
     }
     return mediaPool;
@@ -2884,11 +2885,20 @@ export default function App() {
           ctx.resume().catch(() => {});
         }
       } catch (e) {}
-      // Pre-wake video elements
+      // Pre-wake and prime video elements for Android MediaCodec GPU decoding
       Object.values(videoElementsRef.current).forEach((el) => {
-        if (el instanceof HTMLVideoElement && el.readyState < 1) {
+        if (el instanceof HTMLVideoElement) {
+          el.muted = true;
+          el.playsInline = true;
           try {
-            el.load();
+            if (el.readyState < 1) {
+              el.load();
+            }
+            el.play().then(() => {
+              if (!(window as any).__cuteCutIsPlaying) {
+                el.pause();
+              }
+            }).catch(() => {});
           } catch (e) {}
         }
       });
@@ -3437,6 +3447,16 @@ export default function App() {
     setIsPlaying(prev => {
       const next = !prev;
       lastTimeRef.current = performance.now();
+      if (next) {
+        // Direct user gesture playback unlock for mobile Android browsers
+        Object.values(videoElementsRef.current).forEach((el) => {
+          if (el instanceof HTMLVideoElement) {
+            el.muted = true;
+            el.playsInline = true;
+            el.play().catch(() => {});
+          }
+        });
+      }
       return next;
     });
   };
