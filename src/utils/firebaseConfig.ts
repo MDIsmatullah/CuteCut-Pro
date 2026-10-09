@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, Auth } from 'firebase/auth';
 import {
   getFirestore,
+  initializeFirestore,
   Firestore,
   doc,
   setDoc,
@@ -36,10 +37,22 @@ googleProvider.setCustomParameters({
   prompt: 'select_account',
 });
 
-// Firestore Instance (with exact databaseId)
-export const db: Firestore = firebaseConfig.firestoreDatabaseId
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+// Firestore Instance with auto-detect long-polling to prevent iframe WebChannel connection failures
+export const db: Firestore = (() => {
+  const databaseId = firebaseConfig.firestoreDatabaseId;
+  const firestoreSettings = {
+    experimentalAutoDetectLongPolling: true,
+  };
+  try {
+    return databaseId
+      ? initializeFirestore(app, firestoreSettings, databaseId)
+      : initializeFirestore(app, firestoreSettings);
+  } catch {
+    return databaseId
+      ? getFirestore(app, databaseId)
+      : getFirestore(app);
+  }
+})();
 
 // Standard Firestore Error Handling conforming to Firebase Integration Skill
 export enum OperationType {
@@ -90,22 +103,25 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Connection Validation on Boot
+// Connection Validation on Boot conforming to Firebase Integration Skill
 export async function testFirestoreConnection(): Promise<boolean> {
-  if (typeof window === 'undefined' || !navigator.onLine) {
+  if (typeof window === 'undefined') {
     return false;
   }
   try {
-    const testDoc = await getDoc(doc(db, 'test', 'connection'));
-    return testDoc.exists();
+    await getDocFromServer(doc(db, 'test', 'connection'));
+    return true;
   } catch (error: any) {
-    // Firestore operates in offline mode automatically; silent swallow
+    if (error instanceof Error && (error.message.includes('the client is offline') || (error as any).code === 'unavailable')) {
+      console.warn('[Firebase] Operating in offline mode until connection is re-established.');
+    }
     return false;
   }
 }
 
-// Run connection check only when window is online
+// Initial connection verification conforming to Firebase skill
 if (typeof window !== 'undefined') {
+  testFirestoreConnection().catch(() => {});
   window.addEventListener('online', () => {
     testFirestoreConnection().catch(() => {});
   });

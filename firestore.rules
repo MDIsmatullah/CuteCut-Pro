@@ -90,10 +90,15 @@ service cloud.firestore {
       }
     }
 
-    // Official Creator Posts Collection (Public can read, Admin can create/update/delete)
+    // Official Creator Posts Collection (Public can read, anyone can like, Admin can manage)
     match /creator_posts/{postId} {
       allow read: if true;
-      allow create, update, delete: if isSignedIn() && (
+      allow update: if (incoming().diff(existing()).affectedKeys().hasOnly(['likes'])) ||
+                    (isSignedIn() && (
+                      request.auth.token.email == 'guldastaislamorquran@gmail.com' ||
+                      request.auth.uid == 'admin'
+                    ));
+      allow create, delete: if isSignedIn() && (
         request.auth.token.email == 'guldastaislamorquran@gmail.com' ||
         request.auth.uid == 'admin'
       );
