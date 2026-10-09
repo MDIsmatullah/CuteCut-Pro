@@ -6907,7 +6907,7 @@ export default function App() {
             if (blobUrl && blobUrl !== videoUrlOrBlob) {
               URL.revokeObjectURL(blobUrl);
             }
-          }, 3000);
+          }, 120000);
 
           setExportTerminalLogs(prev => [
             ...prev,
@@ -7157,6 +7157,27 @@ export default function App() {
         const cleanName = targetFilename.endsWith('.mp4') ? targetFilename : `${targetFilename.replace(/\.[a-zA-Z0-9]+$/, '')}.mp4`;
         log(`⚡ FastStart In-Browser MP4 verified (${(rawBlob.size / (1024 * 1024)).toFixed(2)} MB). 100% client-side render complete.`);
         return { blob: rawBlob, filename: cleanName };
+      }
+
+      // 1.6 Static Web Hosting Environment Check (Firebase Hosting, Vercel, Netlify, CDN):
+      // On static platforms, there is no Node/FFmpeg backend server (/api/ routes rewrite to index.html).
+      // We preserve the high-definition client rendered stream directly rather than sending requests to static hosts.
+      const isStaticHosting = typeof window !== 'undefined' && (
+        window.location.hostname.includes('firebaseapp.com') ||
+        window.location.hostname.includes('web.app') ||
+        window.location.hostname.includes('github.io') ||
+        window.location.hostname.includes('vercel.app') ||
+        window.location.hostname.includes('netlify.app') ||
+        window.location.hostname.includes('pages.dev')
+      );
+
+      if (isStaticHosting) {
+        log(`⚡ Cloud Static Platform detected (${window.location.hostname}). Preserving full-fidelity client stream (${(rawBlob.size / (1024 * 1024)).toFixed(2)} MB)...`);
+        let safeFilename = targetFilename;
+        if (rawBlob.type && rawBlob.type.includes('webm') && safeFilename.endsWith('.mp4')) {
+          safeFilename = safeFilename.replace(/\.mp4$/, '.webm');
+        }
+        return { blob: rawBlob, filename: safeFilename };
       }
 
       // 1.8 Upload WAV audio file first if present (only when connected to a real backend server)
@@ -7513,15 +7534,21 @@ export default function App() {
           log(`Audio destination mix note: ${aErr}`);
         }
 
-        const preferredMimes = [
+        const mp4CandidateMimes = [
+          'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+          'video/mp4;codecs=avc1,mp4a',
+          'video/mp4',
+        ];
+        const webmCandidateMimes = [
           'video/webm;codecs=vp9,opus',
           'video/webm;codecs=vp8,opus',
           'video/webm;codecs=h264,opus',
-          'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
-          'video/mp4;codecs=avc1,mp4a',
           'video/webm',
-          'video/mp4'
         ];
+        const preferredMimes = exportConf.format === 'mp4'
+          ? [...mp4CandidateMimes, ...webmCandidateMimes]
+          : [...webmCandidateMimes, ...mp4CandidateMimes];
+
         let chosenMime = '';
         if (typeof MediaRecorder !== 'undefined') {
           for (const m of preferredMimes) {

@@ -1500,16 +1500,14 @@ export default function ExportModal({
                   </button>
 
                   {/* Direct Browser Download Link for Android Chrome / Mobile */}
-                  <a
-                    href={downloadUrl || '#'}
-                    download={formattedFilename}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => onSaveToNativeStorage(exportedBlob || downloadUrl || '', formattedFilename)}
                     className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#171722] hover:bg-[#20202e] border border-cyan-500/40 text-cyan-300 hover:text-cyan-200 font-bold text-xs rounded-lg transition cursor-pointer"
                   >
                     <Download className="w-4 h-4 text-cyan-400" />
-                    <span>Direct Download (.MP4)</span>
-                  </a>
+                    <span>Direct Download ({formattedFilename.endsWith('.webm') ? '.WEBM' : '.MP4'})</span>
+                  </button>
 
                   {/* Mobile Share Sheet / Gallery Export */}
                   <button
