@@ -51,9 +51,10 @@ interface ExportModalProps {
   exportTerminalLogs: string[];
   downloadUrl: string | null;
   savedLocalPath: string | null;
+  exportedBlob?: Blob | null;
   onStartExport: (config: ExportConfig) => void;
   onCancelExport?: () => void;
-  onSaveToNativeStorage: (videoUrlOrBlob: string, filename: string) => void;
+  onSaveToNativeStorage: (videoUrlOrBlob: string | Blob, filename: string) => void;
   onOpenPromoteModal?: () => void;
 }
 
@@ -134,6 +135,7 @@ export default function ExportModal({
   exportTerminalLogs,
   downloadUrl,
   savedLocalPath,
+  exportedBlob,
   onStartExport,
   onCancelExport,
   onSaveToNativeStorage,
@@ -323,12 +325,17 @@ export default function ExportModal({
 
       setDriveUploadPercent(35);
 
-      // Fetch the compiled video file as a binary Blob
-      const videoResponse = await fetch(downloadUrl!);
-      if (!videoResponse.ok) {
+      // Use direct in-memory exportedBlob if available, otherwise fetch downloadUrl
+      let videoBlob: Blob | null = exportedBlob || null;
+      if (!videoBlob && downloadUrl) {
+        const videoResponse = await fetch(downloadUrl);
+        if (videoResponse.ok) {
+          videoBlob = await videoResponse.blob();
+        }
+      }
+      if (!videoBlob || videoBlob.size === 0) {
         throw new Error('Could not read rendered video data.');
       }
-      const videoBlob = await videoResponse.blob();
 
       setDriveUploadPercent(55);
 
@@ -1355,7 +1362,8 @@ export default function ExportModal({
                 <div>
                   <h3 className="text-base font-bold text-white">Video Exported Successfully!</h3>
                   <p className="text-xs text-gray-300 mt-1">
-                    Your project duration ({totalSec}s) has been encoded into {config.resolution} ({config.format.toUpperCase()}).
+                    Your project duration ({totalSec}s) has been encoded into {config.resolution} ({config.format.toUpperCase()})
+                    {exportedBlob ? ` • File Size: ${(exportedBlob.size / (1024 * 1024)).toFixed(2)} MB` : ''}.
                   </p>
                 </div>
 
@@ -1378,7 +1386,9 @@ export default function ExportModal({
                   <div className="space-y-1.5 font-mono text-[11px] text-gray-400">
                     <div className="flex items-center justify-between">
                       <span>Video Stream</span>
-                      <span className="text-emerald-400 font-semibold">✓ Valid (H.264 / WebCodecs GPU)</span>
+                      <span className="text-emerald-400 font-semibold">
+                        ✓ Valid ({config.format.toUpperCase()} • {exportedBlob ? `${(exportedBlob.size / (1024 * 1024)).toFixed(2)} MB` : `${estimatedSizeMB} MB`})
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Resolution</span>
@@ -1482,7 +1492,7 @@ export default function ExportModal({
                 <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
                   <button
                     type="button"
-                    onClick={() => onSaveToNativeStorage(downloadUrl, formattedFilename)}
+                    onClick={() => onSaveToNativeStorage(exportedBlob || downloadUrl || '', formattedFilename)}
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 text-slate-950 font-bold text-xs rounded-lg transition shadow-lg shadow-cyan-500/20 cursor-pointer animate-in fade-in zoom-in duration-300"
                   >
                     <Download className="w-4 h-4 text-slate-950" />
@@ -1491,7 +1501,7 @@ export default function ExportModal({
 
                   {/* Direct Browser Download Link for Android Chrome / Mobile */}
                   <a
-                    href={downloadUrl}
+                    href={downloadUrl || '#'}
                     download={formattedFilename}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1504,7 +1514,7 @@ export default function ExportModal({
                   {/* Mobile Share Sheet / Gallery Export */}
                   <button
                     type="button"
-                    onClick={() => onSaveToNativeStorage(downloadUrl, formattedFilename)}
+                    onClick={() => onSaveToNativeStorage(exportedBlob || downloadUrl || '', formattedFilename)}
                     className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-500/40 text-emerald-300 hover:text-emerald-200 font-bold text-xs rounded-lg transition cursor-pointer"
                   >
                     <Share2 className="w-4 h-4 text-emerald-400" />

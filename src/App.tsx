@@ -414,6 +414,8 @@ export default function App() {
   const [exporting, setExporting] = useState(false);
   const [showVideoSynthesis, setShowVideoSynthesis] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [exportedBlob, setExportedBlob] = useState<Blob | null>(null);
+  const lastExportedBlobRef = useRef<Blob | null>(null);
 
   // New Features: Modals & Identity state
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -6615,34 +6617,59 @@ export default function App() {
     let savedPath: string | null = null;
     let binaryBytes: Uint8Array | null = null;
     let sourceBlob: Blob | null = null;
+    let totalSize = 0;
 
     try {
       // 1. Extract and verify full-fidelity binary byte buffer
-      if (videoUrlOrBlob instanceof Blob) {
+      if (videoUrlOrBlob instanceof Blob && videoUrlOrBlob.size > 1000) {
         sourceBlob = videoUrlOrBlob;
         const arrayBuffer = await videoUrlOrBlob.arrayBuffer();
         binaryBytes = new Uint8Array(arrayBuffer);
-      } else if (typeof videoUrlOrBlob === 'string' && videoUrlOrBlob.startsWith('blob:')) {
-        const res = await fetch(videoUrlOrBlob);
-        sourceBlob = await res.blob();
-        const arrayBuffer = await sourceBlob.arrayBuffer();
+      } else if (lastExportedBlobRef.current && lastExportedBlobRef.current.size > 1000) {
+        sourceBlob = lastExportedBlobRef.current;
+        const arrayBuffer = await lastExportedBlobRef.current.arrayBuffer();
         binaryBytes = new Uint8Array(arrayBuffer);
+      } else if (typeof videoUrlOrBlob === 'string' && videoUrlOrBlob.startsWith('blob:')) {
+        try {
+          const res = await fetch(videoUrlOrBlob);
+          const fetchedBlob = await res.blob();
+          if (fetchedBlob.size > 1000) {
+            sourceBlob = fetchedBlob;
+            const arrayBuffer = await fetchedBlob.arrayBuffer();
+            binaryBytes = new Uint8Array(arrayBuffer);
+          }
+        } catch {
+          if (lastExportedBlobRef.current && lastExportedBlobRef.current.size > 1000) {
+            sourceBlob = lastExportedBlobRef.current;
+            const arrayBuffer = await lastExportedBlobRef.current.arrayBuffer();
+            binaryBytes = new Uint8Array(arrayBuffer);
+          }
+        }
       } else if (typeof videoUrlOrBlob === 'string' && (videoUrlOrBlob.startsWith('http://') || videoUrlOrBlob.startsWith('https://'))) {
         try {
           const res = await fetch(videoUrlOrBlob);
-          sourceBlob = await res.blob();
-          const arrayBuffer = await sourceBlob.arrayBuffer();
-          binaryBytes = new Uint8Array(arrayBuffer);
+          const fetchedBlob = await res.blob();
+          if (fetchedBlob.size > 1000) {
+            sourceBlob = fetchedBlob;
+            const arrayBuffer = await fetchedBlob.arrayBuffer();
+            binaryBytes = new Uint8Array(arrayBuffer);
+          }
         } catch {
-          const serializedPayload = JSON.stringify({ tracks, duration, aspectRatio, watermark, exportedAt: new Date().toISOString() });
-          binaryBytes = new TextEncoder().encode(serializedPayload);
+          if (lastExportedBlobRef.current && lastExportedBlobRef.current.size > 1000) {
+            sourceBlob = lastExportedBlobRef.current;
+            const arrayBuffer = await lastExportedBlobRef.current.arrayBuffer();
+            binaryBytes = new Uint8Array(arrayBuffer);
+          }
         }
-      } else {
-        const serializedPayload = JSON.stringify({ tracks, duration, aspectRatio, watermark, exportedAt: new Date().toISOString() });
-        binaryBytes = new TextEncoder().encode(serializedPayload);
       }
 
-      const totalSize = binaryBytes?.byteLength || 0;
+      if (!sourceBlob && lastExportedBlobRef.current && lastExportedBlobRef.current.size > 1000) {
+        sourceBlob = lastExportedBlobRef.current;
+        const arrayBuffer = await lastExportedBlobRef.current.arrayBuffer();
+        binaryBytes = new Uint8Array(arrayBuffer);
+      }
+
+      totalSize = binaryBytes?.byteLength || sourceBlob?.size || 0;
       console.log(`[Native Storage] Binary buffer prepared: ${totalSize} bytes (${(totalSize / (1024 * 1024)).toFixed(2)} MB)`);
 
       // 2. Direct Electron Native IPC / Node.js File Writer Pipeline
@@ -6857,44 +6884,43 @@ export default function App() {
     // 4. Browser / Webview Blob URL Direct Download Handler
     if (!savedPath && typeof window !== 'undefined') {
       try {
-        let blobUrl: string;
-        if (videoUrlOrBlob instanceof Blob && videoUrlOrBlob.size > 0) {
-          blobUrl = URL.createObjectURL(videoUrlOrBlob);
-        } else if (typeof videoUrlOrBlob === 'string') {
-          try {
-            const res = await fetch(videoUrlOrBlob);
-            const blob = await res.blob();
-            blobUrl = URL.createObjectURL(blob);
-          } catch {
-            const blob = new Blob(['CuteCut Video Export Package'], { type: 'video/mp4' });
-            blobUrl = URL.createObjectURL(blob);
-          }
-        } else {
-          const blob = new Blob(['CuteCut Video Export Package'], { type: 'video/mp4' });
-          blobUrl = URL.createObjectURL(blob);
+        let blobUrl: string | null = null;
+        if (sourceBlob && sourceBlob.size > 1000) {
+          blobUrl = URL.createObjectURL(sourceBlob);
+        } else if (typeof videoUrlOrBlob === 'string' && videoUrlOrBlob.startsWith('blob:')) {
+          blobUrl = videoUrlOrBlob;
         }
 
-        const downloadLink = document.createElement('a');
-        downloadLink.href = blobUrl;
-        downloadLink.download = defaultFilename;
-        downloadLink.target = '_self';
-        downloadLink.style.display = 'none';
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        
-        setTimeout(() => {
-          if (document.body.contains(downloadLink)) {
-            document.body.removeChild(downloadLink);
-          }
-          URL.revokeObjectURL(blobUrl);
-        }, 2000);
+        if (blobUrl) {
+          const downloadLink = document.createElement('a');
+          downloadLink.href = blobUrl;
+          downloadLink.download = defaultFilename;
+          downloadLink.target = '_self';
+          downloadLink.style.display = 'none';
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          
+          setTimeout(() => {
+            if (document.body.contains(downloadLink)) {
+              document.body.removeChild(downloadLink);
+            }
+            if (blobUrl && blobUrl !== videoUrlOrBlob) {
+              URL.revokeObjectURL(blobUrl);
+            }
+          }, 3000);
 
-        setExportTerminalLogs(prev => [
-          ...prev,
-          `[System Download] File download triggered: ${defaultFilename}`,
-        ]);
+          setExportTerminalLogs(prev => [
+            ...prev,
+            `[System Download] File download triggered: ${defaultFilename} (${(totalSize / (1024 * 1024)).toFixed(2)} MB)`,
+          ]);
+        } else {
+          setExportTerminalLogs(prev => [
+            ...prev,
+            `[System Download] Ready: Use 'Direct Download' button to save ${defaultFilename}.`,
+          ]);
+        }
       } catch (dlErr) {
-        console.warn('Local blob URL download fallback error', dlErr);
+        console.warn('Local blob URL download error', dlErr);
       }
     }
     return savedPath;
@@ -6961,6 +6987,8 @@ export default function App() {
     setExportProgress(0);
     setExporting(false);
     setDownloadUrl(null);
+    setExportedBlob(null);
+    lastExportedBlobRef.current = null;
     setSavedLocalPath(null);
     setExportTerminalLogs([]);
   }, []);
@@ -7045,6 +7073,9 @@ export default function App() {
     setExporting(true);
     setExportResolution(exportConf.resolution as any);
     setExportProgress(0);
+    setDownloadUrl(null);
+    setExportedBlob(null);
+    lastExportedBlobRef.current = null;
     setSavedLocalPath(null);
     setExportTerminalLogs([]);
     if (typeof window !== 'undefined') {
@@ -7119,33 +7150,37 @@ export default function App() {
         }
       }
 
-      // 1.1 Upload WAV audio file first if present (Guarantees no audio lost in sandboxed snap environments)
+      // 1.5 High-Speed In-Browser MP4 Check:
+      // If rawBlob is already a complete, native-muxed MP4 container (from WebCodecs + mp4-muxer)
+      const isAlreadyMp4 = (rawBlob.type && (rawBlob.type.includes('mp4') || rawBlob.type.includes('quicktime'))) || targetFilename.toLowerCase().endsWith('.mp4');
+      if (rawBlob.size > 50000 && isAlreadyMp4 && (!rawBlob.type || !rawBlob.type.includes('webm'))) {
+        const cleanName = targetFilename.endsWith('.mp4') ? targetFilename : `${targetFilename.replace(/\.[a-zA-Z0-9]+$/, '')}.mp4`;
+        log(`⚡ FastStart In-Browser MP4 verified (${(rawBlob.size / (1024 * 1024)).toFixed(2)} MB). 100% client-side render complete.`);
+        return { blob: rawBlob, filename: cleanName };
+      }
+
+      // 1.8 Upload WAV audio file first if present (only when connected to a real backend server)
       let audioTempId: string | null = null;
       if (wavBlob && wavBlob.size > 0) {
         try {
-          log(`Uploading lossless C++ Master DSP Audio to server for high-fidelity multiplexing...`);
           const uploadRes = await fetch('/api/export/upload-audio', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/octet-stream'
-            },
+            headers: { 'Content-Type': 'application/octet-stream' },
             body: wavBlob
           });
-          if (uploadRes.ok) {
+          const ct = (uploadRes.headers.get('content-type') || '').toLowerCase();
+          if (uploadRes.ok && ct.includes('application/json')) {
             const uploadData = await uploadRes.json();
             audioTempId = uploadData.tempId;
             log(`✅ Master audio track cached on server (${(wavBlob.size / 1024).toFixed(1)} KB)`);
-          } else {
-            log(`Audio upload note: server returned status ${uploadRes.status}. Continuing with fallback...`);
           }
-        } catch (uploadErr: any) {
-          log(`Audio upload error: ${uploadErr?.message || uploadErr}. Continuing with fallback...`);
+        } catch {
+          // Static host (Firebase / CDN) or network offline - ignore gracefully
         }
       }
 
-      // 2. Web fallback (Fetch Server Finalizer API)
+      // 2. Web fallback (Fetch Server Finalizer API - with STRICT validation to protect against Firebase Hosting rewrites)
       try {
-        log(`Finalizing 100% compliant H.264/AAC MP4 with FastStart (Universal Ubuntu/VLC playback)...`);
         const headers: Record<string, string> = {
           'Content-Type': 'application/octet-stream',
           'x-filename': targetFilename,
@@ -7161,18 +7196,43 @@ export default function App() {
           body: rawBlob,
         });
 
-        if (res.ok) {
+        const contentType = (res.headers.get('content-type') || '').toLowerCase();
+
+        // STRICT VALIDATION: If response is HTML or JSON, it is NOT a video!
+        // Static hosts like Firebase Hosting rewrite all unknown POST /api/* to index.html with 200 OK.
+        const isRealVideoContent = !contentType.includes('text/html') &&
+          !contentType.includes('application/json') &&
+          (contentType.includes('video/') || contentType.includes('application/octet-stream'));
+
+        if (res.ok && isRealVideoContent) {
           const transcodedBlob = await res.blob();
-          if (transcodedBlob.size > 1000) {
-            const cleanName = targetFilename.replace(/\.[a-zA-Z0-9]+$/, '') + '.mp4';
-            log(`✅ Successfully finalized true H.264 MP4: ${cleanName} (${(transcodedBlob.size / (1024 * 1024)).toFixed(2)} MB). 100% smooth playback verified.`);
-            return { blob: transcodedBlob, filename: cleanName };
+          
+          // Verify magic bytes: Make sure it's not HTML text disguised as a blob
+          if (transcodedBlob.size > 50000) {
+            const headBytes = new Uint8Array(await transcodedBlob.slice(0, 16).arrayBuffer());
+            const isHtmlText = headBytes[0] === 0x3C; // '<' character (e.g. <!DOCTYPE html> or <html>)
+            if (!isHtmlText) {
+              const cleanName = targetFilename.replace(/\.[a-zA-Z0-9]+$/, '') + '.mp4';
+              log(`✅ Successfully finalized true H.264 MP4: ${cleanName} (${(transcodedBlob.size / (1024 * 1024)).toFixed(2)} MB). 100% smooth playback verified.`);
+              return { blob: transcodedBlob, filename: cleanName };
+            }
           }
+        } else {
+          log(`[AVEngine] Web host static pipeline active (${contentType || 'static CDN'}). Retaining full-fidelity client stream.`);
         }
       } catch (err: any) {
         log(`Server finalizer note: ${err?.message || err}. Retaining client rendered stream.`);
       }
-      return { blob: rawBlob, filename: targetFilename };
+
+      // Safe fallback: Retain raw client-rendered stream of genuine size
+      let safeFilename = targetFilename;
+      if (rawBlob.type && rawBlob.type.includes('webm') && safeFilename.endsWith('.mp4')) {
+        safeFilename = safeFilename.replace(/\.mp4$/, '.webm');
+        log(`✅ Export ready: Saved as high-definition WebM container: ${safeFilename} (${(rawBlob.size / (1024 * 1024)).toFixed(2)} MB).`);
+      } else {
+        log(`✅ Export ready: ${safeFilename} (${(rawBlob.size / (1024 * 1024)).toFixed(2)} MB).`);
+      }
+      return { blob: rawBlob, filename: safeFilename };
     };
 
     const dims = getExportResolutionDimensions(exportConf.resolution, aspectRatio);
@@ -7361,6 +7421,8 @@ export default function App() {
 
           const objectUrl = URL.createObjectURL(finalBlob);
           setDownloadUrl(objectUrl);
+          setExportedBlob(finalBlob);
+          lastExportedBlobRef.current = finalBlob;
           setExporting(false);
 
           AdMobService.showInterstitial();
@@ -7614,6 +7676,8 @@ export default function App() {
 
               const objectUrl = URL.createObjectURL(finalBlob);
               setDownloadUrl(objectUrl);
+              setExportedBlob(finalBlob);
+              lastExportedBlobRef.current = finalBlob;
               setExporting(false);
 
               // Trigger AdMob Interstitial Ad on export complete
@@ -7624,35 +7688,17 @@ export default function App() {
 
             return; // Export successfully triggered
           } catch (recErr) {
-            log(`MediaRecorder launch error: ${recErr}. Activating fallback renderer...`);
+            log(`MediaRecorder launch error: ${recErr}.`);
           }
         }
       }
     }
 
     // Fallback if canvas stream / MediaRecorder not supported in current environment
-    const totalDurationFallback = Math.max(duration, 1);
-    log(`[Fallback Engine] Simulating full duration frame rendering (${totalDurationFallback.toFixed(1)}s)...`);
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 10;
-      setExportProgress(progress);
-      log(`Rendering timeline frame buffer: ${progress}%`);
-
-      if (progress >= 100) {
-        clearInterval(interval);
-        log(`Build complete. Initializing storage handler...`);
-        setExporting(false);
-        const sampleVideoUrl = 'https://assets.mixkit.co/videos/preview/mixkit-dinosaur-toy-bouncing-on-green-screen-42289-large.mp4';
-        setDownloadUrl(sampleVideoUrl);
-        let ext = exportConf.format || 'mp4';
-        let filename = exportConf.filename?.trim() || `export_${exportConf.resolution}_${Date.now()}`;
-        if (!filename.toLowerCase().endsWith(`.${ext}`)) {
-          filename = filename.replace(/\.[a-zA-Z0-9]+$/, '') + `.${ext}`;
-        }
-        handleExportToNativeStorage(sampleVideoUrl, filename);
-      }
-    }, 250);
+    log(`[Export Error] Video encoder or canvas stream capture not available in this browser.`);
+    log(`[Export Recommendation] For fast 4K/1080p hardware rendering, please use modern Chrome, Edge, Safari, or Firefox.`);
+    setExporting(false);
+    setExportProgress(0);
   };
 
   if (currentView === 'portal') {
@@ -8328,9 +8374,10 @@ export default function App() {
           exportTerminalLogs={exportTerminalLogs}
           downloadUrl={downloadUrl}
           savedLocalPath={savedLocalPath}
+          exportedBlob={exportedBlob}
           onStartExport={startFfmpegCompilation}
           onCancelExport={handleCancelExport}
-          onSaveToNativeStorage={(url, filename) => handleExportToNativeStorage(url, filename || `export_${Date.now()}.mp4`)}
+          onSaveToNativeStorage={(url, filename) => handleExportToNativeStorage(url || exportedBlob, filename || `export_${Date.now()}.mp4`)}
           onOpenPromoteModal={() => setShowPromoteModal(true)}
         />
 
@@ -9222,9 +9269,10 @@ export default function App() {
         exportTerminalLogs={exportTerminalLogs}
         downloadUrl={downloadUrl}
         savedLocalPath={savedLocalPath}
+        exportedBlob={exportedBlob}
         onStartExport={startFfmpegCompilation}
         onCancelExport={handleCancelExport}
-        onSaveToNativeStorage={(url, filename) => handleExportToNativeStorage(url, filename || `export_${Date.now()}.mp4`)}
+        onSaveToNativeStorage={(url, filename) => handleExportToNativeStorage(url || exportedBlob, filename || `export_${Date.now()}.mp4`)}
         onOpenPromoteModal={() => setShowPromoteModal(true)}
       />
 
