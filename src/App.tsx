@@ -2889,23 +2889,6 @@ export default function App() {
           ctx.resume().catch(() => {});
         }
       } catch (e) {}
-      // Pre-wake and prime video elements for Android MediaCodec GPU decoding
-      Object.values(videoElementsRef.current).forEach((el) => {
-        if (el instanceof HTMLVideoElement) {
-          el.muted = true;
-          el.playsInline = true;
-          try {
-            if (el.readyState < 1) {
-              el.load();
-            }
-            el.play().then(() => {
-              if (!(window as any).__cuteCutIsPlaying) {
-                el.pause();
-              }
-            }).catch(() => {});
-          } catch (e) {}
-        }
-      });
     };
     window.addEventListener('touchstart', unlockMobileMedia, { once: true });
     window.addEventListener('click', unlockMobileMedia, { once: true });
@@ -2979,6 +2962,9 @@ export default function App() {
               video.setAttribute('x5-playsinline', 'true');
               video.setAttribute('x5-video-player-type', 'h5');
               video.setAttribute('x5-video-player-fullscreen', 'false');
+              video.style.width = '100%';
+              video.style.height = '100%';
+              video.style.objectFit = 'contain';
 
               const handleVideoError = () => {
                 if (video.crossOrigin) {

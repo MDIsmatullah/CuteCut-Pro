@@ -874,6 +874,12 @@ export default function PreviewPlayer({
   const fallbackMediaRef = useRef<Record<string, HTMLVideoElement | HTMLImageElement>>({});
   const watermarkImgRef = useRef<HTMLImageElement | null>(null);
 
+  const currentTimeRef = useRef(currentTime);
+  currentTimeRef.current = currentTime;
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
+  const renderRef = useRef<((t?: number) => void) | null>(null);
+
   const [dimensions, setDimensions] = useState({ width: 1280, height: 720 });
   const [showGrid, setShowGrid] = useState(false);
   const [showSafeArea, setShowSafeArea] = useState(false);
@@ -1090,7 +1096,7 @@ export default function PreviewPlayer({
       targetW?: number,
       targetH?: number
     ) => {
-      const t = timeToRender !== undefined ? timeToRender : currentTime;
+      const t = timeToRender !== undefined ? timeToRender : (isPlayingRef.current ? currentTimeRef.current : currentTime);
       const ctx = targetCtx || defaultCtx;
       const dimensions = {
         width: targetW || (targetCanvas ? targetCanvas.width : defaultDimensions.width),
@@ -1213,6 +1219,9 @@ export default function PreviewPlayer({
               video.setAttribute('x5-playsinline', 'true');
               video.setAttribute('x5-video-player-type', 'h5');
               video.setAttribute('x5-video-player-fullscreen', 'false');
+              video.style.width = '100%';
+              video.style.height = '100%';
+              video.style.objectFit = 'contain';
 
               const handleVideoErr = () => {
                 if (video.crossOrigin) {
@@ -1250,7 +1259,7 @@ export default function PreviewPlayer({
             const isImg = clip.isImage || clip.type === ClipType.IMAGE || (media instanceof HTMLImageElement);
             const videoEl = media as HTMLVideoElement;
 
-            const isVideoReady = !isImg && !(videoEl as any).hasError && !(videoEl as any)._isTainted && (videoEl.readyState >= 2 && videoEl.videoWidth > 0);
+            const isVideoReady = !isImg && !(videoEl as any).hasError && (videoEl.readyState >= 1 && (videoEl.videoWidth > 0 || videoEl.readyState >= 2));
             const isImageReady = isImg && ((media as HTMLImageElement).complete && (media as HTMLImageElement).naturalWidth > 0);
 
             if (isVideoReady) {
@@ -1548,9 +1557,7 @@ export default function PreviewPlayer({
             try {
               ctx.drawImage(drawTarget, -dimensions.width / 2, -dimensions.height / 2, dimensions.width, dimensions.height);
             } catch (drawErr) {
-              if (drawTarget instanceof HTMLVideoElement) {
-                (drawTarget as any)._isTainted = true;
-              }
+              // Do NOT permanently taint the video; transient decode/seek delays happen on mobile Android MediaCodec
               const fbKey = `${clip.id}_fb_poster`;
               const backupImg = fallbackMediaRef.current[fbKey];
               if (backupImg && backupImg instanceof HTMLImageElement && backupImg.complete && backupImg.naturalWidth > 0) {
@@ -3372,11 +3379,12 @@ export default function PreviewPlayer({
         ctx.restore();
       }
 
-      if (isPlaying) {
+      if (isPlayingRef.current) {
         animId = requestAnimationFrame(() => render());
       }
     };
 
+    renderRef.current = (t?: number) => render(t);
     render();
 
     // Register high-precision hardware export frame synchronization on window
@@ -3479,7 +3487,14 @@ export default function PreviewPlayer({
         delete (window as any).__cuteCutRenderDirectFrame;
       }
     };
-  }, [tracks, currentTime, dimensions, isPlaying, videoNodes, showGrid, showSafeArea, selectedClip]);
+  }, [tracks, dimensions, isPlaying, videoNodes, showGrid, showSafeArea, selectedClip]);
+
+  // Immediate single-frame render when seeking / paused
+  useEffect(() => {
+    if (!isPlaying && renderRef.current) {
+      renderRef.current(currentTime);
+    }
+  }, [currentTime, isPlaying]);
 
   // Canvas Mouse Coordinates Helper
   const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {

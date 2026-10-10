@@ -437,7 +437,7 @@ export default function ExportModal({
     return base;
   }, [config.resolution, config.bitrateProfile, config.frameRate]);
 
-  // Size estimation engine (Megabytes)
+  // Size estimation engine (Megabytes / Gigabytes)
   const estimatedSizeMB = useMemo(() => {
     const dur = Math.max(1, duration || 31);
     const audioMbps = 0.192;
@@ -446,6 +446,23 @@ export default function ExportModal({
     const mb = totalBytes / (1024 * 1024);
     return Math.max(1, Math.round(mb));
   }, [videoBitrateMbps, duration, config.exportVideo, config.exportAudioSeparately]);
+
+  const formattedEstimatedSize = useMemo(() => {
+    if (estimatedSizeMB >= 1024) {
+      return `${(estimatedSizeMB / 1024).toFixed(2)} GB`;
+    }
+    return `${estimatedSizeMB} MB`;
+  }, [estimatedSizeMB]);
+
+  const formatFileSize = (bytes: number): string => {
+    if (!bytes || bytes <= 0) return '0 MB';
+    const gb = bytes / (1024 * 1024 * 1024);
+    if (gb >= 1) {
+      return `${gb.toFixed(2)} GB`;
+    }
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(2)} MB`;
+  };
 
   const formattedFilename = useMemo(() => {
     const ext = config.format || 'mp4';
@@ -1363,7 +1380,7 @@ export default function ExportModal({
                   <h3 className="text-base font-bold text-white">Video Exported Successfully!</h3>
                   <p className="text-xs text-gray-300 mt-1">
                     Your project duration ({totalSec}s) has been encoded into {config.resolution} ({config.format.toUpperCase()})
-                    {exportedBlob ? ` • File Size: ${(exportedBlob.size / (1024 * 1024)).toFixed(2)} MB` : ''}.
+                    {exportedBlob ? ` • File Size: ${formatFileSize(exportedBlob.size)}` : ''}.
                   </p>
                 </div>
 
@@ -1387,7 +1404,7 @@ export default function ExportModal({
                     <div className="flex items-center justify-between">
                       <span>Video Stream</span>
                       <span className="text-emerald-400 font-semibold">
-                        ✓ Valid ({config.format.toUpperCase()} • {exportedBlob ? `${(exportedBlob.size / (1024 * 1024)).toFixed(2)} MB` : `${estimatedSizeMB} MB`})
+                        ✓ Valid ({config.format.toUpperCase()} • {exportedBlob ? formatFileSize(exportedBlob.size) : formattedEstimatedSize})
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -1607,7 +1624,7 @@ export default function ExportModal({
           <div className="flex items-center gap-2 text-gray-400 text-[11px]">
             <Film className="w-3.5 h-3.5 text-cyan-400" />
             <span>
-              Duration: <strong className="text-gray-200 font-normal">{totalSec}s</strong> | Size: about <strong className="text-gray-200 font-normal">{estimatedSizeMB} MB</strong> | Output: <strong className="text-cyan-300 font-mono">{exportDimensions.width}×{exportDimensions.height}</strong>
+              Duration: <strong className="text-gray-200 font-normal">{totalSec}s</strong> | Size: about <strong className="text-gray-200 font-normal">{formattedEstimatedSize}</strong> | Output: <strong className="text-cyan-300 font-mono">{exportDimensions.width}×{exportDimensions.height}</strong>
             </span>
           </div>
 

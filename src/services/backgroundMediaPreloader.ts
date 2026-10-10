@@ -86,40 +86,44 @@ class BackgroundMediaPreloader {
         }).catch(() => {});
       }
     } else if (isVideo && !cached.videoElement) {
-      const video = document.createElement('video');
-      const safeCrossOrigin = getSafeCrossOrigin(url);
-      if (safeCrossOrigin) video.crossOrigin = safeCrossOrigin;
-      video.src = url;
-      video.preload = 'auto';
-      video.muted = true;
-      video.playsInline = true;
+      // On mobile / Android, skip creating separate background video elements to preserve scarce MediaCodec hardware instances
+      const isMobileDevice = typeof navigator !== 'undefined' && (/android|iphone|ipad|ipod/i.test(navigator.userAgent) || Boolean((window as any).Capacitor));
+      if (!isMobileDevice) {
+        const video = document.createElement('video');
+        const safeCrossOrigin = getSafeCrossOrigin(url);
+        if (safeCrossOrigin) video.crossOrigin = safeCrossOrigin;
+        video.src = url;
+        video.preload = 'auto';
+        video.muted = true;
+        video.playsInline = true;
 
-      // Monitor buffered time ranges in background
-      video.addEventListener('progress', () => {
-        const ranges: { start: number; end: number }[] = [];
-        for (let i = 0; i < video.buffered.length; i++) {
-          ranges.push({
-            start: video.buffered.start(i),
-            end: video.buffered.end(i)
-          });
-        }
-        cached.bufferedRanges = ranges;
-        if (video.duration && video.buffered.length > 0) {
-          const totalBuffered = ranges.reduce((acc, r) => acc + (r.end - r.start), 0);
-          if (totalBuffered >= video.duration * 0.9) {
-            cached.isFullyBuffered = true;
+        // Monitor buffered time ranges in background
+        video.addEventListener('progress', () => {
+          const ranges: { start: number; end: number }[] = [];
+          for (let i = 0; i < video.buffered.length; i++) {
+            ranges.push({
+              start: video.buffered.start(i),
+              end: video.buffered.end(i)
+            });
           }
-        }
-      });
+          cached.bufferedRanges = ranges;
+          if (video.duration && video.buffered.length > 0) {
+            const totalBuffered = ranges.reduce((acc, r) => acc + (r.end - r.start), 0);
+            if (totalBuffered >= video.duration * 0.9) {
+              cached.isFullyBuffered = true;
+            }
+          }
+        });
 
-      video.addEventListener('canplaythrough', () => {
-        cached.isFullyBuffered = true;
-      });
+        video.addEventListener('canplaythrough', () => {
+          cached.isFullyBuffered = true;
+        });
 
-      try {
-        video.load();
-      } catch {}
-      cached.videoElement = video;
+        try {
+          video.load();
+        } catch {}
+        cached.videoElement = video;
+      }
     } else if (isAudio && !cached.audioBuffer) {
       // Pre-fetch and decode audio in background for instant playback
       this.preloadAudioBuffer(clip.id, url);

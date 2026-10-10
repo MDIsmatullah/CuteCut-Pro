@@ -189,8 +189,10 @@ async function processNextQueueItem() {
     try {
       // Pause background thumbnail extraction during continuous playback to protect 60FPS video decoder
       if (typeof window !== 'undefined' && (window as any).__cuteCutIsPlaying) {
+        extractionQueue.unshift(item);
         isProcessingQueue = false;
-        setTimeout(processNextQueueItem, 350);
+        resolveItem();
+        setTimeout(processNextQueueItem, 400);
         return;
       }
 

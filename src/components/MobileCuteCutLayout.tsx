@@ -179,12 +179,16 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const isProgrammaticScrollRef = useRef<boolean>(false);
+  const touchEndTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Sync timeline scroll position with currentTime during playback (Center Playhead Locking)
   useEffect(() => {
     if (!timelineScrollRef.current || isUserInteractingRef.current || isTrimmingRef.current || isMovingClipRef.current) return;
     const container = timelineScrollRef.current;
     const targetScroll = currentTime * zoom;
     if (Math.abs(container.scrollLeft - targetScroll) > 1.5) {
+      isProgrammaticScrollRef.current = true;
       container.scrollLeft = targetScroll;
     }
   }, [currentTime, zoom, isPlaying]);
@@ -192,6 +196,10 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
   // Handle touch/pointer horizontal scrubbing on timeline
   const handleTimelineScroll = useCallback(() => {
     if (!timelineScrollRef.current || !onSeek || isTrimmingRef.current || isMovingClipRef.current) return;
+    if (isProgrammaticScrollRef.current) {
+      isProgrammaticScrollRef.current = false;
+      return;
+    }
     if (isUserInteractingRef.current) {
       const container = timelineScrollRef.current;
       const newTime = Math.max(0, Math.min(duration, container.scrollLeft / zoom));
@@ -201,6 +209,7 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
 
   // Touch event handlers for timeline (including multi-touch pinch to zoom)
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (touchEndTimeoutRef.current) clearTimeout(touchEndTimeoutRef.current);
     if (e.touches.length === 2) {
       // Pinch gesture start
       const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -226,12 +235,15 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
 
   const handleTouchEnd = () => {
     pinchStartDistRef.current = null;
-    isUserInteractingRef.current = false;
     if (timelineScrollRef.current && onSeek && !isTrimmingRef.current && !isMovingClipRef.current) {
       const container = timelineScrollRef.current;
       const newTime = Math.max(0, Math.min(duration, container.scrollLeft / zoom));
       onSeek(Number(newTime.toFixed(2)));
     }
+    if (touchEndTimeoutRef.current) clearTimeout(touchEndTimeoutRef.current);
+    touchEndTimeoutRef.current = setTimeout(() => {
+      isUserInteractingRef.current = false;
+    }, 150);
   };
 
   // Trim handle dragging logic (CapCut Style Trim Handles)
