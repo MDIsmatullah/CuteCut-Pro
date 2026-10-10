@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Cpu, Zap, HardDrive, Settings, Monitor, Volume2, Save, MousePointerClick, 
   Sparkles, Key, Eye, EyeOff, Check, AlertCircle, Loader2, Trash2, CheckCircle2,
-  ShieldCheck, ExternalLink, Copy, CheckCheck, Play, DollarSign
+  ShieldCheck, ExternalLink, Copy, CheckCheck, Play, DollarSign, Film, Award
 } from 'lucide-react';
 import { ProLicenseService } from '../services/proLicenseService';
 import { AdMobService, ADMOB_CREDENTIALS } from '../utils/admobService';

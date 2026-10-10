@@ -740,22 +740,48 @@ export default function Timeline({
     // Only scrub if left mouse click
     if (e.button !== 0) return;
     setIsScrubbing(true);
+    cachedContainerRectRef.current = null;
     handleScrub(e.clientX);
   };
 
   const handleRulerTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length > 0) {
       setIsScrubbing(true);
+      cachedContainerRectRef.current = null;
       handleScrub(e.touches[0].clientX);
     }
   };
 
+  const scrubRafRef = useRef<number | null>(null);
+  const pendingScrubTimeRef = useRef<number | null>(null);
+  const cachedContainerRectRef = useRef<{ left: number; scrollLeft: number } | null>(null);
+
   const handleScrub = (clientX: number) => {
     if (!tracksContainerRef.current) return;
-    const rect = tracksContainerRef.current.getBoundingClientRect();
-    const x = clientX - rect.left + tracksContainerRef.current.scrollLeft;
+    if (typeof window !== 'undefined') {
+      (window as any).__cuteCutIsScrubbing = true;
+    }
+    if (!cachedContainerRectRef.current) {
+      const rect = tracksContainerRef.current.getBoundingClientRect();
+      cachedContainerRectRef.current = {
+        left: rect.left,
+        scrollLeft: tracksContainerRef.current.scrollLeft
+      };
+    }
+    const containerLeft = cachedContainerRectRef.current.left;
+    const currentScrollLeft = tracksContainerRef.current.scrollLeft;
+    const x = clientX - containerLeft + currentScrollLeft;
     const time = Math.max(0, Math.min(durationRef.current, x / zoomRef.current));
-    if (onSeekRef.current) onSeekRef.current(time);
+    pendingScrubTimeRef.current = time;
+
+    if (!scrubRafRef.current) {
+      scrubRafRef.current = requestAnimationFrame(() => {
+        scrubRafRef.current = null;
+        if (pendingScrubTimeRef.current !== null && onSeekRef.current) {
+          onSeekRef.current(pendingScrubTimeRef.current);
+        }
+      });
+    }
   };
 
   // Close menus on outside click or Esc, and handle selection keyboard shortcuts
@@ -1353,6 +1379,13 @@ export default function Timeline({
 
       if (isScrubbingRef.current) {
         setIsScrubbing(false);
+        cachedContainerRectRef.current = null;
+        if (typeof window !== 'undefined') {
+          (window as any).__cuteCutIsScrubbing = false;
+        }
+        if (pendingScrubTimeRef.current !== null && onSeekRef.current) {
+          onSeekRef.current(pendingScrubTimeRef.current);
+        }
       }
       if (draggingClipsRef.current) {
         const activeDragging = draggingClipsRef.current;
@@ -3224,8 +3257,9 @@ export default function Timeline({
               id="timeline-playhead"
               className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-30 pointer-events-none shadow-[0_0_8px_rgba(239,68,68,0.85)]"
               style={{
-                left: `${currentTime * zoom}px`,
-                willChange: 'left',
+                transform: `translate3d(${currentTime * zoom}px, 0, 0)`,
+                left: 0,
+                willChange: 'transform',
               }}
             >
               {/* CapCut Pro Downward Pentagon Playhead Head on Ruler */}

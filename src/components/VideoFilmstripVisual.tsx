@@ -187,12 +187,12 @@ async function processNextQueueItem() {
     };
 
     try {
-      // Pause background thumbnail extraction during continuous playback to protect 60FPS video decoder
-      if (typeof window !== 'undefined' && (window as any).__cuteCutIsPlaying) {
+      // Pause background thumbnail extraction during continuous playback or active timeline scrubbing to protect 60FPS video decoder
+      if (typeof window !== 'undefined' && ((window as any).__cuteCutIsPlaying || (window as any).__cuteCutIsScrubbing)) {
         extractionQueue.unshift(item);
         isProcessingQueue = false;
         resolveItem();
-        setTimeout(processNextQueueItem, 400);
+        setTimeout(processNextQueueItem, 350);
         return;
       }
 

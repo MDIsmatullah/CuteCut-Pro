@@ -3433,45 +3433,54 @@ export default function PreviewPlayer({
                 const drift = Math.abs(media.currentTime - clamped);
                 const frameDur = 1 / 30;
                 
+                const isScrubbingActive = typeof window !== 'undefined' && !!(window as any).__cuteCutIsScrubbing;
                 if (drift > (frameDur * 0.4) || media.seeking) {
-                  const waitP = new Promise<void>((resolve) => {
-                    let settled = false;
-                    const done = () => {
-                      if (!settled) {
-                        settled = true;
-                        media.removeEventListener('seeked', done);
-                        media.removeEventListener('canplay', done);
-                        media.removeEventListener('error', done);
-                        resolve();
-                      }
-                    };
-
-                    if (!media.seeking && drift <= (frameDur * 0.4) && media.readyState >= 2) {
-                      resolve();
-                      return;
-                    }
-
-                    media.addEventListener('seeked', () => {
-                      if (typeof (media as any).requestVideoFrameCallback === 'function') {
-                        try {
-                          (media as any).requestVideoFrameCallback(() => done());
-                          return;
-                        } catch {}
-                      }
-                      done();
-                    }, { once: true });
-                    media.addEventListener('canplay', done, { once: true });
-                    media.addEventListener('error', done, { once: true });
-
+                  if (isScrubbingActive) {
                     try {
                       media.currentTime = clamped;
                     } catch {
-                      done();
+                      // ignore
                     }
-                    // Low latency safety timeout (300ms)
-                    setTimeout(done, 300);
-                  });
-                  syncPromises.push(waitP);
+                  } else {
+                    const waitP = new Promise<void>((resolve) => {
+                      let settled = false;
+                      const done = () => {
+                        if (!settled) {
+                          settled = true;
+                          media.removeEventListener('seeked', done);
+                          media.removeEventListener('canplay', done);
+                          media.removeEventListener('error', done);
+                          resolve();
+                        }
+                      };
+
+                      if (!media.seeking && drift <= (frameDur * 0.4) && media.readyState >= 2) {
+                        resolve();
+                        return;
+                      }
+
+                      media.addEventListener('seeked', () => {
+                        if (typeof (media as any).requestVideoFrameCallback === 'function') {
+                          try {
+                            (media as any).requestVideoFrameCallback(() => done());
+                            return;
+                          } catch {}
+                        }
+                        done();
+                      }, { once: true });
+                      media.addEventListener('canplay', done, { once: true });
+                      media.addEventListener('error', done, { once: true });
+
+                      try {
+                        media.currentTime = clamped;
+                      } catch {
+                        done();
+                      }
+                      // Low latency safety timeout (300ms)
+                      setTimeout(done, 300);
+                    });
+                    syncPromises.push(waitP);
+                  }
                 }
               }
             }
@@ -3498,11 +3507,26 @@ export default function PreviewPlayer({
     };
   }, [tracks, dimensions, isPlaying, videoNodes, showGrid, showSafeArea, selectedClip]);
 
-  // Immediate single-frame render when seeking / paused
+  // Immediate single-frame render when seeking / paused with RAF throttle
+  const seekRafRef = useRef<number | null>(null);
   useEffect(() => {
     if (!isPlaying && renderRef.current) {
-      renderRef.current(currentTime);
+      if (seekRafRef.current) {
+        cancelAnimationFrame(seekRafRef.current);
+      }
+      seekRafRef.current = requestAnimationFrame(() => {
+        seekRafRef.current = null;
+        if (renderRef.current) {
+          renderRef.current(currentTime);
+        }
+      });
     }
+    return () => {
+      if (seekRafRef.current) {
+        cancelAnimationFrame(seekRafRef.current);
+        seekRafRef.current = null;
+      }
+    };
   }, [currentTime, isPlaying]);
 
   // Canvas Mouse Coordinates Helper

@@ -208,53 +208,100 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
   ];
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    const frames = Math.floor((seconds % 1) * 30);
+    const s = Math.max(0, isNaN(seconds) ? 0 : seconds);
+    const mins = Math.floor(s / 60);
+    const secs = Math.floor(s % 60);
+    const frames = Math.floor((s % 1) * 30);
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
   };
 
   const formatShortTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
+    const s = Math.max(0, isNaN(seconds) ? 0 : seconds);
+    const mins = Math.floor(s / 60);
+    const secs = Math.floor(s % 60);
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const isProgrammaticScrollRef = useRef<boolean>(false);
+  const isScrollingRef = useRef<boolean>(false);
+  const scrollIdleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const touchEndTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const rafSeekIdRef = useRef<number | null>(null);
+  const pendingSeekTimeRef = useRef<number | null>(null);
 
   // Sync timeline scroll position with currentTime during playback (Center Playhead Locking)
   useEffect(() => {
-    if (!timelineScrollRef.current || isUserInteractingRef.current || isTrimmingRef.current || isMovingClipRef.current) return;
+    if (
+      !timelineScrollRef.current ||
+      isUserInteractingRef.current ||
+      isScrollingRef.current ||
+      isTrimmingRef.current ||
+      isMovingClipRef.current
+    ) return;
+
     const container = timelineScrollRef.current;
-    const targetScroll = currentTime * zoom;
+    const targetScroll = Math.max(0, currentTime * zoom);
     if (Math.abs(container.scrollLeft - targetScroll) > 1.5) {
       isProgrammaticScrollRef.current = true;
       requestAnimationFrame(() => {
-        if (timelineScrollRef.current && !isUserInteractingRef.current) {
+        if (
+          timelineScrollRef.current &&
+          !isUserInteractingRef.current &&
+          !isScrollingRef.current
+        ) {
           timelineScrollRef.current.scrollLeft = targetScroll;
         }
       });
     }
   }, [currentTime, zoom, isPlaying]);
 
-  // Handle touch/pointer horizontal scrubbing on timeline
+  // Handle touch/pointer horizontal scrubbing on timeline with high-performance RAF throttling & momentum preservation
   const handleTimelineScroll = useCallback(() => {
     if (!timelineScrollRef.current || !onSeek || isTrimmingRef.current || isMovingClipRef.current) return;
     if (isProgrammaticScrollRef.current) {
       isProgrammaticScrollRef.current = false;
       return;
     }
-    if (isUserInteractingRef.current) {
-      const container = timelineScrollRef.current;
-      const newTime = Math.max(0, Math.min(duration, container.scrollLeft / zoom));
-      onSeek(Number(newTime.toFixed(2)));
+
+    isScrollingRef.current = true;
+    if (typeof window !== 'undefined') {
+      (window as any).__cuteCutIsScrubbing = true;
+    }
+
+    if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
+    scrollIdleTimerRef.current = setTimeout(() => {
+      isScrollingRef.current = false;
+      isUserInteractingRef.current = false;
+      if (typeof window !== 'undefined') {
+        (window as any).__cuteCutIsScrubbing = false;
+      }
+      if (timelineScrollRef.current && onSeek) {
+        const finalTime = Math.max(0, Math.min(duration, Math.max(0, timelineScrollRef.current.scrollLeft) / zoom));
+        onSeek(Number(finalTime.toFixed(2)));
+      }
+    }, 120);
+
+    const container = timelineScrollRef.current;
+    const newTime = Math.max(0, Math.min(duration, Math.max(0, container.scrollLeft) / zoom));
+    pendingSeekTimeRef.current = newTime;
+
+    if (!rafSeekIdRef.current) {
+      rafSeekIdRef.current = requestAnimationFrame(() => {
+        rafSeekIdRef.current = null;
+        if (pendingSeekTimeRef.current !== null && onSeek) {
+          onSeek(Number(pendingSeekTimeRef.current.toFixed(2)));
+        }
+      });
     }
   }, [duration, zoom, onSeek]);
 
   // Touch event handlers for timeline (including multi-touch pinch to zoom)
   const handleTouchStart = (e: React.TouchEvent) => {
     if (touchEndTimeoutRef.current) clearTimeout(touchEndTimeoutRef.current);
+    if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
+    if (typeof window !== 'undefined') {
+      (window as any).__cuteCutIsScrubbing = true;
+    }
     if (e.touches.length === 2) {
       // Pinch gesture start
       const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -265,6 +312,7 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
       return;
     }
     isUserInteractingRef.current = true;
+    isScrollingRef.current = true;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -280,15 +328,16 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
 
   const handleTouchEnd = () => {
     pinchStartDistRef.current = null;
-    if (timelineScrollRef.current && onSeek && !isTrimmingRef.current && !isMovingClipRef.current) {
-      const container = timelineScrollRef.current;
-      const newTime = Math.max(0, Math.min(duration, container.scrollLeft / zoom));
-      onSeek(Number(newTime.toFixed(2)));
-    }
+    // Allow native momentum scrolling to conclude without premature snapping
     if (touchEndTimeoutRef.current) clearTimeout(touchEndTimeoutRef.current);
     touchEndTimeoutRef.current = setTimeout(() => {
-      isUserInteractingRef.current = false;
-    }, 150);
+      if (!isScrollingRef.current) {
+        isUserInteractingRef.current = false;
+        if (typeof window !== 'undefined') {
+          (window as any).__cuteCutIsScrubbing = false;
+        }
+      }
+    }, 160);
   };
 
   // Trim handle dragging logic (CapCut Style Trim Handles)
@@ -610,6 +659,8 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
           className="flex-1 w-full overflow-x-auto overflow-y-auto no-scrollbar relative cursor-grab active:cursor-grabbing"
           style={{ 
             WebkitOverflowScrolling: 'touch',
+            overscrollBehaviorX: 'none',
+            overscrollBehaviorY: 'contain',
             willChange: 'scroll-position',
             transform: 'translateZ(0)'
           }}
