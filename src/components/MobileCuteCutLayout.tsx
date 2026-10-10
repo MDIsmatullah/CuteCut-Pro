@@ -90,6 +90,47 @@ interface MobileCuteCutLayoutProps {
   renderInspector: () => React.ReactNode;
 }
 
+interface MobileTimeRulerProps {
+  totalRulerSeconds: number;
+  zoom: number;
+}
+
+const MobileTimeRuler: React.FC<MobileTimeRulerProps> = React.memo(({ totalRulerSeconds, zoom }) => {
+  const ticks = useMemo(() => {
+    const list: { sec: number; label: string; isMajor: boolean }[] = [];
+    const step = zoom < 40 ? 2 : 1;
+    for (let s = 0; s <= totalRulerSeconds; s += step) {
+      const mins = Math.floor(s / 60);
+      const secs = Math.floor(s % 60);
+      list.push({
+        sec: s,
+        label: `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`,
+        isMajor: s % (step * 2) === 0
+      });
+    }
+    return list;
+  }, [totalRulerSeconds, zoom]);
+
+  return (
+    <div className="h-6 w-full relative border-b border-[#181824] select-none pointer-events-none shrink-0">
+      {ticks.map(tick => (
+        <div 
+          key={tick.sec}
+          className="absolute top-0 bottom-0 flex flex-col justify-end items-center"
+          style={{ left: `${tick.sec * zoom}px` }}
+        >
+          {tick.isMajor && (
+            <span className="text-[9px] font-mono text-gray-500 -translate-x-1/2 mb-0.5">
+              {tick.label}
+            </span>
+          )}
+          <div className={`w-[1px] bg-gray-600 ${tick.isMajor ? 'h-2' : 'h-1'}`} />
+        </div>
+      ))}
+    </div>
+  );
+});
+
 export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
   onBackToPortal,
   onOpenExport,
@@ -189,7 +230,11 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
     const targetScroll = currentTime * zoom;
     if (Math.abs(container.scrollLeft - targetScroll) > 1.5) {
       isProgrammaticScrollRef.current = true;
-      container.scrollLeft = targetScroll;
+      requestAnimationFrame(() => {
+        if (timelineScrollRef.current && !isUserInteractingRef.current) {
+          timelineScrollRef.current.scrollLeft = targetScroll;
+        }
+      });
     }
   }, [currentTime, zoom, isPlaying]);
 
@@ -389,19 +434,8 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
     return secondaryTracks.filter(t => t.type === ClipType.AUDIO && !t.id.includes('arabic') && !t.id.includes('english') && !t.id.includes('translation') && !t.id.includes('subtitle') && !t.name.toLowerCase().includes('arabic') && !t.name.toLowerCase().includes('english') && !t.name.toLowerCase().includes('urdu') && !t.name.toLowerCase().includes('subtitle'));
   }, [secondaryTracks]);
 
-  // Generate CapCut style time ruler tick marks (every 1s / 0.5s)
+  // Generate CapCut style time ruler tick marks
   const totalRulerSeconds = Math.max(30, Math.ceil(duration + 15));
-  const rulerTicks = useMemo(() => {
-    const ticks: { sec: number; label: string; isMajor: boolean }[] = [];
-    for (let s = 0; s <= totalRulerSeconds; s += 1) {
-      ticks.push({
-        sec: s,
-        label: formatShortTime(s),
-        isMajor: s % 2 === 0
-      });
-    }
-    return ticks;
-  }, [totalRulerSeconds]);
 
   return (
     <div className="flex flex-col h-screen w-screen bg-[#07070b] text-white overflow-hidden select-none touch-manipulation">
@@ -574,7 +608,11 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
           onMouseDown={() => { isUserInteractingRef.current = true; }}
           onMouseUp={handleTouchEnd}
           className="flex-1 w-full overflow-x-auto overflow-y-auto no-scrollbar relative cursor-grab active:cursor-grabbing"
-          style={{ WebkitOverflowScrolling: 'touch' }}
+          style={{ 
+            WebkitOverflowScrolling: 'touch',
+            willChange: 'scroll-position',
+            transform: 'translateZ(0)'
+          }}
         >
           {/* Inner Content with 50vw Pre-padding and 50vw Post-padding */}
           <div 
@@ -582,27 +620,14 @@ export const MobileCuteCutLayout: React.FC<MobileCuteCutLayoutProps> = ({
             style={{ 
               width: `${(duration + 15) * zoom + 600}px`,
               paddingLeft: '50vw',
-              paddingRight: '50vw'
+              paddingRight: '50vw',
+              willChange: 'transform',
+              transform: 'translateZ(0)'
             }}
           >
             
             {/* 4.A TIME RULER (Top Tick Marks) */}
-            <div className="h-6 w-full relative border-b border-[#181824] select-none pointer-events-none shrink-0">
-              {rulerTicks.map(tick => (
-                <div 
-                  key={tick.sec}
-                  className="absolute top-0 bottom-0 flex flex-col justify-end items-center"
-                  style={{ left: `${tick.sec * zoom}px` }}
-                >
-                  {tick.isMajor && (
-                    <span className="text-[9px] font-mono text-gray-500 -translate-x-1/2 mb-0.5">
-                      {tick.label}
-                    </span>
-                  )}
-                  <div className={`w-[1px] bg-gray-600 ${tick.isMajor ? 'h-2' : 'h-1'}`} />
-                </div>
-              ))}
-            </div>
+            <MobileTimeRuler totalRulerSeconds={totalRulerSeconds} zoom={zoom} />
 
             {/* 4.C TEXT/SUBTITLE TRACKS (Quran Arabic, English Translation Subtitles) shown ABOVE the Video Track */}
             <div className="space-y-2 py-1 w-full relative">

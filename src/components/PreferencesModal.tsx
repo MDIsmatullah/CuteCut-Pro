@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Cpu, Zap, HardDrive, Settings, Monitor, Volume2, Save, MousePointerClick, 
-  Sparkles, Key, Eye, EyeOff, Check, AlertCircle, Loader2, Trash2, CheckCircle2
+  Sparkles, Key, Eye, EyeOff, Check, AlertCircle, Loader2, Trash2, CheckCircle2,
+  ShieldCheck, ExternalLink, Copy, CheckCheck, Play, DollarSign
 } from 'lucide-react';
 import { ProLicenseService } from '../services/proLicenseService';
+import { AdMobService, ADMOB_CREDENTIALS } from '../utils/admobService';
 
 interface PreferencesModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'performance' | 'general' | 'editing' | 'ai';
+  initialTab?: 'performance' | 'general' | 'editing' | 'ai' | 'monetization';
 }
 
 function cleanInputKey(val?: string): string {
@@ -21,9 +23,24 @@ function cleanInputKey(val?: string): string {
 }
 
 export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose, initialTab = 'performance' }) => {
-  const [activeTab, setActiveTab] = useState<'performance' | 'general' | 'editing' | 'ai'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'performance' | 'general' | 'editing' | 'ai' | 'monetization'>(initialTab);
   const [saved, setSaved] = useState(false);
   const [savingToServer, setSavingToServer] = useState(false);
+
+  // AdMob & Monetization state
+  const [crawlerTestStatus, setCrawlerTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [crawlerTestMsg, setCrawlerTestMsg] = useState('');
+  const [copiedLine, setCopiedLine] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [showAppOpenOnLaunch, setShowAppOpenOnLaunch] = useState(() => {
+    try { return localStorage.getItem('admob_show_app_open') !== 'false'; } catch { return true; }
+  });
+  const [showExportAdEnabled, setShowExportAdEnabled] = useState(() => {
+    try { return localStorage.getItem('admob_show_export_ad') !== 'false'; } catch { return true; }
+  });
+  const [showBannerAdEnabled, setShowBannerAdEnabled] = useState(() => {
+    try { return localStorage.getItem('admob_show_banner_ad') !== 'false'; } catch { return true; }
+  });
 
   // Gemini API key state
   const getStoredKey = () => {
@@ -171,6 +188,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
       setSavingToServer(false);
     }
 
+    // Save AdMob preferences
+    try {
+      localStorage.setItem('admob_show_app_open', String(showAppOpenOnLaunch));
+      localStorage.setItem('admob_show_export_ad', String(showExportAdEnabled));
+      localStorage.setItem('admob_show_banner_ad', String(showBannerAdEnabled));
+    } catch (e) {}
+
     // Dispatch a storage event so all other components refresh their API key setting immediately
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new CustomEvent('gemini-key-updated', { detail: { apiKey: cleanedKey } }));
@@ -256,6 +280,12 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeTab === 'ai' ? 'bg-[#232330] text-white font-medium' : 'text-gray-400 hover:bg-[#1a1a24] hover:text-gray-200'}`}
             >
               <Sparkles className="w-4 h-4 text-cyan-400" /> AI & API Key
+            </button>
+            <button 
+              onClick={() => setActiveTab('monetization')}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeTab === 'monetization' ? 'bg-[#232330] text-amber-400 font-medium' : 'text-gray-400 hover:bg-[#1a1a24] hover:text-gray-200'}`}
+            >
+              <ShieldCheck className="w-4 h-4 text-amber-400" /> AdMob & Ads.txt
             </button>
           </div>
 
@@ -521,6 +551,259 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
               </div>
             )}
 
+            {/* Monetization & AdMob Tab */}
+            {activeTab === 'monetization' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-amber-400" /> Google AdMob & Owner Verification
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Manage authorized digital sellers, app-ads.txt crawler status, and in-app monetization.
+                  </p>
+                </div>
+
+                {/* AdMob Credentials Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-[#181822] p-3.5 rounded-xl border border-[#2a2a3a]">
+                    <div className="text-[11px] text-gray-400 font-medium">AdMob Publisher ID</div>
+                    <div className="text-sm font-mono text-amber-300 font-bold mt-0.5">{ADMOB_CREDENTIALS.publisherId}</div>
+                    <div className="text-[10px] text-emerald-400 flex items-center gap-1 mt-1">
+                      <CheckCircle2 className="w-3 h-3" /> Certified TAG ID: f08c47fec0942fa0
+                    </div>
+                  </div>
+
+                  <div className="bg-[#181822] p-3.5 rounded-xl border border-[#2a2a3a]">
+                    <div className="text-[11px] text-gray-400 font-medium">AdMob Application ID</div>
+                    <div className="text-xs font-mono text-gray-200 font-semibold mt-0.5 truncate">{ADMOB_CREDENTIALS.appId}</div>
+                    <div className="text-[10px] text-cyan-400 flex items-center gap-1 mt-1">
+                      <CheckCircle2 className="w-3 h-3" /> Registered in AndroidManifest.xml
+                    </div>
+                  </div>
+                </div>
+
+                {/* app-ads.txt Authorized Seller Entry */}
+                <div className="bg-[#181822] p-4 rounded-xl border border-[#2a2a3a] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-gray-200">Authorized Digital Seller Line (app-ads.txt & ads.txt)</div>
+                      <div className="text-[11px] text-gray-400 mt-0.5">Required by Google AdMob crawlers to verify app and website ownership.</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const line = `google.com, ${ADMOB_CREDENTIALS.publisherId}, DIRECT, f08c47fec0942fa0`;
+                        navigator.clipboard?.writeText(line);
+                        setCopiedLine(true);
+                        setTimeout(() => setCopiedLine(false), 2000);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-[#252536] hover:bg-[#303046] text-amber-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      {copiedLine ? <CheckCheck className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedLine ? 'Copied!' : 'Copy Line'}</span>
+                    </button>
+                  </div>
+
+                  <div className="p-3 bg-[#0e0e14] border border-[#242434] rounded-lg font-mono text-xs text-amber-200/90 select-all overflow-x-auto">
+                    google.com, {ADMOB_CREDENTIALS.publisherId}, DIRECT, f08c47fec0942fa0
+                  </div>
+
+                  {/* Direct URLs and Live Test */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#222230]">
+                    <div className="flex items-center gap-3">
+                      <a
+                        href="/app-ads.txt"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-cyan-400 hover:underline flex items-center gap-1 font-mono"
+                      >
+                        <span>/app-ads.txt</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                      <a
+                        href="/ads.txt"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-cyan-400 hover:underline flex items-center gap-1 font-mono"
+                      >
+                        <span>/ads.txt</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const fullUrl = `${window.location.origin}/app-ads.txt`;
+                          navigator.clipboard?.writeText(fullUrl);
+                          setCopiedUrl(true);
+                          setTimeout(() => setCopiedUrl(false), 2000);
+                        }}
+                        className="px-2.5 py-1 rounded bg-[#20202e] hover:bg-[#2a2a3e] text-gray-300 text-[11px] flex items-center gap-1 transition cursor-pointer"
+                      >
+                        {copiedUrl ? <CheckCheck className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedUrl ? 'Copied URL!' : 'Copy Full URL'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setCrawlerTestStatus('testing');
+                          setCrawlerTestMsg('Sending verification request to /app-ads.txt...');
+                          const res = await AdMobService.testAdsTxtCrawler();
+                          if (res.success) {
+                            setCrawlerTestStatus('success');
+                            setCrawlerTestMsg(`HTTP 200 OK — Verified! AdMob crawlers can successfully reach and read your publisher ID (${ADMOB_CREDENTIALS.publisherId}).`);
+                          } else {
+                            setCrawlerTestStatus('error');
+                            setCrawlerTestMsg(res.message);
+                          }
+                        }}
+                        disabled={crawlerTestStatus === 'testing'}
+                        className="px-3 py-1 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                      >
+                        {crawlerTestStatus === 'testing' ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+                        <span>Test Crawler Status</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Verification diagnostic message */}
+                  {crawlerTestStatus !== 'idle' && (
+                    <div className={`p-3 rounded-lg text-xs flex items-start gap-2 ${
+                      crawlerTestStatus === 'success' 
+                        ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-200'
+                        : crawlerTestStatus === 'error'
+                        ? 'bg-red-950/40 border border-red-500/40 text-red-200'
+                        : 'bg-cyan-950/40 border border-cyan-500/40 text-cyan-200'
+                    }`}>
+                      {crawlerTestStatus === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />}
+                      {crawlerTestStatus === 'error' && <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />}
+                      {crawlerTestStatus === 'testing' && <Loader2 className="w-4 h-4 text-cyan-400 animate-spin shrink-0 mt-0.5" />}
+                      <span className="leading-relaxed">{crawlerTestMsg}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Ad Display Toggles */}
+                <div className="bg-[#181822] p-4 rounded-xl border border-[#2a2a3a] space-y-4">
+                  <div className="text-xs font-bold text-gray-200">Ad Triggers & Placement</div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-gray-200 font-medium">Show App Open Ad</div>
+                      <div className="text-[11px] text-gray-400">Displays full-screen sponsor ad when the app is launched.</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={showAppOpenOnLaunch}
+                        onChange={(e) => setShowAppOpenOnLaunch(e.target.checked)}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-10 h-5 bg-[#3a3a48] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-[#242434] pt-3">
+                    <div>
+                      <div className="text-xs text-gray-200 font-medium">Show Export Ad</div>
+                      <div className="text-[11px] text-gray-400">Displays interstitial sponsor ad before and after video export.</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={showExportAdEnabled}
+                        onChange={(e) => setShowExportAdEnabled(e.target.checked)}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-10 h-5 bg-[#3a3a48] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-[#242434] pt-3">
+                    <div>
+                      <div className="text-xs text-gray-200 font-medium">Show Bottom Banner Ad</div>
+                      <div className="text-[11px] text-gray-400">Displays bottom sticky banner ad on mobile and tablet screens.</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={showBannerAdEnabled}
+                        onChange={(e) => setShowBannerAdEnabled(e.target.checked)}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-10 h-5 bg-[#3a3a48] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Live Test Ad Buttons */}
+                <div className="bg-[#181822] p-4 rounded-xl border border-[#2a2a3a] space-y-3">
+                  <div className="text-xs font-bold text-gray-200 flex items-center gap-2">
+                    <Play className="w-3.5 h-3.5 text-cyan-400" /> Test Live Ad Displays
+                  </div>
+                  <p className="text-[11px] text-gray-400">
+                    Preview how ads render on this device with official Google AdMob badges and countdowns.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => AdMobService.showAppOpenAd()}
+                      className="py-2 px-3 rounded-lg bg-[#252538] hover:bg-[#32324c] border border-[#383850] text-gray-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>App Open Ad</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => AdMobService.showExportAd(() => {})}
+                      className="py-2 px-3 rounded-lg bg-[#252538] hover:bg-[#32324c] border border-[#383850] text-gray-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Film className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Export Ad</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => AdMobService.showRewarded(() => {})}
+                      className="py-2 px-3 rounded-lg bg-[#252538] hover:bg-[#32324c] border border-[#383850] text-gray-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Award className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Rewarded Ad</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Urdu Guide for AdMob Owner Verification */}
+                <div className="bg-amber-950/20 border border-amber-500/30 p-4 rounded-xl text-xs space-y-2 text-right font-sans">
+                  <div className="font-semibold text-amber-300 flex items-center gap-1.5 justify-end">
+                    Google AdMob Owner Verification گائیڈ (اردو) <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div className="text-gray-300 text-[11px] leading-relaxed space-y-1 dir-rtl text-right">
+                    <p>
+                      <strong>اگر آپ کا ایپ پلے اسٹور پر نہیں ہے اور صرف ویب سائٹ پر ہے:</strong>
+                    </p>
+                    <p>
+                      1. اپنے Google AdMob اکاؤنٹ میں لاگ ان کریں اور بائیں مینو سے <strong>Apps &gt; All apps &gt; app-ads.txt</strong> پر جائیں۔
+                    </p>
+                    <p>
+                      2. وہاں اپنی ویب سائٹ کا لنک درج کریں (مثلاً <code>{typeof window !== 'undefined' ? window.location.origin : 'https://cutecutpro.com'}</code>)۔
+                    </p>
+                    <p>
+                      3. ہماری ویب سائٹ پر <code>/app-ads.txt</code> اور <code>/ads.txt</code> مکمل طور پر فعال ہے جس میں آپ کا پبلشر کوڈ (<code>{ADMOB_CREDENTIALS.publisherId}</code>) شامل ہے۔
+                    </p>
+                    <p>
+                      4. گوگل کا کرالر چند گھنٹوں میں اس لنک کو چیک کر کے آپ کے ایڈموب اکاؤنٹ کی اوونر ویریفیکیشن مکمل (Green Check) کر دے گا۔
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+            )}
           </div>
         </div>
 

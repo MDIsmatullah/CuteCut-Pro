@@ -34,6 +34,7 @@ import { ProLicenseService } from './services/proLicenseService';
 import NativeSplashScreen from './components/NativeSplashScreen';
 import { MobileCuteCutLayout } from './components/MobileCuteCutLayout';
 import { AdMobService } from './utils/admobService';
+import AdMobAdModal from './components/AdMobAdModal';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -252,10 +253,31 @@ export default function App() {
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
 
-    // Initialize AdMob on mobile & tablet devices
+    // Initialize AdMob on mobile, tablet & web
     AdMobService.initialize().then(() => {
-      if (checkIsMobileOrTablet()) {
+      const bannerEnabled = (() => {
+        try { return localStorage.getItem('admob_show_banner_ad') !== 'false'; } catch { return true; }
+      })();
+      if (checkIsMobileOrTablet() && bannerEnabled) {
         AdMobService.showBanner();
+      }
+
+      // App Open Ad on startup (with 1.5s delay for smooth UI mounting)
+      const appOpenEnabled = (() => {
+        try { return localStorage.getItem('admob_show_app_open') !== 'false'; } catch { return true; }
+      })();
+      if (appOpenEnabled) {
+        try {
+          const hasShownInSession = sessionStorage.getItem('has_shown_app_open_ad');
+          if (!hasShownInSession) {
+            sessionStorage.setItem('has_shown_app_open_ad', 'true');
+            setTimeout(() => {
+              AdMobService.showAppOpenAd();
+            }, 1500);
+          }
+        } catch {
+          // Fallback if sessionStorage is restricted
+        }
       }
     });
 
@@ -3118,9 +3140,17 @@ export default function App() {
           const media = videoElementsRef.current[clip.id];
           if (media && media instanceof HTMLVideoElement) {
             const video = media;
-            video.playbackRate = Math.max(0.1, Math.min(16, currentSpeed || clip.playbackRate || 1.0));
-            video.volume = safeVolume;
-            video.muted = isMuted || track.muted || safeVolume === 0;
+            const targetRate = Math.max(0.1, Math.min(16, currentSpeed || clip.playbackRate || 1.0));
+            if (Math.abs(video.playbackRate - targetRate) > 0.05) {
+              video.playbackRate = targetRate;
+            }
+            if (Math.abs(video.volume - safeVolume) > 0.01) {
+              video.volume = safeVolume;
+            }
+            const targetMuted = isMuted || track.muted || safeVolume === 0;
+            if (video.muted !== targetMuted) {
+              video.muted = targetMuted;
+            }
 
             const vidDur = (video.duration && !isNaN(video.duration) && isFinite(video.duration) && video.duration > 0) ? video.duration : (clip.duration || 999999);
             const clampedTarget = vidDur > 0 ? (targetSrcTime % vidDur) : 0;
@@ -3167,9 +3197,16 @@ export default function App() {
         if (clip.type === ClipType.AUDIO) {
           const audio = audioElementRef.current[clip.id];
           if (audio) {
-            audio.playbackRate = clip.playbackRate;
-            audio.volume = safeVolume;
-            audio.muted = false;
+            const targetRate = clip.playbackRate || 1.0;
+            if (Math.abs(audio.playbackRate - targetRate) > 0.05) {
+              audio.playbackRate = targetRate;
+            }
+            if (Math.abs(audio.volume - safeVolume) > 0.01) {
+              audio.volume = safeVolume;
+            }
+            if (audio.muted) {
+              audio.muted = false;
+            }
 
             if (isActive) {
               if (isPlayingActive || exporting) {
@@ -3214,79 +3251,97 @@ export default function App() {
   tracksRef.current = tracks;
   const durationRef = useRef(duration);
   durationRef.current = duration;
+  const internalTimeRef = useRef<number>(currentTime);
+  useEffect(() => {
+    if (!isPlaying) {
+      internalTimeRef.current = currentTime;
+    }
+  }, [currentTime, isPlaying]);
 
   // Master playback timing loop synchronized with hardware audio clock
   useEffect(() => {
+    let lastUiFrameTime = 0;
+    const isMobileClient = typeof navigator !== 'undefined' && (/android|iphone|ipad|ipod/i.test(navigator.userAgent) || Boolean((window as any).Capacitor));
+
     const tick = (now: number) => {
       if (!lastTimeRef.current) lastTimeRef.current = now;
       const delta = (now - lastTimeRef.current) / 1000;
       lastTimeRef.current = now;
 
       if (isPlaying) {
-        setCurrentTime((prev) => {
-          let next = prev + delta;
+        let next = internalTimeRef.current + delta;
 
-          // Align RAF software loop directly with physical audio hardware clock
-          // so word-by-word highlights and karaoke glow match actual speaker sound perfectly
-          const currentTracks = tracksRef.current || [];
-          let audioHardwareClock: number | null = null;
-          for (const track of currentTracks) {
-            if (track.muted) continue;
-            for (const clip of track.clips) {
-              if (clip.type === ClipType.AUDIO) {
-                const audioEl = audioElementRef.current[clip.id];
-                if (
-                  audioEl &&
-                  !audioEl.paused &&
-                  !audioEl.seeking &&
-                  audioEl.readyState >= 2 &&
-                  !audioEl.muted &&
-                  audioEl.currentTime > 0
-                ) {
-                  const rate = clip.playbackRate || 1.0;
-                  const audioTimelineTime = clip.start + (audioEl.currentTime - clip.sourceStart) / rate;
-                  if (audioTimelineTime >= clip.start - 0.1 && audioTimelineTime <= clip.start + clip.duration + 0.1) {
-                    audioHardwareClock = audioTimelineTime;
-                    break;
-                  }
+        // Align RAF software loop directly with physical audio hardware clock
+        // so word-by-word highlights and karaoke glow match actual speaker sound perfectly
+        const currentTracks = tracksRef.current || [];
+        let audioHardwareClock: number | null = null;
+        for (const track of currentTracks) {
+          if (track.muted) continue;
+          for (const clip of track.clips) {
+            if (clip.type === ClipType.AUDIO) {
+              const audioEl = audioElementRef.current[clip.id];
+              if (
+                audioEl &&
+                !audioEl.paused &&
+                !audioEl.seeking &&
+                audioEl.readyState >= 2 &&
+                !audioEl.muted &&
+                audioEl.currentTime > 0
+              ) {
+                const rate = clip.playbackRate || 1.0;
+                const audioTimelineTime = clip.start + (audioEl.currentTime - clip.sourceStart) / rate;
+                if (audioTimelineTime >= clip.start - 0.1 && audioTimelineTime <= clip.start + clip.duration + 0.1) {
+                  audioHardwareClock = audioTimelineTime;
+                  break;
                 }
               }
             }
-            if (audioHardwareClock !== null) break;
           }
+          if (audioHardwareClock !== null) break;
+        }
 
-          if (audioHardwareClock !== null) {
-            const clockDrift = audioHardwareClock - next;
-            // Smoothly align software timeline with physical audio clock without abrupt backwards jumps or jitter
-            if (Math.abs(clockDrift) > 0.35) {
-              // User seeked or large jump: snap directly
-              next = audioHardwareClock;
-            } else if (Math.abs(clockDrift) > 0.005) {
-              // Smooth small audio clock drift progressively (8% per frame) so time flows forward monotonically
-              next += clockDrift * 0.08;
-            }
+        if (audioHardwareClock !== null) {
+          const clockDrift = audioHardwareClock - next;
+          // Smoothly align software timeline with physical audio clock without abrupt backwards jumps or jitter
+          if (Math.abs(clockDrift) > 0.35) {
+            // User seeked or large jump: snap directly
+            next = audioHardwareClock;
+          } else if (Math.abs(clockDrift) > 0.005) {
+            // Smooth small audio clock drift progressively (8% per frame) so time flows forward monotonically
+            next += clockDrift * 0.08;
           }
+        }
 
-          if (next >= duration) {
-            if (isLooping) {
-              // Seamless continuous loop playback
-              next = 0;
-            } else {
-              setIsPlaying(false);
-              next = 0;
-              // Stop and pause all assets
-              Object.values(videoElementsRef.current).forEach(v => {
-                if (v instanceof HTMLVideoElement) {
-                  v.pause();
-                }
-              });
-              Object.values(audioElementRef.current).forEach(a => {
-                (a as HTMLAudioElement).pause();
-              });
-            }
+        if (next >= duration) {
+          if (isLooping) {
+            // Seamless continuous loop playback
+            next = 0;
+            internalTimeRef.current = 0;
+            setCurrentTime(0);
+          } else {
+            setIsPlaying(false);
+            next = 0;
+            internalTimeRef.current = 0;
+            setCurrentTime(0);
+            // Stop and pause all assets
+            Object.values(videoElementsRef.current).forEach(v => {
+              if (v instanceof HTMLVideoElement) {
+                v.pause();
+              }
+            });
+            Object.values(audioElementRef.current).forEach(a => {
+              (a as HTMLAudioElement).pause();
+            });
           }
-          return next;
-        });
+        } else {
+          internalTimeRef.current = next;
+          // On mobile Android, throttle React tree reconciliation to 30 FPS (~32ms) to free CPU for MediaCodec/GPU
+          const minFrameInterval = isMobileClient ? 32 : 16;
+          if (now - lastUiFrameTime >= minFrameInterval) {
+            lastUiFrameTime = now;
+            setCurrentTime(next);
+          }
+        }
       }
 
       if (isPlaying) {
@@ -3304,7 +3359,7 @@ export default function App() {
         cancelAnimationFrame(requestRef.current);
       }
     };
-  }, [isPlaying, duration]);
+  }, [isPlaying, duration, isLooping]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -7843,6 +7898,9 @@ export default function App() {
           onSupportClick={handleSupportProjectClick}
           donationUrl={DONATION_SUPPORT_URL}
         />
+
+        {/* Google AdMob Full-Screen In-App Ad Modal */}
+        <AdMobAdModal />
       </>
     );
   }
@@ -8411,6 +8469,9 @@ export default function App() {
           }}
           isMobileMode={true}
         />
+
+        {/* Google AdMob Full-Screen In-App Ad Modal */}
+        <AdMobAdModal />
       </div>
     );
   }
@@ -9483,6 +9544,9 @@ export default function App() {
 
       {/* Offline Connectivity Status Notice */}
       <OfflineIndicator />
+
+      {/* Google AdMob Full-Screen In-App Ad Modal */}
+      <AdMobAdModal />
 
     </div>
   );

@@ -264,7 +264,17 @@ export default function ExportModal({
       return;
     }
 
-    onStartExport(config);
+    const shouldShowExportAd = (() => {
+      try { return localStorage.getItem('admob_show_export_ad') !== 'false'; } catch { return true; }
+    })();
+
+    if (shouldShowExportAd) {
+      AdMobService.showExportAd(() => {
+        onStartExport(config);
+      });
+    } else {
+      onStartExport(config);
+    }
   };
 
   // Auto-detect OS path and optimal engine when modal opens
@@ -1684,7 +1694,9 @@ export default function ExportModal({
               <>
                 <button
                   type="button"
-                  onClick={() => onStartExport(config)}
+                  onClick={() => {
+                    AdMobService.showExportAd(() => onStartExport(config));
+                  }}
                   className="px-4 py-2 bg-[#2d2d38] hover:bg-[#383846] text-cyan-300 text-xs font-semibold rounded-lg transition cursor-pointer flex items-center gap-1.5 border border-cyan-500/30"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -1712,7 +1724,7 @@ export default function ExportModal({
         onClose={() => setShowFirstTimeSharePrompt(false)}
         onProceedToExport={() => {
           setShowFirstTimeSharePrompt(false);
-          onStartExport(config);
+          AdMobService.showExportAd(() => onStartExport(config));
         }}
         isMobileMode={webCodecsSupport.isMobile}
       />

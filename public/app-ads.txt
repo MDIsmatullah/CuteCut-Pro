@@ -1,0 +1,6 @@
+# ==============================================================================
+# CuteCut Pro - Google AdMob & AdSense Authorized Digital Sellers
+# Official Publisher Ownership & Crawler Verification File
+# ==============================================================================
+# Domain, Publisher ID, Relationship Type, Certification Authority ID
+google.com, pub-8898043565822840, DIRECT, f08c47fec0942fa0

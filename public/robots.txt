@@ -1,4 +1,21 @@
 User-agent: *
 Allow: /
+Allow: /app-ads.txt
+Allow: /ads.txt
+
+User-agent: Mediapartners-Google
+Allow: /
+Allow: /app-ads.txt
+Allow: /ads.txt
+
+User-agent: Google-Adwords-1
+Allow: /
+Allow: /app-ads.txt
+Allow: /ads.txt
+
+User-agent: AdsBot-Google
+Allow: /
+Allow: /app-ads.txt
+Allow: /ads.txt
 
 Sitemap: https://cutecutpro.com/sitemap.xml

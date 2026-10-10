@@ -1277,20 +1277,29 @@ export default function PreviewPlayer({
                   } catch {}
                 }
               } else if (isPlaying) {
-                if (Math.abs((videoEl.playbackRate || 1.0) - currentSpeed) > 0.05) {
-                  try {
-                    videoEl.playbackRate = Math.max(0.1, Math.min(16, currentSpeed));
-                  } catch {}
-                }
-                if (videoEl.paused) {
-                  videoEl.play().catch(() => {});
-                }
-                // Only seek if drift is significant to avoid video decoder stuttering during playback
-                const drift = Math.abs(videoEl.currentTime - clampedSrcTime);
-                if (drift > 1.2 && !videoEl.seeking) {
+                // Adaptive micro-sync for Android & Mobile Web: gently tune playback rate
+                // instead of abrupt seeking so MediaCodec hardware decoder never stutters
+                const drift = clampedSrcTime - videoEl.currentTime;
+                const absDrift = Math.abs(drift);
+
+                if (absDrift > 1.8 && !videoEl.seeking) {
+                  // User scrubbed or large jump: snap directly
                   try {
                     videoEl.currentTime = clampedSrcTime;
                   } catch {}
+                } else if (absDrift > 0.12) {
+                  // Gentle dynamic rate compensation (4-6%) to smoothly eliminate drift without buffer flushes
+                  const driftCorrection = drift > 0 ? 1.05 : 0.95;
+                  const targetRate = Math.max(0.25, Math.min(4, currentSpeed * driftCorrection));
+                  if (Math.abs((videoEl.playbackRate || 1.0) - targetRate) > 0.02) {
+                    try { videoEl.playbackRate = targetRate; } catch {}
+                  }
+                } else if (Math.abs((videoEl.playbackRate || 1.0) - currentSpeed) > 0.02) {
+                  try { videoEl.playbackRate = Math.max(0.1, Math.min(16, currentSpeed)); } catch {}
+                }
+
+                if (videoEl.paused && !videoEl.seeking) {
+                  videoEl.play().catch(() => {});
                 }
               } else {
                 if (!videoEl.paused) videoEl.pause();
